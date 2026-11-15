@@ -121,6 +121,12 @@ select { font: inherit; color: var(--ink); background: var(--surface); border: 2
 select:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px }
 .chip.gone { text-decoration: line-through; color: var(--muted); border-style: dashed }
 .chip.part { background: var(--sunk) }
+.chip.soon { background: var(--warn-bg); color: var(--warn-ink) }
+.chip.exp { color: var(--accent); border-color: var(--accent); border-style: dashed }
+#pantryDates summary { cursor: pointer; color: var(--accent); font-size: 0.92rem }
+.prows { display: grid; gap: 6px; margin-top: 8px }
+.prow { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: center; font-size: 0.95rem }
+input[type="date"] { font: inherit; font-size: 0.9rem; color: var(--ink); background: var(--surface); border: 2px solid var(--ink); border-radius: 10px; padding: 4px 8px; min-width: 0 }
 .tabs { display: flex; flex-wrap: wrap; gap: 10px }
 .tabs .chip { font-size: 1.1rem; padding: 6px 22px }
 .calcols { display: grid; gap: 24px; grid-template-columns: minmax(0, 1fr) minmax(0, 380px); align-items: start }
@@ -335,6 +341,11 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
       <div class="field">
         <div class="label"><span>食材庫</span> <b id="pantryOut"></b></div>
         <div class="chips" id="pantry"></div>
+        <p class="note" id="pantrySoon" hidden></p>
+        <details id="pantryDates" hidden>
+          <summary>加到期日（選填）</summary>
+          <div class="prows" id="pantryRows"></div>
+        </details>
         <div class="addrow">
           <input type="text" id="pantryAdd" placeholder="自己加一樣食材" maxlength="20" aria-label="加一樣食材入食材庫">
           <button type="button" class="btn2" id="pantryAddBtn">加入</button>
@@ -1371,7 +1382,8 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
       W ? "" : mealTimeRule(st.when),
       W ? weekLine(W) : st.meal === "share" ? sharePlan()
         : "For each of these countries or regions, in this order, suggest exactly 3 different dishes: " + st.countries.join("、") + ". Each must be a real home-style dish from that cuisine.",
-      stock && stock.length ? "The cook's saved pantry, which is what is left from their grocery shopping (an item marked 用過 is partly used, so there may be less of it): " + stock.map(function (g) { return g.n + (g.s === 1 ? "（用過）" : ""); }).join("、") + ". Treat these as the ingredients on hand, return them as the ingredients array, and favour the ones not yet used so that nothing is wasted." : "",
+      stock && stock.length ? "The cook's saved pantry, which is what is left from their grocery shopping (an item marked 用過 is partly used, so there may be less of it): " + stock.map(function (g) { var dl = daysLeft(g); return g.n + (g.s === 1 ? "（用過）" : "") + (dl !== null ? "（best before " + g.e + ", " + dl + " day(s) left）" : ""); }).join("、") + ". Treat these as the ingredients on hand, return them as the ingredients array (names only, without the notes in brackets), and favour the ones not yet used so that nothing is wasted."
+        + (stock.some(function (g) { return daysLeft(g) !== null; }) ? " Best-before dates matter: build dishes around the ingredients with the fewest days left first, so they are eaten before they expire" + (W ? "; in this multi-day plan, put any dish that uses a dated ingredient on a day on or before that ingredient's last day (day 1 is today), and never later" : "") + ". Say in each such dish's description which soon-to-expire ingredient it uses up." : "") : "",
       "You do NOT have to use every ingredient. For each dish pick only the few ingredients that genuinely suit it, and leave the rest out. Common pantry staples may be added. Make the dishes for a country differ in main ingredient or cooking style where possible.",
       "In uses, list only the cook's own ingredients that the dish uses. In extra, list only the other MAIN ingredients the dish needs that the cook would have to buy: the meat, fish, vegetables, tofu, eggs, noodles and the like (names only, no quantities, at most 6). Leave out sauces, seasonings, oil, sugar, salt, spices, stock, cornstarch and aromatics such as garlic, ginger and spring onion. If the cook gave no ingredients, put all the main ingredients in extra.",
       mealRules(st.meal, st.servings),
@@ -1685,12 +1697,18 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
   var pantry = { items: [], cooked: [], t: 0 }, pantryTimer = null;   // item: { n: name, s: 0 in stock | 1 partly used | 2 gone }
   function pantryClean(v) {
     if (!v || typeof v !== "object") return;
-    pantry.items = (Array.isArray(v.items) ? v.items : []).filter(function (g) { return g && typeof g.n === "string" && g.n; }).slice(0, 150).map(function (g) { return { n: g.n.slice(0, 30), s: g.s === 1 || g.s === 2 ? g.s : 0 }; });
+    pantry.items = (Array.isArray(v.items) ? v.items : []).filter(function (g) { return g && typeof g.n === "string" && g.n; }).slice(0, 150).map(function (g) { return { n: g.n.slice(0, 30), s: g.s === 1 || g.s === 2 ? g.s : 0, e: /^\d{4}-\d{2}-\d{2}$/.test(g.e || "") ? g.e : "" }; });
     pantry.cooked = (Array.isArray(v.cooked) ? v.cooked : []).filter(function (c) { return c && typeof c.d === "string"; }).slice(0, 20).map(function (c) { return { d: c.d.slice(0, 40), t: Number(c.t) || 0 }; });
     pantry.t = Number(v.t) || 0;
   }
   try { pantryClean(JSON.parse(localStorage.getItem("recipe-maker-pantry") || "null")); } catch (e) {}
-  function pantryStock() { return pantry.items.filter(function (g) { return g.s < 2; }); }
+  // Whole days until the best-before date: 0 = today, negative = past it, null = no date set.
+  function daysLeft(g) {
+    if (!g.e) return null;
+    var a = g.e.split("-"), t = new Date();
+    return Math.round((new Date(+a[0], +a[1] - 1, +a[2]) - new Date(t.getFullYear(), t.getMonth(), t.getDate())) / 86400000);
+  }
+  function pantryStock() { return pantry.items.filter(function (g) { var d = daysLeft(g); return g.s < 2 && (d === null || d >= 0); }); }
   function pantrySave() {
     pantry.t = Date.now();
     try { localStorage.setItem("recipe-maker-pantry", JSON.stringify(pantry)); } catch (e) {}
@@ -1713,7 +1731,7 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
       n = String(n || "").trim().slice(0, 30); if (!n) return;
       var g = pantryFind(n);
       if (g) { if (g.s === 2) { g.s = 0; changed = true; } }
-      else if (pantry.items.length < 150) { pantry.items.push({ n: n, s: 0 }); changed = true; }
+      else if (pantry.items.length < 150) { pantry.items.push({ n: n, s: 0, e: "" }); changed = true; }
     });
     if (changed) pantrySave();
   }
@@ -1725,15 +1743,33 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
   function drawPantry() {
     var box = $("pantry"); box.textContent = "";
     var stock = pantryStock();
-    pantry.items.forEach(function (g) {
-      var b = el("button", "chip" + (g.s === 2 ? " gone" : g.s === 1 ? " part" : ""), g.n + (g.s === 1 ? " · 用過" : "")); b.type = "button";
-      b.setAttribute("aria-label", g.n + (g.s === 2 ? "，用完" : g.s === 1 ? "，用過，仲有" : "，有"));
+    var sorted = pantry.items.slice().sort(function (a, b) {
+      var x = daysLeft(a), y = daysLeft(b);
+      return (a.s === 2) - (b.s === 2) || (x === null) - (y === null) || (x || 0) - (y || 0);
+    });
+    var soon = [];
+    sorted.forEach(function (g) {
+      var dl = daysLeft(g), tag = "";
+      if (g.s < 2 && dl !== null) { tag = dl < 0 ? " · 過期" : dl === 0 ? " · 今日到期" : " · 剩 " + dl + " 日"; if (dl >= 0 && dl <= 3) soon.push(g.n + (dl === 0 ? "（今日）" : "（" + dl + " 日）")); }
+      var cls = g.s === 2 ? " gone" : dl !== null && dl < 0 ? " exp" : dl !== null && dl <= 3 ? " soon" : g.s === 1 ? " part" : "";
+      var b = el("button", "chip" + cls, g.n + (g.s === 1 ? " · 用過" : "") + tag); b.type = "button";
+      b.setAttribute("aria-label", g.n + (g.s === 2 ? "，用完" : g.s === 1 ? "，用過，仲有" : "，有") + tag.replace(" · ", "，"));
       b.onclick = function () { g.s = g.s === 2 ? 0 : 2; pantrySave(); };
       box.appendChild(b);
     });
     $("pantryOut").textContent = pantry.items.length ? "仲有 " + stock.length + " 樣" : "";
+    $("pantrySoon").hidden = !soon.length; $("pantrySoon").textContent = "就嚟到期，會優先用：" + soon.join("、");
+    $("pantryDates").hidden = !pantry.items.some(function (g) { return g.s < 2; });
+    var rows = $("pantryRows"); rows.textContent = "";
+    sorted.forEach(function (g) {
+      if (g.s === 2) return;
+      var r = el("label", "prow"); r.appendChild(el("span", null, g.n));
+      var d = el("input"); d.type = "date"; d.value = g.e || ""; d.setAttribute("aria-label", g.n + " 到期日");
+      d.onchange = function () { g.e = /^\d{4}-\d{2}-\d{2}$/.test(d.value) ? d.value : ""; pantrySave(); };
+      r.appendChild(d); rows.appendChild(r);
+    });
     $("pantryHint").textContent = pantry.items.length
-      ? "㩒一下食材標記「用完」，再㩒就變返有。唔加相嘅時候，會用呢度仲有嘅食材去諗餸。"
+      ? "㩒一下食材標記「用完」，再㩒就變返有。唔加相嘅時候，會用呢度仲有嘅食材去諗餸；加咗到期日嘅會先用快到期嘅，過咗期嘅唔會用。"
       : "影過相之後，認到嘅食材會自動存喺呢度。之後唔使再影，都可以用剩低嘅食材諗今餐或者成個禮拜。";
     var ck = $("pantryCooked"); ck.hidden = !pantry.cooked.length;
     ck.textContent = "煮過：" + pantry.cooked.slice(0, 8).map(function (c) { var d = new Date(c.t); return c.d + "（" + (d.getMonth() + 1) + "/" + d.getDate() + "）"; }).join("、");

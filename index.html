@@ -375,6 +375,12 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
       </div>
 
       <div class="field">
+        <div class="label"><span>飲食方式 <small>選填</small></span> <b id="dietOut"></b></div>
+        <div class="chips seg" id="dietSeg" role="radiogroup" aria-label="飲食方式"></div>
+        <p class="hint" id="dietHint"></p>
+      </div>
+
+      <div class="field">
         <div class="label"><span>卡路里上限 <small>選填</small></span> <b id="kcalOut"></b></div>
         <div class="chips seg" id="kcalSeg" role="radiogroup" aria-label="每人卡路里上限"></div>
         <p class="hint" id="kcalHint"></p>
@@ -479,6 +485,25 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
   var MEAL = ["set","share"];
   var HEALTH = [ANY,3,4,5];
   var KCAL = [ANY,-2,300,400,500,600,800,1000];
+  var DIETS = {
+    none: ["冇特別", "", ""],
+    keto: ["生酮", "極低碳水、高脂肪、適量蛋白質；唔用飯、麵、麵包、糖同粟粉。",
+      "Ketogenic: very low carbohydrate (about 10 g net carbs or less per person per dish), high fat, moderate protein. No rice, noodles, bread, flour, sugar, honey, starchy vegetables, sweet sauces or cornstarch thickening. This overrides any instruction to include a staple or to serve with rice: use low-carb substitutes such as cauliflower rice or konjac noodles if a base is wanted."],
+    lowcarb: ["低碳", "少飯少麵少糖，每個菜式碳水大約 25 克以內。",
+      "Low-carb: keep each dish to about 25 g carbohydrate or less per person. Little or no rice, noodles, bread, sugar or starchy thickening; this overrides any instruction to include a staple, which may be a small portion or a low-carb substitute."],
+    med: ["地中海", "多菜、豆、全穀、魚同橄欖油，少紅肉同加工食品。",
+      "Mediterranean-style: built on vegetables, legumes, whole grains, fish and seafood, olive oil, nuts and herbs; poultry, eggs and dairy in moderation; little red meat; no processed meat; little added sugar. When the cuisine is not Mediterranean, keep its flavours but follow these principles (for example steaming or light stir-frying with a little oil, more vegetables and fish, brown rice or whole grains)."],
+    protein: ["高蛋白", "每餐蛋白質大約 30 克或以上。",
+      "High-protein: each individual meal, or each person's share of a shared meal in total, should supply at least about 30 g protein. Favour lean meat, fish, eggs, tofu and beans."],
+    veg: ["蛋奶素", "冇肉、冇魚、冇海鮮，可以有蛋同奶。",
+      "Vegetarian (lacto-ovo): no meat, poultry, fish, seafood, or stocks and sauces made from them (no oyster sauce, fish sauce, shrimp paste, lard, meat stock). Eggs and dairy are fine. Where meat dishes were requested, give protein-rich meat-free mains (tofu, egg, beans, mushrooms) instead and set their type to \"other\"."],
+    vegan: ["純素", "完全冇動物成份，包括蛋、奶同蜜糖。",
+      "Vegan: no animal products at all: no meat, poultry, fish, seafood, eggs, dairy, honey, or stocks and sauces made from them (no oyster sauce, fish sauce, shrimp paste, lard). Where meat dishes were requested, give protein-rich plant mains (tofu, tempeh, beans, mushrooms) instead and set their type to \"other\"."],
+    gf: ["無麩質", "冇小麥、大麥、黑麥；豉油要用無麩質嘅。",
+      "Gluten-free: no wheat, barley or rye in any form: no wheat noodles, bread, flour, dumpling wrappers, seitan, or ordinary soy sauce, oyster sauce or other sauces that contain wheat (say to use gluten-free tamari or a labelled gluten-free version). Rice, rice noodles and cornstarch are fine."]
+  };
+  var DIET_KEYS = ["none", "keto", "lowcarb", "med", "protein", "veg", "vegan", "gf"];
+  function dietRule(k) { return k && DIETS[k] && DIETS[k][2] ? "Diet: the cook follows this way of eating, and every dish must fit it strictly. " + DIETS[k][2] : ""; }
   var DISHES = [1,2,3,4,5], PART = [ANY,0,1,2,3];
   var MEATS = ["豬","牛","雞","鴨","羊","魚","蝦蟹貝類"];
   var CUTS = {
@@ -492,7 +517,7 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
   };
   var METHODS = ["蒸","炒","煎","炸","焗","炆燉","水煮","煲湯","氣炸","涼拌"];
 
-  var st = { countries: ["香港","日本"], cook: ANY, marinate: ANY, total: 60, servings: 2, meal: "set", health: ANY, methods: [], dishes: 3, meatN: ANY, vegN: ANY, meats: [], cuts: {}, kcalMax: ANY, plan: "meal", wDays: 7, wMeals: ["晚餐"], when: "晚餐" };
+  var st = { countries: ["香港","日本"], cook: ANY, marinate: ANY, total: 60, servings: 2, meal: "set", health: ANY, methods: [], dishes: 3, meatN: ANY, vegN: ANY, meats: [], cuts: {}, kcalMax: ANY, plan: "meal", wDays: 7, wMeals: ["晚餐"], when: "晚餐", diet: "none" };
   try {
     var saved = JSON.parse(localStorage.getItem("recipe-maker-zh") || "null");
     if (saved && Array.isArray(saved.countries)) {
@@ -505,6 +530,7 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
       if (HEALTH.indexOf(saved.health) >= 0) st.health = saved.health;
       if (KCAL.indexOf(saved.kcalMax) >= 0) st.kcalMax = saved.kcalMax;
       if (saved.plan === "week") st.plan = "week";
+      if (typeof saved.diet === "string" && saved.diet in DIETS) st.diet = saved.diet;
       if (["早餐", "午餐", "晚餐"].indexOf(saved.when) >= 0) st.when = saved.when;
       if ([3, 5, 7].indexOf(saved.wDays) >= 0) st.wDays = saved.wDays;
       if (Array.isArray(saved.wMeals)) { var wm = saved.wMeals.filter(function (x) { return x === "早餐" || x === "午餐" || x === "晚餐"; }); if (wm.length) st.wMeals = wm; }
@@ -708,12 +734,14 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
     var slots = st.wDays * daily;
     return { days: st.wDays, meals: meals, per: per, daily: daily, slots: slots, pool: Math.min(30, slots + Math.max(3, Math.ceil(slots * 0.4))) };
   }
+  seg("dietSeg", "dietOut", DIET_KEYS, "diet", function (v) { return DIETS[v][0]; });
   function hearts(h) { var o = ""; for (var k = 1; k <= 5; k++) o += k <= h ? "●" : "○"; return o; }
   function timeNote() {
     $("mealHint").textContent = st.meal === "set"
       ? "每個菜式都是完整一餐，例如碟頭飯、丼、麵或套餐，每人一份。"
       : "每個菜式是一碟餸，幾個人一齊分，另外配白飯。下面可以揀幾多個餸、幾多肉幾多菜。";
     $("shareOpts").hidden = st.meal !== "share";
+    $("dietHint").textContent = st.diet === "none" ? "例如生酮、地中海、素食。揀咗之後，所有建議同食譜都會跟足。" : DIETS[st.diet][1] + "如有長期病患、懷孕或者食緊藥，轉飲食方式之前請先問醫生或營養師。";
     var wk = st.plan === "week";
     $("weekOpts").hidden = !wk; $("whenField").hidden = wk;
     $("planHint").textContent = wk ? "買完餸一次過影晒（可以加多張相），會俾一個禮拜嘅選擇你，每日食乜由你揀。" : "諗今餐煮乜。";
@@ -1062,6 +1090,7 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
     if (r) {
       var meta = el("div", "meta");
       meta.appendChild(el("span", null, (r.servings || S.servings) + (S.meal === "share" ? " 人分享" : " 人份")));
+      if (S.diet && S.diet !== "none" && DIETS[S.diet]) meta.appendChild(el("span", null, DIETS[S.diet][0]));
       if (idea.method) meta.appendChild(el("span", null, idea.method));
       if (r.health) meta.appendChild(el("span", null, "健康 " + r.health + "/5"));
       if (r.kcal) meta.appendChild(el("span", null, r.kcal + " kcal／人"));
@@ -1230,7 +1259,7 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
       "You plan the cooking order for a home cook in Hong Kong who is making several dishes for one shared meal, alone, in a small home kitchen.",
       LANG,
       "Kitchen: 2 stove burners, 1 rice cooker, a kettle, and an oven or air fryer only if a recipe needs one. There is one cook, so only one hands-on task at a time, but waiting time (marinating, simmering, steaming, rice cooking, baking) can overlap with hands-on work on another dish.",
-      "Servings: " + S.servings + ". Plain rice is served with the meal: include starting the rice cooker at the right moment.",
+      S.diet === "keto" || S.diet === "lowcarb" ? "Servings: " + S.servings + ". The cook eats low-carb, so do not add rice or any other staple." : "Servings: " + S.servings + ". Plain rice is served with the meal: include starting the rice cooker at the right moment.",
       "Dishes and their recipes (JSON): " + JSON.stringify(data),
       "Write ONE merged timeline that gets every dish to the table hot at the same time in the shortest total time. Start whatever takes longest first (marinating, soup, braises, rice). Batch similar prep (wash and cut everything together). Use waiting time to work on other dishes. Never need more than 2 burners at once. Finish quick stir-fries and green vegetables last. Keep every recipe step: do not drop or change the cooking itself, only reorder and interleave it.",
       "Each timeline entry is one hands-on task. startMin is minutes from the start, minutes is how long the task takes, dish is the dish name exactly as given above (or 全部 for shared tasks such as rice or washing and cutting everything), task is the instruction. Order entries by startMin. totalMin is when everything is on the table.",
@@ -1297,6 +1326,7 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
       "Calories: set kcal to an honest estimate of the calories ONE person eats from this dish (for a shared dish, one person's share, not counting plain rice).",
       kcalRule(kcalNow(), st.meal, dishTotal()) + (W && kcalNow() > 0 ? " This limit applies to each meal of the week." : ""),
       goalRule(),
+      dietRule(st.diet),
       st.methods.length
         ? "Cooking method: the main cooking method of every dish must be one of these: " + st.methods.join("、") + ". These are alternatives: each dish uses one of them, and across the dishes every listed method should appear at least once where the number of dishes allows. Set method to the one used, written exactly as in this list. If a method clashes with the health minimum, use a lighter version of the dish that still satisfies both."
         : "Cooking method: any. Set method to the dish's main cooking method in one or two Chinese characters (for example 蒸, 炒, 煎, 炸, 焗, 炆, 水煮, 煲湯, 涼拌).",
@@ -1324,6 +1354,7 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
         ? "Calorie limit: this dish is one of " + S.target.n + " in a meal capped at " + S.kcalMax + " kcal per person (not counting rice)" + (idea.kcal ? "; the menu promised about " + idea.kcal + " kcal per person for it, so keep to that or less." : ".")
         : "Calorie limit: at most " + S.kcalMax + " kcal per person. Adjust quantities and oil to stay inside it.") : "",
       S.goalLine || "",
+      dietRule(S.diet),
       mealTimeRule(idea.meal || S.when || ""),
       "Nutrition: estimate from the actual ingredient quantities, per person (total divided by servings" + (S.meal === "share" ? ", not counting plain rice served alongside" : "") + "): kcal, proteinG, carbsG and fatG as whole numbers. Count cooking oil, sugar and sauces.",
       idea.method ? "Main cooking method: " + idea.method + ". The menu promised this method, so the recipe must use it." : "",
@@ -1366,7 +1397,7 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
         var d = cleanIdeas(raw);
         busy(false);
         if (!d.ideas.length) { showError(d.note || "認不到食物。請試一張更清楚、更光的相片。"); render(); return; }
-        S = { isExample: false, limits: L, servings: servings, notes: notes, meal: meal, minHealth: minHealth, kcalMax: kcalMax, goalLine: goalRule(), when: W ? "" : st.when, general: !d.ingredients.length, picks: [], plan: null, planMsg: "", target: { n: dishTotal(), m: st.meatN, v: st.vegN }, ingredients: d.ingredients, ideas: d.ideas,
+        S = { isExample: false, limits: L, servings: servings, notes: notes, meal: meal, minHealth: minHealth, kcalMax: kcalMax, goalLine: goalRule(), diet: st.diet, when: W ? "" : st.when, general: !d.ingredients.length, picks: [], plan: null, planMsg: "", target: { n: dishTotal(), m: st.meatN, v: st.vegN }, ingredients: d.ingredients, ideas: d.ideas,
           photoUrl: hasPhoto ? URL.createObjectURL(opts.images[0]) : null, week: null };
         if (W) {
           var t0 = new Date(), slots = {}, used = {};

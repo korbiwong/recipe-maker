@@ -13,6 +13,10 @@
 <link rel="apple-touch-icon" href="icon-180.png">
 <style>html{box-sizing:border-box}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=LXGW+Marker+Gothic&family=Iansui&display=swap">
+<script src="firebase-config.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="app.js"></script>
 </head>
 <body>
@@ -543,7 +547,7 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
         <div class="label"><span>活動量</span></div>
         <div class="chips seg" id="actSeg" role="radiogroup" aria-label="活動量"></div>
       </div>
-      <p class="hint">呢啲資料只存喺呢部裝置。</p>
+      <p class="hint">登入咗就會跟你個帳戶同步；未登入就只存喺呢部裝置。</p>
     </div>
     <div class="ticket daycard" id="meOut"></div>
   </section>
@@ -1662,7 +1666,7 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
     cal.days = {}; cal.loaded = false; cal.note = ""; drawCal();
     dbReady.then(function (col) {
       if (token !== calToken) return;
-      if (!col) { cal.days = cleanDays(localGet(y, m)); cal.loaded = true; cal.note = "獨立版嘅記錄只存喺呢部裝置嘅瀏覽器，唔會同步去其他裝置；清除瀏覽器資料會一齊清走。"; drawCal(); return; }
+      if (!col) { cal.days = cleanDays(localGet(y, m)); cal.loaded = true; cal.note = "未登入：記錄只存喺呢部裝置。㩒上面「登入同步」登入之後，就會跟住你個帳戶去其他裝置。"; drawCal(); return; }
       calTimer = setTimeout(function () { if (token === calToken) { cal.note = "暫時連唔到記錄，見到嘅可能唔係最新。"; drawCal(); } }, 10000);
       calUnsub = col.doc(mKey(y, m)).onSnapshot(function (snap) {
         if (token !== calToken) return;

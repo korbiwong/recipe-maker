@@ -8,7 +8,12 @@ This is the standalone version. It is a static site (no server), so it can be ho
 
 - `index.html` is the whole app. `app.js` is the bundled bridge to the Claude API (built from `src/shim.js`).
 - Dish ideas and recipes are written by Claude. Each person enters their own Anthropic API key in the app ("設定 API key"). The key is stored only in that browser and sent only to Anthropic. Usage is billed to that key.
-- The calendar and body profile are stored in the browser on that device. They do not sync between devices.
+- Signed out, the calendar, pantry and goal are stored in the browser on that device only.
+- Signed in (the "登入同步" button, email and password), they are stored per account in Firebase and follow the account across devices. Other accounts cannot read them. This uses the Firebase project in `firebase-config.js`, the same one as Focus Pebbles, so the same accounts work.
+
+## One-time Firebase step for sync
+
+Add the rule in `firestore-rules-to-add.txt` to that project's Firestore rules (Firebase console, Firestore Database, Rules, Publish). Until then, sign-in works but saving and loading fail.
 
 ## Put it on GitHub Pages
 

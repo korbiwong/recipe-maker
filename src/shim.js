@@ -66,7 +66,49 @@ sample.json = async (input, opts) => {
 };
 sample.limits = async () => ({ images: { maxCount: 8, maxInputBytes: 40 * 1024 * 1024, mediaTypes: ["image/jpeg", "image/png", "image/webp", "image/gif"] } });
 
-if (!window.claude) window.claude = { use: (name) => Promise.resolve(name === "sample" ? sample : null) };
+/* ---- optional accounts and sync, through the site owner's Firebase project ----
+   Signed in: calendar, pantry and goal are stored per account under recipeMaker/<uid>/docs/* and follow the
+   account across devices. Signed out, or Firebase unreachable: everything stays in this browser only. */
+let fb = null, firstUser = null, acctBtn = null, acctDlg = null;
+function fbInit() {
+  if (fb !== null) return fb;
+  try {
+    if (!window.firebase || !window.FIREBASE_CONFIG) return (fb = false);
+    if (!window.firebase.apps.length) window.firebase.initializeApp(window.FIREBASE_CONFIG);
+    fb = { auth: window.firebase.auth(), db: window.firebase.firestore() };
+  } catch (e) { fb = false; }
+  return fb;
+}
+function currentUid() {
+  const f = fbInit();
+  if (!f) return Promise.resolve(null);
+  if (!firstUser) firstUser = new Promise((res) => {
+    let first = true;
+    // The page reads the account once at start, so a later sign-in or sign-out reloads it.
+    f.auth.onAuthStateChanged((u) => { acctLabel(u); if (first) { first = false; res(u ? u.uid : null); } else location.reload(); });
+    setTimeout(() => { if (first) { first = false; res(null); } }, 8000);
+  });
+  return firstUser;
+}
+const userNs = { id: currentUid };
+const dbNs = {
+  // The page asks for "data/users/<uid>"; map that to this app's own per-account collection.
+  collection(path) {
+    const uid = String(path).split("/").pop();
+    const col = fbInit().db.collection("recipeMaker").doc(uid).collection("docs");
+    return { doc: (k) => col.doc(k) };
+  },
+};
+function acctLabel(u) { if (acctBtn) acctBtn.textContent = u ? "已登入：" + (u.email || "").split("@")[0] : "登入同步"; }
+const AUTH_COPY = {
+  "auth/invalid-credential": "電郵或者密碼唔啱。", "auth/wrong-password": "電郵或者密碼唔啱。", "auth/user-not-found": "搵唔到呢個帳戶，可以㩒「開新帳戶」。",
+  "auth/email-already-in-use": "呢個電郵已經有帳戶，請直接登入。", "auth/weak-password": "密碼最少要 6 個字。", "auth/invalid-email": "電郵格式唔啱。",
+  "auth/network-request-failed": "連唔到網絡，請再試。", "auth/too-many-requests": "試得太多次，等一陣再試。",
+};
+
+if (!window.claude) window.claude = {
+  use: (name) => Promise.resolve(name === "sample" ? sample : name === "db" ? (fbInit() ? dbNs : null) : name === "user" ? (fbInit() ? userNs : null) : null),
+};
 
 /* ---- API key settings ---- */
 let dlg = null, btn = null;
@@ -91,5 +133,35 @@ document.addEventListener("DOMContentLoaded", () => {
   document.body.appendChild(dlg);
   btn = h("button", "chip"); btn.type = "button"; btn.onclick = openSettings; label();
   const tabs = document.querySelector(".tabs"); if (tabs) tabs.appendChild(btn);
+
+  // Account dialog
+  const f = fbInit();
+  if (f && tabs) {
+    acctDlg = h("dialog", "keydlg");
+    acctDlg.appendChild(h("h2", null, "登入同步"));
+    acctDlg.appendChild(h("p", "desc", "登入之後，飲食日曆、食材庫同目標會跟住你個帳戶，喺邊部裝置登入都係同一份；其他帳戶睇唔到你嘅資料。用嘅係同 Focus Pebbles 一樣嘅帳戶。"));
+    const em = h("input"); em.type = "email"; em.placeholder = "電郵"; em.autocomplete = "email"; em.setAttribute("aria-label", "電郵");
+    const pw = h("input"); pw.type = "password"; pw.placeholder = "密碼（最少 6 個字）"; pw.autocomplete = "current-password"; pw.setAttribute("aria-label", "密碼");
+    const msg = h("p", "hint", "");
+    const row2 = h("div", "acts2");
+    const run = (fn) => { msg.textContent = "處理緊…"; fn().then(() => { msg.textContent = ""; acctDlg.close(); }, (e) => { msg.textContent = AUTH_COPY[e && e.code] || "做唔到，請再試。"; }); };
+    const inBtn = h("button", "primary", "登入"); inBtn.type = "button"; inBtn.onclick = () => run(() => f.auth.signInWithEmailAndPassword(em.value.trim(), pw.value));
+    const upBtn = h("button", "btn2", "開新帳戶"); upBtn.type = "button"; upBtn.onclick = () => run(() => f.auth.createUserWithEmailAndPassword(em.value.trim(), pw.value));
+    const outBtn = h("button", "btn2", "登出"); outBtn.type = "button"; outBtn.onclick = () => run(() => f.auth.signOut());
+    const shut = h("button", "btn2", "關閉"); shut.type = "button"; shut.onclick = () => acctDlg.close();
+    row2.appendChild(inBtn); row2.appendChild(upBtn); row2.appendChild(outBtn); row2.appendChild(shut);
+    acctDlg.appendChild(em); acctDlg.appendChild(pw); acctDlg.appendChild(row2); acctDlg.appendChild(msg);
+    document.body.appendChild(acctDlg);
+    acctBtn = h("button", "chip", "登入同步"); acctBtn.type = "button";
+    acctBtn.onclick = () => {
+      const u = f.auth.currentUser;
+      em.hidden = pw.hidden = inBtn.hidden = upBtn.hidden = !!u; outBtn.hidden = !u;
+      msg.textContent = u ? "而家登入緊：" + (u.email || "") : "";
+      acctDlg.showModal();
+    };
+    tabs.appendChild(acctBtn);
+    currentUid();
+    acctLabel(f.auth.currentUser);
+  }
 });
 if ("serviceWorker" in navigator) window.addEventListener("load", () => { navigator.serviceWorker.register("sw.js").catch(() => {}); });

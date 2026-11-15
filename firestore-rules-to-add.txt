@@ -1,0 +1,10 @@
+// Add this block to the Firestore rules of the Firebase project named in firebase-config.js
+// (Firebase console > Firestore Database > Rules), inside
+//   match /databases/{database}/documents { ... }
+// next to the existing rules, then press Publish.
+//
+// It lets each signed-in account read and write only its own 食譜製造器 data.
+
+    match /recipeMaker/{uid}/{document=**} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+    }

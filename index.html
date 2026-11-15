@@ -517,7 +517,7 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
         <div class="addrow" id="meWeeksRow" hidden>
           <label class="numf">想喺 <input type="number" id="meWeeks" inputmode="numeric" min="1" max="104" step="1"> 個星期內做到</label>
         </div>
-        <p class="hint">填咗理想體重，就會按你想要嘅速度計每日食幾多、要幾耐；唔填就用上面「目標」嘅預設速度。</p>
+        <p class="hint">填咗理想體重，就會按你揀嘅速度計每日食幾多、要幾耐。冇做運動嘅話，每週 0.5 至 0.75 kg 會易做啲；有運動可以揀 1 kg，記得將下面「活動量」調高。</p>
       </div>
       <div class="field">
         <div class="label"><span>年齡同性別 <small>選填，填咗會準啲</small></span></div>
@@ -616,7 +616,7 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
     if (!v || typeof v !== "object") return;
     if (["none", "cut", "bulk"].indexOf(v.goal) >= 0) me.goal = v.goal;
     me.h = Number(v.h) || 0; me.w = Number(v.w) || 0; me.age = Number(v.age) || 0;
-    me.tw = Number(v.tw) || 0; me.weeks = Number(v.weeks) || 0; me.pace = [0, 0.25, 0.5, 0.75].indexOf(v.pace) >= 0 ? v.pace : 0.5;
+    me.tw = Number(v.tw) || 0; me.weeks = Number(v.weeks) || 0; me.pace = [0, 0.5, 0.75, 1].indexOf(v.pace) >= 0 ? v.pace : 0.5;
     me.sex = v.sex === "m" || v.sex === "f" ? v.sex : ""; me.act = [0, 1, 2, 3].indexOf(v.act) >= 0 ? v.act : 1; me.t = Number(v.t) || 0;
   }
   try { meClean(JSON.parse(localStorage.getItem("recipe-maker-me") || "null")); } catch (e) {}
@@ -625,7 +625,7 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
     var age = me.age >= 18 && me.age <= 100 ? me.age : 0;
     var bmr = 10 * me.w + 6.25 * me.h - 5 * (age || 30) + (me.sex === "m" ? 5 : me.sex === "f" ? -161 : -78);
     var tdee = bmr * [1.2, 1.375, 1.55, 1.725][me.act], h2 = Math.pow(me.h / 100, 2), bmi = me.w / h2;
-    var floor = me.sex === "m" ? 1500 : me.sex === "f" ? 1200 : 1350, target = tdee, warn = [], rate = 0;
+    var target = tdee, warn = [], rate = 0;
     var tw = me.tw >= 30 && me.tw <= 250 ? me.tw : 0, diff = tw ? tw - me.w : 0;
     // With a target weight, the direction comes from it; otherwise from the goal chip.
     var dir = tw ? (Math.abs(diff) < 0.5 ? "none" : diff < 0 ? "cut" : "bulk") : me.goal;
@@ -634,12 +634,12 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
     if (dir === "cut") {
       if (bmi < 18.5) warn.push("你而家嘅 BMI 已經偏低，唔建議再減，所以目標定喺維持體重嘅份量。");
       else {
-        var cap = Math.min(1, me.w * 0.01), r = Math.min(want, cap);
-        if (want > cap + 0.01) warn.push("你想要嘅速度係每星期約 " + want.toFixed(2) + " kg，太快喇；安全上限大約係每星期 " + cap.toFixed(2) + " kg（體重嘅 1%），所以用咗呢個速度。");
-        target = Math.max(tdee - r * 1100, floor);
-        rate = (tdee - target) * 7 / 7700;
-        if (rate < r - 0.05) warn.push("再食少會低過安全下限（每日 " + floor + " kcal），所以實際會慢過你想要嘅速度；加多啲運動會比再食少好。");
-        if (tw && tw / h2 < 18.5) warn.push("你嘅理想體重 BMI 係 " + (tw / h2).toFixed(1) + "，低過 18.5 屬於過輕，建議將目標調高到至少 " + Math.ceil(18.5 * h2) + " kg。");
+        var r = Math.min(want, 1);
+        if (want > 1.01) warn.push("你想要嘅速度係每星期約 " + want.toFixed(2) + " kg；呢度最快計到每星期 1 kg，所以用咗 1 kg。");
+        target = Math.max(tdee - r * 1100, 0);
+        rate = r;
+        if (target < bmr) warn.push("呢個份量低過你嘅基礎代謝（約 " + Math.round(bmr) + " kcal）。純粹靠食少會幾辛苦，加運動（將「活動量」調高）可以食多啲都達到同一個速度。");
+        if (tw && tw / h2 < 18.5) warn.push("你嘅理想體重 BMI 係 " + (tw / h2).toFixed(1) + "，低過 18.5 屬於過輕。");
       }
     } else if (dir === "bulk") {
       var r2 = Math.min(want, 0.5);
@@ -1903,7 +1903,7 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
     radio("actSeg", [[0, "少郁（多數坐）"], [1, "輕度（每週運動 1–3 日）"], [2, "中度（每週 3–5 日）"], [3, "高（每週 6–7 日）"]], "act");
     $("meH").value = me.h || ""; $("meW").value = me.w || ""; $("meAge").value = me.age || "";
     $("meTW").value = me.tw || ""; $("meWeeks").value = me.weeks || "";
-    radio("paceSeg", [[0.25, "慢慢嚟（每週 0.25 kg）"], [0.5, "適中（每週 0.5 kg）"], [0.75, "快啲（每週 0.75 kg）"], [0, "自己定期限"]], "pace");
+    radio("paceSeg", [[0.5, "每週 0.5 kg"], [0.75, "每週 0.75 kg"], [1, "每週 1 kg"], [0, "自己定期限"]], "pace");
     drawMeOut();
   }
   [["meH", "h"], ["meW", "w"], ["meAge", "age"], ["meTW", "tw"], ["meWeeks", "weeks"]].forEach(function (f) {

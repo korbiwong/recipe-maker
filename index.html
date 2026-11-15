@@ -759,6 +759,7 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
     return { days: st.wDays, meals: meals, per: per, daily: daily, slots: slots, prep: prep, rec: rec,
       pool: prep ? Math.min(20, recAll + Math.max(2, Math.ceil(recAll * 0.5))) : Math.min(30, slots + Math.max(3, Math.ceil(slots * 0.4))) };
   }
+  seg("dietSeg", "dietOut", DIET_KEYS, "diet", function (v) { return DIETS[v][0]; });
   function hearts(h) { var o = ""; for (var k = 1; k <= 5; k++) o += k <= h ? "●" : "○"; return o; }
   function timeNote() {
     $("mealHint").textContent = st.meal === "set"

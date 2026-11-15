@@ -127,6 +127,7 @@ select:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px }
 .prows { display: grid; gap: 6px; margin-top: 8px }
 .prow { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: center; font-size: 0.95rem }
 input[type="date"] { font: inherit; font-size: 0.9rem; color: var(--ink); background: var(--surface); border: 2px solid var(--ink); border-radius: 10px; padding: 4px 8px; min-width: 0 }
+#pantryView .primary { font-size: 1.05rem; padding: 8px 18px; letter-spacing: 0.1em }
 .tabs { display: flex; flex-wrap: wrap; gap: 10px }
 .tabs .chip { font-size: 1.1rem; padding: 6px 22px }
 .calcols { display: grid; gap: 24px; grid-template-columns: minmax(0, 1fr) minmax(0, 380px); align-items: start }
@@ -293,6 +294,7 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
 
   <nav class="tabs" aria-label="版面">
     <button type="button" class="chip" id="tabCook" aria-pressed="true">煮乜好</button>
+    <button type="button" class="chip" id="tabPantry" aria-pressed="false">食材庫</button>
     <button type="button" class="chip" id="tabCal" aria-pressed="false">飲食日曆</button>
     <button type="button" class="chip" id="tabMe" aria-pressed="false">我嘅目標</button>
   </nav>
@@ -339,20 +341,9 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
       </div>
 
       <div class="field">
-        <div class="label"><span>食材庫</span> <b id="pantryOut"></b></div>
-        <div class="chips" id="pantry"></div>
-        <p class="note" id="pantrySoon" hidden></p>
-        <details id="pantryDates" hidden>
-          <summary>加到期日（選填）</summary>
-          <div class="prows" id="pantryRows"></div>
-        </details>
-        <div class="addrow">
-          <input type="text" id="pantryAdd" placeholder="自己加一樣食材" maxlength="20" aria-label="加一樣食材入食材庫">
-          <button type="button" class="btn2" id="pantryAddBtn">加入</button>
-        </div>
-        <p class="hint" id="pantryHint"></p>
-        <p class="hint" id="pantryCooked" hidden></p>
-        <button type="button" class="linkbtn" id="pantryClear" hidden>清空食材庫</button>
+        <div class="label"><span>食材庫</span> <b id="pantryMini"></b></div>
+        <p class="hint" id="pantryMiniHint"></p>
+        <button type="button" class="linkbtn" id="pantryGo">去「食材庫」加減食材 →</button>
       </div>
 
       <div class="field">
@@ -459,6 +450,35 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
       <article class="recipe" id="recipe"></article>
     </section>
   </div>
+
+  <section id="pantryView" hidden aria-label="食材庫">
+    <div class="ticket calcard">
+      <div class="field">
+        <div class="label"><span>加食材</span></div>
+        <div class="acts2">
+          <button type="button" class="primary" id="pantryPhotoBtn">影相／揀相加入</button>
+          <input type="file" id="pantryPhoto" accept="image/jpeg,image/png,image/webp,image/gif" multiple hidden>
+        </div>
+        <p class="hint" id="pantryScanMsg">買完餸影低，認到嘅食材會加入下面；亦可以喺下面自己打字加。</p>
+      </div>
+      <div class="field">
+        <div class="label"><span>食材庫</span> <b id="pantryOut"></b></div>
+        <div class="chips" id="pantry"></div>
+        <p class="note" id="pantrySoon" hidden></p>
+        <details id="pantryDates" open hidden>
+          <summary>加到期日（選填）</summary>
+          <div class="prows" id="pantryRows"></div>
+        </details>
+        <div class="addrow">
+          <input type="text" id="pantryAdd" placeholder="自己加一樣食材" maxlength="20" aria-label="加一樣食材入食材庫">
+          <button type="button" class="btn2" id="pantryAddBtn">加入</button>
+        </div>
+        <p class="hint" id="pantryHint"></p>
+        <p class="hint" id="pantryCooked" hidden></p>
+        <button type="button" class="linkbtn" id="pantryClear" hidden>清空食材庫</button>
+      </div>
+    </div>
+  </section>
 
   <section class="calcols" id="calView" hidden aria-label="飲食日曆">
     <div class="ticket calcard">
@@ -1681,7 +1701,8 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
   $("calNext").onclick = function () { shiftMonth(1); };
   $("calToday").onclick = function () { var t = new Date(); cal.y = t.getFullYear(); cal.m = t.getMonth(); cal.sel = t.getDate(); watchMonth(); };
   function showTab(t) {
-    $("cookView").hidden = t !== "cook"; $("calView").hidden = t !== "cal"; $("meView").hidden = t !== "me";
+    $("cookView").hidden = t !== "cook"; $("calView").hidden = t !== "cal"; $("meView").hidden = t !== "me"; $("pantryView").hidden = t !== "pantry";
+    $("tabPantry").setAttribute("aria-pressed", t === "pantry" ? "true" : "false");
     $("tabMe").setAttribute("aria-pressed", t === "me" ? "true" : "false");
     if (t === "me") drawMe();
     if (t === "cook") timeNote();
@@ -1692,6 +1713,8 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
   $("tabCook").onclick = function () { showTab("cook"); };
   $("tabCal").onclick = function () { showTab("cal"); };
   $("tabMe").onclick = function () { showTab("me"); };
+  $("tabPantry").onclick = function () { showTab("pantry"); };
+  $("pantryGo").onclick = function () { showTab("pantry"); window.scrollTo(0, 0); };
 
   /* ---- pantry: what the grocery photos showed, what is left, and what has been cooked ---- */
   var pantry = { items: [], cooked: [], t: 0 }, pantryTimer = null;   // item: { n: name, s: 0 in stock | 1 partly used | 2 gone }
@@ -1758,6 +1781,9 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
       box.appendChild(b);
     });
     $("pantryOut").textContent = pantry.items.length ? "仲有 " + stock.length + " 樣" : "";
+    $("pantryMini").textContent = pantry.items.length ? "仲有 " + stock.length + " 樣" : "未有食材";
+    $("pantryMiniHint").textContent = !stock.length ? "喺「食材庫」影相或者打字加食材，之後唔使再影相都可以諗餸。"
+      : (soon.length ? "就嚟到期：" + soon.join("、") + "。" : "") + "唔加相嘅話，會用食材庫入面仲有嘅 " + stock.length + " 樣食材去諗餸。";
     $("pantrySoon").hidden = !soon.length; $("pantrySoon").textContent = "就嚟到期，會優先用：" + soon.join("、");
     $("pantryDates").hidden = !pantry.items.some(function (g) { return g.s < 2; });
     var rows = $("pantryRows"); rows.textContent = "";
@@ -1783,6 +1809,33 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
     if (b.dataset.sure !== "1") { b.dataset.sure = "1"; b.textContent = "真係清空？再㩒一次確認"; setTimeout(function () { b.dataset.sure = ""; b.textContent = "清空食材庫"; }, 4000); return; }
     b.dataset.sure = ""; b.textContent = "清空食材庫"; pantry.items = []; pantry.cooked = []; pantrySave();
   };
+  $("pantryPhotoBtn").onclick = function () { $("pantryPhoto").click(); };
+  $("pantryPhoto").addEventListener("change", function (e) {
+    var list = Array.prototype.slice.call(e.target.files || []); e.target.value = "";
+    if (list.length) scanPantry(list);
+  });
+  function scanPantry(list) {
+    var msg = $("pantryScanMsg"), btn = $("pantryPhotoBtn");
+    if (!photosOk) { msg.textContent = "呢度用唔到相片，請喺下面自己打字加。"; return; }
+    list = list.filter(function (f) { return /^image\/(jpeg|png|webp|gif)$/.test(f.type) && !(imageLimits && f.size > imageLimits.maxInputBytes); }).slice(0, maxPhotos());
+    if (!list.length) { msg.textContent = "呢啲檔案用唔到，請用 JPEG、PNG 或 WebP 相片。"; return; }
+    sampleP.then(function (sample) {
+      if (!sample) { msg.textContent = "要喺 Claude 入面打開先認到相；可以先自己打字加。"; return; }
+      if (working) { msg.textContent = "仲做緊其他嘢，等一陣再試。"; return; }
+      ctl = new AbortController(); busy(true); btn.disabled = true;
+      msg.textContent = "睇緊 " + list.length + " 張相，認緊食材…";
+      var prompt = ["You list groceries for a home-cooking app used in Hong Kong.",
+        "The " + list.length + " attached photo(s) show food the cook has bought or has at home. Identify every food ingredient you can see across all the photos.",
+        "Write each as a short everyday name in Traditional Chinese as used in Hong Kong (for example 雞髀, 番茄, 豆腐). One entry per ingredient, no quantities, no brand names, nothing that is not food. Do not guess at things you cannot see.",
+        "Reply with only JSON in this shape, no other text:", '{"ingredients":[""]}'].join("\n");
+      sample.json(prompt, { images: list, signal: ctl.signal, cache: false }).then(function (raw) {
+        busy(false); btn.disabled = false;
+        var names = strs(raw && raw.ingredients, 80), before = pantryStock().length;
+        pantryAdd(names);
+        msg.textContent = names.length ? "認到 " + names.length + " 樣，食材庫多咗 " + Math.max(0, pantryStock().length - before) + " 樣。認錯嘅可以㩒佢標記用完。" : "認唔到食物，試下影清楚啲、光啲。";
+      }, function (err) { busy(false); btn.disabled = false; msg.textContent = failCode(err) || "已停止。"; });
+    });
+  }
   drawPantry();
   dbReady.then(function (col) {
     if (!col) return;

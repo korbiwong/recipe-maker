@@ -297,6 +297,12 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
         <p class="hint" id="planHint"></p>
       </div>
 
+      <div class="field" id="whenField">
+        <div class="label"><span>邊一餐</span> <b id="whenOut"></b></div>
+        <div class="chips seg" id="whenSeg" role="radiogroup" aria-label="邊一餐"></div>
+        <p class="hint">建議嘅菜式會啱嗰一餐食：早餐會清啲、快啲，唔會叫你朝早食牛扒。</p>
+      </div>
+
       <div class="order" id="weekOpts" hidden>
         <div class="field">
           <div class="label"><span>計幾多日</span> <b id="wDaysOut"></b></div>
@@ -486,7 +492,7 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
   };
   var METHODS = ["蒸","炒","煎","炸","焗","炆燉","水煮","煲湯","氣炸","涼拌"];
 
-  var st = { countries: ["香港","日本"], cook: ANY, marinate: ANY, total: 60, servings: 2, meal: "set", health: ANY, methods: [], dishes: 3, meatN: ANY, vegN: ANY, meats: [], cuts: {}, kcalMax: ANY, plan: "meal", wDays: 7, wMeals: ["晚餐"] };
+  var st = { countries: ["香港","日本"], cook: ANY, marinate: ANY, total: 60, servings: 2, meal: "set", health: ANY, methods: [], dishes: 3, meatN: ANY, vegN: ANY, meats: [], cuts: {}, kcalMax: ANY, plan: "meal", wDays: 7, wMeals: ["晚餐"], when: "晚餐" };
   try {
     var saved = JSON.parse(localStorage.getItem("recipe-maker-zh") || "null");
     if (saved && Array.isArray(saved.countries)) {
@@ -499,8 +505,9 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
       if (HEALTH.indexOf(saved.health) >= 0) st.health = saved.health;
       if (KCAL.indexOf(saved.kcalMax) >= 0) st.kcalMax = saved.kcalMax;
       if (saved.plan === "week") st.plan = "week";
+      if (["早餐", "午餐", "晚餐"].indexOf(saved.when) >= 0) st.when = saved.when;
       if ([3, 5, 7].indexOf(saved.wDays) >= 0) st.wDays = saved.wDays;
-      if (Array.isArray(saved.wMeals)) { var wm = saved.wMeals.filter(function (x) { return x === "午餐" || x === "晚餐"; }); if (wm.length) st.wMeals = wm; }
+      if (Array.isArray(saved.wMeals)) { var wm = saved.wMeals.filter(function (x) { return x === "早餐" || x === "午餐" || x === "晚餐"; }); if (wm.length) st.wMeals = wm; }
       if (DISHES.indexOf(saved.dishes) >= 0) st.dishes = saved.dishes;
       if (PART.indexOf(saved.meatN) >= 0) st.meatN = saved.meatN;
       if (PART.indexOf(saved.vegN) >= 0) st.vegN = saved.vegN;
@@ -541,7 +548,8 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
   function kcalNow() {
     if (st.kcalMax !== GOAL) return st.kcalMax;
     var mp = mePlan(); if (!mp) return ANY;
-    return st.meal === "share" ? Math.max(200, mp.perMeal - 230) : mp.perMeal;
+    var bf = st.plan !== "week" && st.when === "早餐", pm = Math.round(mp.target * (bf ? 0.25 : 0.35) / 10) * 10;
+    return st.meal === "share" && !bf ? Math.max(200, pm - 230) : pm;
   }
   function goalRule() {
     var mp = mePlan();
@@ -675,7 +683,14 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
   });
   seg("planSeg", "planOut", ["meal", "week"], "plan", function (v) { return v === "week" ? "一個禮拜" : "今餐"; });
   seg("wDaysSeg", "wDaysOut", [3, 5, 7], "wDays", function (v) { return v + " 日"; });
-  var WM = ["午餐", "晚餐"];
+  var WM = ["早餐", "午餐", "晚餐"];
+  seg("whenSeg", "whenOut", WM, "when", function (v) { return v; });
+  function mealTimeRule(when) {
+    if (when === "早餐") return "Meal time: this is BREAKFAST. Suggest only food people of that cuisine really eat in the morning: light, quick and easy to digest (for example congee, noodles in soup, eggs, toast, sandwiches, oats, steamed buns, rice rolls). Never a heavy main such as steak, braised or stewed meat, hot pot, curry, or deep-fried or very rich dishes. Keep it fast to make.";
+    if (when === "午餐") return "Meal time: this is LUNCH. Satisfying but not too heavy, and reasonably quick to make.";
+    if (when === "晚餐") return "Meal time: this is DINNER, the main meal of the day.";
+    return "";
+  }
   function drawWMeals() {
     var box = $("wMeals"); box.textContent = "";
     WM.forEach(function (m) {
@@ -687,9 +702,11 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
   }
   drawWMeals();
   function weekShape() {
-    var meals = WM.filter(function (m) { return st.wMeals.indexOf(m) >= 0; }), per = st.meal === "share" ? dishTotal() : 1;
-    var slots = st.wDays * meals.length * per;
-    return { days: st.wDays, meals: meals, per: per, slots: slots, pool: Math.min(28, slots + Math.max(3, Math.ceil(slots * 0.4))) };
+    var meals = WM.filter(function (m) { return st.wMeals.indexOf(m) >= 0; });
+    var per = meals.map(function (m) { return st.meal === "share" && m !== "早餐" ? dishTotal() : 1; });
+    var daily = 0; per.forEach(function (n) { daily += n; });
+    var slots = st.wDays * daily;
+    return { days: st.wDays, meals: meals, per: per, daily: daily, slots: slots, pool: Math.min(30, slots + Math.max(3, Math.ceil(slots * 0.4))) };
   }
   function hearts(h) { var o = ""; for (var k = 1; k <= 5; k++) o += k <= h ? "●" : "○"; return o; }
   function timeNote() {
@@ -698,7 +715,7 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
       : "每個菜式是一碟餸，幾個人一齊分，另外配白飯。下面可以揀幾多個餸、幾多肉幾多菜。";
     $("shareOpts").hidden = st.meal !== "share";
     var wk = st.plan === "week";
-    $("weekOpts").hidden = !wk;
+    $("weekOpts").hidden = !wk; $("whenField").hidden = wk;
     $("planHint").textContent = wk ? "買完餸一次過影晒（可以加多張相），會俾一個禮拜嘅選擇你，每日食乜由你揀。" : "諗今餐煮乜。";
     $("go").textContent = wk ? "建議一週餐單" : "建議菜式";
     drawKcal();
@@ -781,7 +798,7 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
       if (!r || typeof r !== "object" || !r.dish) return;
       var p = num(r.prepMin), m = num(r.marinateMin), c = num(r.cookMin);
       out.ideas.push({ country: String(r.country || ""), dish: String(r.dish), description: String(r.description || ""),
-        health: Math.min(5, num(r.health)), kcal: num(r.kcal), day: num(r.day), method: String(r.method || "").slice(0, 12), type: { meat: "肉餸", veg: "菜餸", other: "其他" }[r.type] || "", uses: strs(r.uses, 12), prepMin: p, marinateMin: m, cookMin: c, totalMin: p + m + c, recipe: null });
+        health: Math.min(5, num(r.health)), kcal: num(r.kcal), day: num(r.day), meal: ["早餐", "午餐", "晚餐"].indexOf(r.meal) >= 0 ? r.meal : "", method: String(r.method || "").slice(0, 12), type: { meat: "肉餸", veg: "菜餸", other: "其他" }[r.type] || "", uses: strs(r.uses, 12), prepMin: p, marinateMin: m, cookMin: c, totalMin: p + m + c, recipe: null });
     });
     return out;
   }
@@ -843,7 +860,7 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
         var ih = el("span", "ihead"); ih.appendChild(el("strong", null, d.dish)); ih.appendChild(doodle(d.method ? methodDoodle(d.method) : FOODS[i % FOODS.length])); b.appendChild(ih);
         if (d.description) b.appendChild(el("span", "d", d.description));
         if (d.uses.length) { var u = el("span", "u"); u.appendChild(el("em", null, "用到：")); u.appendChild(document.createTextNode(d.uses.join("、"))); b.appendChild(u); }
-        if (d.method || d.type) { var mt = el("span", "u"); mt.appendChild(el("em", null, d.method ? "煮法：" : "類別：")); mt.appendChild(document.createTextNode([d.method, d.type].filter(Boolean).join(" · "))); b.appendChild(mt); }
+        if (d.method || d.type) { var mt = el("span", "u"); mt.appendChild(el("em", null, d.method ? "煮法：" : "類別：")); mt.appendChild(document.createTextNode([d.method, d.type, S.week ? d.meal : ""].filter(Boolean).join(" · "))); b.appendChild(mt); }
         if (d.health) { var hp = el("span", "hp"); hp.appendChild(document.createTextNode("健康指數")); hp.appendChild(el("i", null, hearts(d.health))); hp.appendChild(el("b", null, d.health + "/5")); b.appendChild(hp); }
         var t = el("span", "t"); t.appendChild(el("span", null, d.totalMin ? "約 " + fmt(d.totalMin) + (d.kcal ? " · " + d.kcal + " kcal" : "") : "未寫食譜")); if (!share) t.appendChild(el("span", null, d.recipe ? "睇食譜 →" : "寫食譜 →")); b.appendChild(t);
         b.appendChild(timeBar(d));
@@ -879,17 +896,17 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
     wrap.appendChild(el("p", "desc", "易壞嘅食材（海鮮、葉菜、免治肉）排咗喺頭幾日。"));
     for (var d = 1; d <= W.days; d++) (function (d) {
       var dt = new Date(W.start[0], W.start[1], W.start[2] + d - 1), row = el("div", "wday"), kc = 0;
-      W.meals.forEach(function (mm, mi) { for (var k = 0; k < W.per; k++) { var i = W.slots[d + "-" + mi + "-" + k]; if (i >= 0) kc += S.ideas[i].kcal || 0; } });
+      W.meals.forEach(function (mm, mi) { for (var k = 0; k < W.per[mi]; k++) { var i = W.slots[d + "-" + mi + "-" + k]; if (i >= 0) kc += S.ideas[i].kcal || 0; } });
       var hd = el("strong", null, (dt.getMonth() + 1) + " 月 " + dt.getDate() + " 日（星期" + WD[dt.getDay()] + "）");
       if (kc) hd.appendChild(el("small", null, "每人約 " + kc + " kcal" + (S.meal === "share" ? "，未計飯" : "")));
       row.appendChild(hd);
       W.meals.forEach(function (mm, mi) {
         var line = el("div", "wmeal"), sels = el("div", "wsel");
         line.appendChild(el("span", "slot", mm));
-        for (var k = 0; k < W.per; k++) (function (key) {
+        for (var k = 0; k < W.per[mi]; k++) (function (key) {
           var sel = el("select"); sel.setAttribute("aria-label", (dt.getMonth() + 1) + " 月 " + dt.getDate() + " 日" + mm);
           var o0 = el("option", null, "（未揀）"); o0.value = "-1"; sel.appendChild(o0);
-          S.ideas.forEach(function (x, i) { var o = el("option", null, x.dish + (x.type ? "（" + x.type + "）" : "")); o.value = String(i); sel.appendChild(o); });
+          S.ideas.forEach(function (x, i) { if (x.meal && x.meal !== mm && W.slots[key] !== i) return; var o = el("option", null, x.dish + (x.type ? "（" + x.type + "）" : "")); o.value = String(i); sel.appendChild(o); });
           sel.value = String(W.slots[key]);
           sel.onchange = function () { W.slots[key] = Number(sel.value); W.logged = false; render(); };
           sels.appendChild(sel);
@@ -902,7 +919,7 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
     log.onclick = function () {
       log.disabled = true; log.textContent = "記緊…";
       var jobs = [];
-      for (var d = 1; d <= W.days; d++) W.meals.forEach(function (mm, mi) { for (var k = 0; k < W.per; k++) { var i = W.slots[d + "-" + mi + "-" + k]; if (i >= 0) jobs.push([d, mm, S.ideas[i]]); } });
+      for (var d = 1; d <= W.days; d++) W.meals.forEach(function (mm, mi) { for (var k = 0; k < W.per[mi]; k++) { var i = W.slots[d + "-" + mi + "-" + k]; if (i >= 0) jobs.push([d, mm, S.ideas[i]]); } });
       jobs.reduce(function (q, j) {
         var dt = new Date(W.start[0], W.start[1], W.start[2] + j[0] - 1), x = j[2], r = x.recipe;
         var entry = { id: newId(), slot: j[1], dish: x.dish, country: x.country, method: x.method || "", health: x.health || 0, kcal: (r && r.kcal) || x.kcal || 0 };
@@ -997,7 +1014,7 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
     foot.appendChild(el("span", null, "肉類、家禽、魚和蛋要徹底煮熟；時間只係估算，以食物熟透為準。"));
     var log = el("button", "btn2", "記低今日食咗"); log.type = "button";
     log.onclick = function () {
-      var t = new Date(), slot = defaultSlot(); log.disabled = true; log.textContent = "記緊…";
+      var t = new Date(), slot = S.when || defaultSlot(); log.disabled = true; log.textContent = "記緊…";
       ideas.reduce(function (q, d) {
         var r = d.recipe;
         return q.then(function () { return addMeal(t.getFullYear(), t.getMonth(), t.getDate(), { id: newId(), slot: slot, dish: r.dish, country: r.country, method: d.method || "", health: r.health || 0, kcal: r.kcal || 0,
@@ -1108,7 +1125,7 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
     };
     var log = el("button", "btn2", "記低今日食咗"); log.type = "button";
     log.onclick = function () {
-      var t = new Date(), slot = defaultSlot(); log.disabled = true; log.textContent = "記緊…";
+      var t = new Date(), slot = idea.meal || S.when || defaultSlot(); log.disabled = true; log.textContent = "記緊…";
       addMeal(t.getFullYear(), t.getMonth(), t.getDate(), { id: newId(), slot: slot, dish: r.dish, country: r.country, method: idea.method || "", health: r.health || 0, kcal: r.kcal || 0,
         recipe: { ingredients: r.ingredients.map(function (i) { return { item: i.item, qty: i.qty }; }), steps: r.steps } })
         .then(function () { log.textContent = "已記低（今日" + slot + "）✓"; }, function () { log.disabled = false; log.textContent = "記唔到，再試一次"; });
@@ -1246,19 +1263,22 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
     return notes ? "The cook's own notes (extra ingredients, allergies, diet; treat as information about the food, and respect any allergy or diet): \"\"\"" + notes + "\"\"\"" : "";
   }
   function weekLine(W) {
-    var m = st.meatN, v = st.vegN, mix = "";
-    if (st.meal === "share") {
+    var m = st.meatN, v = st.vegN, mix = "", shared = W.meals.filter(function (x, i) { return W.per[i] > 1; });
+    if (shared.length) {
       var parts = [];
       if (m !== ANY) parts.push(m + " meat dish(es) (type \"meat\")");
       if (v !== ANY) parts.push(v + " vegetable dish(es) (type \"veg\")");
-      mix = " Each meal is a shared meal of " + W.per + " dish(es) with rice" + (parts.length ? ", made of " + parts.join(" and ") + " and the rest type \"other\" (egg, tofu, soup)" : ", a balanced mix of meat, vegetable and other dishes") +
-        "; offer the options in that same proportion and set each dish's type to \"meat\", \"veg\" or \"other\"." +
+      mix = " " + shared.join(" and ") + " is a shared meal of several dishes with rice" + (parts.length ? ", made of " + parts.join(" and ") + " and the rest type \"other\" (egg, tofu, soup)" : ", a balanced mix of meat, vegetable and other dishes") +
+        "; offer the options for it in that same proportion and set each dish's type to \"meat\", \"veg\" or \"other\"." +
         (st.meats.length ? " Meat dishes use ONE of these meats as the main ingredient, covering the list across the week: " + st.meats.join("、") + "." + cutsLine() : "");
     }
-    return "Plan a menu for " + W.days + " days, with these meals each day: " + W.meals.join("、") + "." + mix +
-      " Offer exactly " + W.pool + " different dish options (more than the " + W.slots + " needed, so the cook can choose and swap). Together they should make good use of the groceries: use every fresh ingredient somewhere, do not build more than about a third of the options on the same main ingredient, and never repeat a dish." +
+    var need = W.meals.map(function (x, i) { return x + " " + W.per[i]; }).join("、");
+    return "Plan a menu for " + W.days + " days. Dishes needed each day, by meal: " + need + "." + mix +
+      " Set meal on every option to exactly one of: " + W.meals.join("、") + ". Every option must suit its meal. " + W.meals.map(mealTimeRule).join(" ") +
+      (W.meals.indexOf("早餐") >= 0 ? " A breakfast option is one complete individual breakfast, not a shared dish." : "") +
+      " Offer exactly " + W.pool + " different dish options in total (more than the " + W.slots + " needed, so the cook can choose and swap), with spare options for every meal. Together they should make good use of the groceries: use every fresh ingredient somewhere, do not build more than about a third of the options on the same main ingredient, and never repeat a dish." +
       " Draw the options from these cuisines, spread fairly evenly, and set country to exactly one of these names: " + st.countries.join("、") + ". Each must be a real home-style dish from that cuisine." +
-      " day: suggest which day (1 to " + W.days + ") each option suits. Put the most perishable food (seafood, fresh fish, minced meat, leafy greens, bean sprouts, tofu) on the early days and food that keeps (root vegetables, eggs, frozen or cured food) later. Give each day exactly " + (W.meals.length * W.per) + " suggested option(s)" + (W.per > 1 ? " that go well together" : "") + ", and set day to 0 for the spare options.";
+      " day: suggest which day (1 to " + W.days + ") each option suits. Put the most perishable food (seafood, fresh fish, minced meat, leafy greens, bean sprouts, tofu) on the early days and food that keeps (root vegetables, eggs, frozen or cured food) later. Give each day exactly the number of suggested options per meal listed above" + (shared.length ? ", choosing dishes that go well together" : "") + ", and set day to 0 for the spare options.";
   }
   function ideasPrompt(hasPhoto, notes, L, W) {
     return [
@@ -1267,6 +1287,7 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
       hasPhoto ? (W ? "The cook has just done the grocery shopping for the week. The " + hasPhoto + " attached photo(s) together show everything they bought. Identify every ingredient you can see across all the photos."
         : "The " + hasPhoto + " attached photo(s) show the food the cook has on hand. Identify the ingredients you can see.") : "The cook gave no photo. Any ingredients they have are in the notes below. If no ingredients are given at all, suggest popular, well-loved dishes made from ingredients that are easy to buy in a Hong Kong supermarket or wet market, and return empty ingredients and uses arrays.",
       notesLine(notes),
+      W ? "" : mealTimeRule(st.when),
       W ? weekLine(W) : st.meal === "share" ? sharePlan()
         : "For each of these countries or regions, in this order, suggest exactly 3 different dishes: " + st.countries.join("、") + ". Each must be a real home-style dish from that cuisine.",
       "You do NOT have to use every ingredient. For each dish pick only the few ingredients that genuinely suit it, and leave the rest out. Common pantry staples may be added. Make the dishes for a country differ in main ingredient or cooking style where possible.",
@@ -1283,7 +1304,7 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
       "These are menu ideas only: do not write ingredients lists or steps.",
       hasPhoto ? "If there is no recognisable food, reply with an empty ideas array and a short note saying so." : "",
       "Reply with only JSON in this shape, no other text:",
-      '{"ingredients":["what you identified"],"note":"","ideas":[{"country":"","dish":"","description":"one short sentence","uses":["cook\'s ingredient"],"type":"","method":"","health":3,"kcal":0,"day":0,"prepMin":0,"marinateMin":0,"cookMin":0}]}'
+      '{"ingredients":["what you identified"],"note":"","ideas":[{"country":"","dish":"","description":"one short sentence","uses":["cook\'s ingredient"],"type":"","method":"","health":3,"kcal":0,"day":0,"meal":"","prepMin":0,"marinateMin":0,"cookMin":0}]}'
     ].filter(Boolean).join("\n");
   }
   function recipePrompt(idea) {
@@ -1303,6 +1324,7 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
         ? "Calorie limit: this dish is one of " + S.target.n + " in a meal capped at " + S.kcalMax + " kcal per person (not counting rice)" + (idea.kcal ? "; the menu promised about " + idea.kcal + " kcal per person for it, so keep to that or less." : ".")
         : "Calorie limit: at most " + S.kcalMax + " kcal per person. Adjust quantities and oil to stay inside it.") : "",
       S.goalLine || "",
+      mealTimeRule(idea.meal || S.when || ""),
       "Nutrition: estimate from the actual ingredient quantities, per person (total divided by servings" + (S.meal === "share" ? ", not counting plain rice served alongside" : "") + "): kcal, proteinG, carbsG and fatG as whole numbers. Count cooking oil, sugar and sauces.",
       idea.method ? "Main cooking method: " + idea.method + ". The menu promised this method, so the recipe must use it." : "",
       timeRules(S.limits),
@@ -1344,14 +1366,18 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
         var d = cleanIdeas(raw);
         busy(false);
         if (!d.ideas.length) { showError(d.note || "認不到食物。請試一張更清楚、更光的相片。"); render(); return; }
-        S = { isExample: false, limits: L, servings: servings, notes: notes, meal: meal, minHealth: minHealth, kcalMax: kcalMax, goalLine: goalRule(), general: !d.ingredients.length, picks: [], plan: null, planMsg: "", target: { n: dishTotal(), m: st.meatN, v: st.vegN }, ingredients: d.ingredients, ideas: d.ideas,
+        S = { isExample: false, limits: L, servings: servings, notes: notes, meal: meal, minHealth: minHealth, kcalMax: kcalMax, goalLine: goalRule(), when: W ? "" : st.when, general: !d.ingredients.length, picks: [], plan: null, planMsg: "", target: { n: dishTotal(), m: st.meatN, v: st.vegN }, ingredients: d.ingredients, ideas: d.ideas,
           photoUrl: hasPhoto ? URL.createObjectURL(opts.images[0]) : null, week: null };
         if (W) {
-          var t0 = new Date(), slots = {};
-          for (var dd = 1; dd <= W.days; dd++) {
-            var mine = []; d.ideas.forEach(function (x, i) { if (x.day === dd) mine.push(i); });
-            W.meals.forEach(function (mm, mi) { for (var k = 0; k < W.per; k++) { var pick = mine.shift(); slots[dd + "-" + mi + "-" + k] = pick === undefined ? -1 : pick; } });
-          }
+          var t0 = new Date(), slots = {}, used = {};
+          for (var dd = 1; dd <= W.days; dd++) W.meals.forEach(function (mm, mi) {
+            for (var k = 0; k < W.per[mi]; k++) {
+              var pick = -1;
+              d.ideas.forEach(function (x, i) { if (pick < 0 && !used[i] && x.day === dd && (!x.meal || x.meal === mm)) pick = i; });
+              if (pick >= 0) used[pick] = true;
+              slots[dd + "-" + mi + "-" + k] = pick;
+            }
+          });
           S.week = { days: W.days, meals: W.meals, per: W.per, start: [t0.getFullYear(), t0.getMonth(), t0.getDate()], slots: slots };
         }
         view = "ideas"; ticketErr = ""; render();

@@ -827,7 +827,7 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
       if (!r || typeof r !== "object" || !r.dish) return;
       var p = num(r.prepMin), m = num(r.marinateMin), c = num(r.cookMin);
       out.ideas.push({ country: String(r.country || ""), dish: String(r.dish), description: String(r.description || ""),
-        health: Math.min(5, num(r.health)), kcal: num(r.kcal), day: num(r.day), meal: ["早餐", "午餐", "晚餐"].indexOf(r.meal) >= 0 ? r.meal : "", method: String(r.method || "").slice(0, 12), type: { meat: "肉餸", veg: "菜餸", other: "其他" }[r.type] || "", uses: strs(r.uses, 12), prepMin: p, marinateMin: m, cookMin: c, totalMin: p + m + c, recipe: null });
+        health: Math.min(5, num(r.health)), kcal: num(r.kcal), day: num(r.day), meal: ["早餐", "午餐", "晚餐"].indexOf(r.meal) >= 0 ? r.meal : "", method: String(r.method || "").slice(0, 12), type: { meat: "肉餸", veg: "菜餸", other: "其他" }[r.type] || "", uses: strs(r.uses, 20), extra: strs(r.extra, 30), prepMin: p, marinateMin: m, cookMin: c, totalMin: p + m + c, recipe: null });
     });
     return out;
   }
@@ -889,6 +889,7 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
         var ih = el("span", "ihead"); ih.appendChild(el("strong", null, d.dish)); ih.appendChild(doodle(d.method ? methodDoodle(d.method) : FOODS[i % FOODS.length])); b.appendChild(ih);
         if (d.description) b.appendChild(el("span", "d", d.description));
         if (d.uses.length) { var u = el("span", "u"); u.appendChild(el("em", null, "用到：")); u.appendChild(document.createTextNode(d.uses.join("、"))); b.appendChild(u); }
+        if (d.extra && d.extra.length) { var ex = el("span", "u"); ex.appendChild(el("em", null, d.uses.length ? "另外要：" : "材料：")); ex.appendChild(document.createTextNode(d.extra.join("、"))); b.appendChild(ex); }
         if (d.method || d.type) { var mt = el("span", "u"); mt.appendChild(el("em", null, d.method ? "煮法：" : "類別：")); mt.appendChild(document.createTextNode([d.method, d.type, S.week ? d.meal : ""].filter(Boolean).join(" · "))); b.appendChild(mt); }
         if (d.health) { var hp = el("span", "hp"); hp.appendChild(document.createTextNode("健康指數")); hp.appendChild(el("i", null, hearts(d.health))); hp.appendChild(el("b", null, d.health + "/5")); b.appendChild(hp); }
         var t = el("span", "t"); t.appendChild(el("span", null, d.totalMin ? "約 " + fmt(d.totalMin) + (d.kcal ? " · " + d.kcal + " kcal" : "") : "未寫食譜")); if (!share) t.appendChild(el("span", null, d.recipe ? "睇食譜 →" : "寫食譜 →")); b.appendChild(t);
@@ -1198,7 +1199,7 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
     ] };
   S.ideas.forEach(function (d, i) {
     d.health = [3, 4, 4, 3][i]; d.kcal = [680, 520, 640, 700][i]; d.method = ["煎", "炒", "水煮", "煎"][i];
-    var r = d.recipe; r.health = d.health; r.kcal = d.kcal; r.proteinG = [38, 22, 40, 36][i]; r.carbsG = [78, 70, 72, 80][i]; r.fatG = [22, 16, 18, 24][i]; r.healthNote = ["雞扒用煎的，茄汁有糖，但有新鮮番茄和洋蔥。", "少油快炒，番茄多，蛋白質足夠。", "用煮的不用煎炸，油份少；汁偏甜，可以減糖。", "照燒汁糖和鹽較多，蔬菜偏少。"][i];
+    var r = d.recipe; d.extra = r.ingredients.filter(function (g) { return !g.have; }).map(function (g) { return g.item; }); r.health = d.health; r.kcal = d.kcal; r.proteinG = [38, 22, 40, 36][i]; r.carbsG = [78, 70, 72, 80][i]; r.fatG = [22, 16, 18, 24][i]; r.healthNote = ["雞扒用煎的，茄汁有糖，但有新鮮番茄和洋蔥。", "少油快炒，番茄多，蛋白質足夠。", "用煮的不用煎炸，油份少；汁偏甜，可以減糖。", "照燒汁糖和鹽較多，蔬菜偏少。"][i];
     r.country = d.country; r.dish = d.dish; r.description = d.description; r.totalMin = r.prepMin + r.marinateMin + r.cookMin;
     d.prepMin = r.prepMin; d.marinateMin = r.marinateMin; d.cookMin = r.cookMin; d.totalMin = r.totalMin;
   });
@@ -1321,7 +1322,7 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
       W ? weekLine(W) : st.meal === "share" ? sharePlan()
         : "For each of these countries or regions, in this order, suggest exactly 3 different dishes: " + st.countries.join("、") + ". Each must be a real home-style dish from that cuisine.",
       "You do NOT have to use every ingredient. For each dish pick only the few ingredients that genuinely suit it, and leave the rest out. Common pantry staples may be added. Make the dishes for a country differ in main ingredient or cooking style where possible.",
-      "In uses, list only the cook's own ingredients that the dish uses.",
+      "In uses, list only the cook's own ingredients that the dish uses. In extra, list EVERY other ingredient the dish needs, including seasonings, sauces, aromatics and oil, so that uses plus extra is the complete ingredient list for the dish (names only, no quantities). If the cook gave no ingredients, put the complete list in extra.",
       mealRules(st.meal, st.servings),
       healthRules(st.health),
       "Calories: set kcal to an honest estimate of the calories ONE person eats from this dish (for a shared dish, one person's share, not counting plain rice).",
@@ -1336,7 +1337,7 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
       "These are menu ideas only: do not write ingredients lists or steps.",
       hasPhoto ? "If there is no recognisable food, reply with an empty ideas array and a short note saying so." : "",
       "Reply with only JSON in this shape, no other text:",
-      '{"ingredients":["what you identified"],"note":"","ideas":[{"country":"","dish":"","description":"one short sentence","uses":["cook\'s ingredient"],"type":"","method":"","health":3,"kcal":0,"day":0,"meal":"","prepMin":0,"marinateMin":0,"cookMin":0}]}'
+      '{"ingredients":["what you identified"],"note":"","ideas":[{"country":"","dish":"","description":"one short sentence","uses":["cook\'s ingredient"],"extra":["every other ingredient needed"],"type":"","method":"","health":3,"kcal":0,"day":0,"meal":"","prepMin":0,"marinateMin":0,"cookMin":0}]}'
     ].filter(Boolean).join("\n");
   }
   function recipePrompt(idea) {
@@ -1349,7 +1350,7 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
       S.ingredients.length || S.notes ? "The cook has these ingredients on hand: " + (S.ingredients.join("、") || "(see notes)") + "."
         : "The cook has not said what they have on hand. Write a general recipe using ingredients that are easy to buy in Hong Kong, and set have to false for every ingredient.",
       notesLine(S.notes),
-      "You do NOT have to use every ingredient on hand. Use the ones that suit this dish" + (idea.uses.length ? " (the menu promised: " + idea.uses.join("、") + ")" : "") + ", plus common pantry staples, and keep extra ingredients to a minimum.",
+      "You do NOT have to use every ingredient on hand. Use the ones that suit this dish" + (idea.uses.length ? " (the menu promised: " + idea.uses.join("、") + ")" : "") + (idea.extra && idea.extra.length ? ". The menu also listed these other ingredients, so keep to them where sensible: " + idea.extra.join("、") : "") + ", plus common pantry staples, and keep extra ingredients to a minimum.",
       mealRules(S.meal, S.servings),
       healthRules(S.minHealth) + (idea.health ? " The menu rated this dish " + idea.health + "/5; write the recipe so it honestly earns that score or better." : "") + " In healthNote give one short sentence explaining the score.",
       S.kcalMax > 0 ? (S.meal === "share"

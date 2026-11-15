@@ -502,11 +502,22 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
         <div class="chips seg" id="goalSeg" role="radiogroup" aria-label="目標"></div>
       </div>
       <div class="field">
-        <div class="label"><span>身高同體重</span></div>
+        <div class="label"><span>而家嘅身高同體重</span></div>
         <div class="addrow">
           <label class="numf">身高 <input type="number" id="meH" inputmode="decimal" min="120" max="220" step="0.5"> cm</label>
           <label class="numf">體重 <input type="number" id="meW" inputmode="decimal" min="30" max="250" step="0.1"> kg</label>
         </div>
+      </div>
+      <div class="field">
+        <div class="label"><span>理想體重 <small>選填</small></span></div>
+        <div class="addrow">
+          <label class="numf">目標 <input type="number" id="meTW" inputmode="decimal" min="30" max="250" step="0.1"> kg</label>
+        </div>
+        <div class="chips seg" id="paceSeg" role="radiogroup" aria-label="想幾快"></div>
+        <div class="addrow" id="meWeeksRow" hidden>
+          <label class="numf">想喺 <input type="number" id="meWeeks" inputmode="numeric" min="1" max="104" step="1"> 個星期內做到</label>
+        </div>
+        <p class="hint">填咗理想體重，就會按你想要嘅速度計每日食幾多、要幾耐；唔填就用上面「目標」嘅預設速度。</p>
       </div>
       <div class="field">
         <div class="label"><span>年齡同性別 <small>選填，填咗會準啲</small></span></div>
@@ -600,11 +611,12 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
 
   /* ---- body profile and daily calorie target ---- */
   var GOAL = -2;
-  var me = { goal: "none", h: 0, w: 0, age: 0, sex: "", act: 1, t: 0 };
+  var me = { goal: "none", h: 0, w: 0, age: 0, sex: "", act: 1, t: 0, tw: 0, pace: 0.5, weeks: 0 };
   function meClean(v) {
     if (!v || typeof v !== "object") return;
     if (["none", "cut", "bulk"].indexOf(v.goal) >= 0) me.goal = v.goal;
     me.h = Number(v.h) || 0; me.w = Number(v.w) || 0; me.age = Number(v.age) || 0;
+    me.tw = Number(v.tw) || 0; me.weeks = Number(v.weeks) || 0; me.pace = [0, 0.25, 0.5, 0.75].indexOf(v.pace) >= 0 ? v.pace : 0.5;
     me.sex = v.sex === "m" || v.sex === "f" ? v.sex : ""; me.act = [0, 1, 2, 3].indexOf(v.act) >= 0 ? v.act : 1; me.t = Number(v.t) || 0;
   }
   try { meClean(JSON.parse(localStorage.getItem("recipe-maker-me") || "null")); } catch (e) {}
@@ -612,16 +624,32 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
     if (!(me.h >= 120 && me.h <= 220 && me.w >= 30 && me.w <= 250)) return null;
     var age = me.age >= 18 && me.age <= 100 ? me.age : 0;
     var bmr = 10 * me.w + 6.25 * me.h - 5 * (age || 30) + (me.sex === "m" ? 5 : me.sex === "f" ? -161 : -78);
-    var tdee = bmr * [1.2, 1.375, 1.55, 1.725][me.act], bmi = me.w / Math.pow(me.h / 100, 2);
-    var floor = me.sex === "m" ? 1500 : me.sex === "f" ? 1200 : 1350, target = tdee, warn = "";
-    if (me.goal === "cut") {
-      if (bmi < 18.5) warn = "你嘅 BMI 已經偏低，唔建議再減，所以目標定喺維持體重嘅份量。";
-      else { target = Math.max(tdee - 500, floor); if (target > tdee - 200) warn = "你嘅消耗量唔高，再食少會低過安全下限，所以減得慢啲；加多啲運動會比再食少好。"; }
-    } else if (me.goal === "bulk") target = tdee + 300;
+    var tdee = bmr * [1.2, 1.375, 1.55, 1.725][me.act], h2 = Math.pow(me.h / 100, 2), bmi = me.w / h2;
+    var floor = me.sex === "m" ? 1500 : me.sex === "f" ? 1200 : 1350, target = tdee, warn = [], rate = 0;
+    var tw = me.tw >= 30 && me.tw <= 250 ? me.tw : 0, diff = tw ? tw - me.w : 0;
+    // With a target weight, the direction comes from it; otherwise from the goal chip.
+    var dir = tw ? (Math.abs(diff) < 0.5 ? "none" : diff < 0 ? "cut" : "bulk") : me.goal;
+    var want = tw && dir !== "none" ? (me.pace > 0 ? me.pace : me.weeks >= 1 ? Math.abs(diff) / me.weeks : 0.5) : dir === "cut" ? 0.5 : 0.25;
+    // 1 kg of body weight is roughly 7700 kcal, so 1 kg a week is about 1100 kcal a day.
+    if (dir === "cut") {
+      if (bmi < 18.5) warn.push("你而家嘅 BMI 已經偏低，唔建議再減，所以目標定喺維持體重嘅份量。");
+      else {
+        var cap = Math.min(1, me.w * 0.01), r = Math.min(want, cap);
+        if (want > cap + 0.01) warn.push("你想要嘅速度係每星期約 " + want.toFixed(2) + " kg，太快喇；安全上限大約係每星期 " + cap.toFixed(2) + " kg（體重嘅 1%），所以用咗呢個速度。");
+        target = Math.max(tdee - r * 1100, floor);
+        rate = (tdee - target) * 7 / 7700;
+        if (rate < r - 0.05) warn.push("再食少會低過安全下限（每日 " + floor + " kcal），所以實際會慢過你想要嘅速度；加多啲運動會比再食少好。");
+        if (tw && tw / h2 < 18.5) warn.push("你嘅理想體重 BMI 係 " + (tw / h2).toFixed(1) + "，低過 18.5 屬於過輕，建議將目標調高到至少 " + Math.ceil(18.5 * h2) + " kg。");
+      }
+    } else if (dir === "bulk") {
+      var r2 = Math.min(want, 0.5);
+      if (want > 0.51) warn.push("增重太快多數會變脂肪，所以用每星期 0.5 kg。");
+      target = tdee + r2 * 1100; rate = r2;
+    }
     target = Math.round(target / 10) * 10; tdee = Math.round(tdee / 10) * 10;
     return { bmi: bmi, bmr: Math.round(bmr), tdee: tdee, target: target, perMeal: Math.round(target * 0.35 / 10) * 10,
-      protein: Math.round(me.w * (me.goal === "cut" ? 1.6 : me.goal === "bulk" ? 1.8 : 1.0)), warn: warn, rough: !(age && me.sex),
-      perWeek: me.goal === "cut" && tdee > target ? (tdee - target) * 7 / 7700 : me.goal === "bulk" ? 300 * 7 / 7700 : 0 };
+      protein: Math.round(me.w * (dir === "cut" ? 1.6 : dir === "bulk" ? 1.8 : 1.0)), warn: warn.join(""), rough: !(age && me.sex),
+      dir: dir, perWeek: rate, tw: tw, weeks: tw && rate > 0 ? Math.ceil(Math.abs(diff) / rate) : 0 };
   }
   function kcalNow() {
     if (st.kcalMax !== GOAL) return st.kcalMax;
@@ -630,9 +658,9 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
     return st.meal === "share" && !bf ? Math.max(200, pm - 230) : pm;
   }
   function goalRule() {
-    var mp = mePlan();
-    if (me.goal === "cut") return "Goal: the cook is trying to lose body fat. Favour filling, high-protein, high-fibre dishes: lean cuts, plenty of vegetables, little oil and sugar, no deep-frying." + (mp ? " Aim for about " + Math.round(mp.protein * 0.35) + " g protein per person in the meal." : "");
-    if (me.goal === "bulk") return "Goal: the cook is trying to build muscle. Favour protein-rich dishes with enough carbohydrate." + (mp ? " Aim for about " + Math.round(mp.protein * 0.35) + " g protein and roughly " + mp.perMeal + " kcal per person in the whole meal." : "");
+    var mp = mePlan(), dir = mp ? mp.dir : me.goal;
+    if (dir === "cut") return "Goal: the cook is trying to lose body fat. Favour filling, high-protein, high-fibre dishes: lean cuts, plenty of vegetables, little oil and sugar, no deep-frying." + (mp ? " Aim for about " + Math.round(mp.protein * 0.35) + " g protein per person in the meal." : "");
+    if (dir === "bulk") return "Goal: the cook is trying to build muscle. Favour protein-rich dishes with enough carbohydrate." + (mp ? " Aim for about " + Math.round(mp.protein * 0.35) + " g protein and roughly " + mp.perMeal + " kcal per person in the whole meal." : "");
     return "";
   }
   function fmt(m) {
@@ -759,7 +787,7 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
     if (v === GOAL) { var k = kcalNow(); return k > 0 ? "跟我目標 " + k + " kcal" : "跟我目標"; }
     return v === ANY ? "不限" : v + " kcal";
   });
-  seg("planSeg", "planOut", ["meal", "week"], "plan", function (v) { return v === "week" ? "一個禮拜" : "今餐"; });
+  var drawPlanSeg = seg("planSeg", "planOut", ["meal", "week"], "plan", function (v) { return v === "week" ? "一個禮拜" : "今餐"; });
   seg("wDaysSeg", "wDaysOut", [3, 5, 7], "wDays", function (v) { return v + " 日"; });
   seg("wStyleSeg", "wStyleOut", ["fresh", "prep"], "wStyle", function (v) { return v === "prep" ? "Meal prep" : "每日新鮮煮"; });
   var WM = ["早餐", "午餐", "晚餐"];
@@ -1717,7 +1745,7 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
   $("pantryGo").onclick = function () { showTab("pantry"); window.scrollTo(0, 0); };
 
   /* ---- pantry: what the grocery photos showed, what is left, and what has been cooked ---- */
-  var pantry = { items: [], cooked: [], t: 0 }, pantryTimer = null;   // item: { n: name, s: 0 in stock | 1 partly used | 2 gone }
+  var pantry = { items: [], cooked: [], t: 0 }, pantryTimer = null, pantryDirty = false;   // item: { n: name, s: 0 in stock | 1 partly used | 2 gone }
   function pantryClean(v) {
     if (!v || typeof v !== "object") return;
     pantry.items = (Array.isArray(v.items) ? v.items : []).filter(function (g) { return g && typeof g.n === "string" && g.n; }).slice(0, 150).map(function (g) { return { n: g.n.slice(0, 30), s: g.s === 1 || g.s === 2 ? g.s : 0, e: /^\d{4}-\d{2}-\d{2}$/.test(g.e || "") ? g.e : "" }; });
@@ -1735,10 +1763,11 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
   function pantrySave() {
     pantry.t = Date.now();
     try { localStorage.setItem("recipe-maker-pantry", JSON.stringify(pantry)); } catch (e) {}
-    clearTimeout(pantryTimer);
+    clearTimeout(pantryTimer); pantryDirty = true;
     pantryTimer = setTimeout(function () {
       var body = JSON.parse(JSON.stringify(pantry));
-      writeQ = writeQ.then(function () { return dbReady; }).then(function (col) { if (col) return col.doc("pantry").set(body); }).catch(function () {});
+      function settle() { if (pantry.t === body.t) pantryDirty = false; }
+      writeQ = writeQ.then(function () { return dbReady; }).then(function (col) { if (col) return col.doc("pantry").set(body); }).then(settle, settle);
     }, 1200);
     drawPantry();
   }
@@ -1839,21 +1868,24 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
   drawPantry();
   dbReady.then(function (col) {
     if (!col) return;
-    return col.doc("pantry").get().then(function (snap) {
+    col.doc("pantry").onSnapshot(function (snap) {
       var d = snap.exists ? snap.data() : null;
-      if (d && Number(d.t) > pantry.t) { pantryClean(d); try { localStorage.setItem("recipe-maker-pantry", JSON.stringify(pantry)); } catch (e) {} drawPantry(); }
-    });
+      // Skip while this device has an edit that is not saved yet, so it is not overwritten by an older copy.
+      if (!d || pantryDirty || Number(d.t) === pantry.t) return;
+      pantryClean(d); try { localStorage.setItem("recipe-maker-pantry", JSON.stringify(pantry)); } catch (e) {} drawPantry();
+    }, function () {});
   }).catch(function () {});
 
   /* ---- "my goal" tab ---- */
-  var meTimer = null;
+  var meTimer = null, meDirty = false;
   function meSave() {
     me.t = Date.now();
     try { localStorage.setItem("recipe-maker-me", JSON.stringify(me)); } catch (e) {}
-    clearTimeout(meTimer);
+    clearTimeout(meTimer); meDirty = true;
     meTimer = setTimeout(function () {
       var body = JSON.parse(JSON.stringify(me));
-      writeQ = writeQ.then(function () { return dbReady; }).then(function (col) { if (col) return col.doc("profile").set(body); }).catch(function () {});
+      function settle() { if (me.t === body.t) meDirty = false; }
+      writeQ = writeQ.then(function () { return dbReady; }).then(function (col) { if (col) return col.doc("profile").set(body); }).then(settle, settle);
     }, 1200);
     drawMeOut();
   }
@@ -1870,9 +1902,11 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
     radio("sexSeg", [["f", "女"], ["m", "男"]], "sex");
     radio("actSeg", [[0, "少郁（多數坐）"], [1, "輕度（每週運動 1–3 日）"], [2, "中度（每週 3–5 日）"], [3, "高（每週 6–7 日）"]], "act");
     $("meH").value = me.h || ""; $("meW").value = me.w || ""; $("meAge").value = me.age || "";
+    $("meTW").value = me.tw || ""; $("meWeeks").value = me.weeks || "";
+    radio("paceSeg", [[0.25, "慢慢嚟（每週 0.25 kg）"], [0.5, "適中（每週 0.5 kg）"], [0.75, "快啲（每週 0.75 kg）"], [0, "自己定期限"]], "pace");
     drawMeOut();
   }
-  [["meH", "h"], ["meW", "w"], ["meAge", "age"]].forEach(function (f) {
+  [["meH", "h"], ["meW", "w"], ["meAge", "age"], ["meTW", "tw"], ["meWeeks", "weeks"]].forEach(function (f) {
     $(f[0]).addEventListener("input", function () { me[f[1]] = Number($(f[0]).value) || 0; meSave(); });
   });
   function drawMeOut() {
@@ -1881,9 +1915,23 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
     c.appendChild(el("h2", null, "你嘅每日目標"));
     if (!mp) { c.appendChild(el("p", "desc", "填咗身高（120–220 cm）同體重（30–250 kg）就會計到。")); c.appendChild(doodle("rice")); return; }
     c.appendChild(el("div", "big", mp.target + " kcal／日"));
-    var gl = me.goal === "cut" ? "減脂：比你每日消耗少食約 " + (mp.tdee - mp.target) + " kcal" + (mp.perWeek ? "，大約每星期減 " + mp.perWeek.toFixed(1) + " kg" : "")
-      : me.goal === "bulk" ? "增肌：比你每日消耗多食約 300 kcal，配合重量訓練" : "冇特別目標：食返你每日消耗嘅份量，維持體重";
+    $("meWeeksRow").hidden = me.pace !== 0;
+    var kg = mp.perWeek ? mp.perWeek.toFixed(2).replace(/0$/, "") : "";
+    var gl = mp.dir === "cut" ? (mp.perWeek ? "減脂：比你每日消耗少食約 " + (mp.tdee - mp.target) + " kcal，大約每星期減 " + kg + " kg" : "維持體重：食返你每日消耗嘅份量")
+      : mp.dir === "bulk" ? "增肌：比你每日消耗多食約 " + (mp.target - mp.tdee) + " kcal，大約每星期增 " + kg + " kg，要配合重量訓練"
+      : mp.tw ? "你已經差唔多喺理想體重：食返你每日消耗嘅份量，維持體重" : "冇特別目標：食返你每日消耗嘅份量，維持體重";
     c.appendChild(el("p", "desc", gl + "。"));
+    if (mp.weeks) {
+      var eta = new Date(); eta.setDate(eta.getDate() + mp.weeks * 7);
+      c.appendChild(el("p", "desc", "由 " + me.w + " kg 去到 " + mp.tw + " kg，大約要 " + mp.weeks + " 個星期（約 " + eta.getFullYear() + " 年 " + (eta.getMonth() + 1) + " 月 " + eta.getDate() + " 日）。"));
+      var steps = [], sign = mp.dir === "cut" ? -1 : 1, show = Math.min(mp.weeks, 6);
+      for (var wk = 1; wk <= show; wk++) {
+        var v = me.w + sign * mp.perWeek * wk; if ((sign < 0 && v < mp.tw) || (sign > 0 && v > mp.tw)) v = mp.tw;
+        steps.push("第 " + wk + " 週 " + v.toFixed(1));
+      }
+      if (mp.weeks > show) steps.push("… 第 " + mp.weeks + " 週 " + mp.tw.toFixed(1));
+      c.appendChild(el("p", "hint", "每星期大約（kg）：" + steps.join(" → ")));
+    }
     if (mp.warn) c.appendChild(el("p", "note", mp.warn));
     var dl = el("dl", "rows");
     var bc = mp.bmi < 18.5 ? "過輕" : mp.bmi < 23 ? "正常" : mp.bmi < 25 ? "過重" : "肥胖";
@@ -1894,15 +1942,18 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
     var use = el("button", "primary", st.kcalMax === GOAL ? "已經用緊做卡路里上限 ✓" : "用嚟揀餸"); use.type = "button";
     use.onclick = function () { st.kcalMax = GOAL; save(); showTab("cook"); $("kcalSeg").scrollIntoView({ block: "center" }); };
     c.appendChild(use);
+    var wkb = el("button", "btn2", "用呢個目標整一個禮拜餐單"); wkb.type = "button";
+    wkb.onclick = function () { st.kcalMax = GOAL; st.plan = "week"; save(); location.hash = ""; showTab("cook"); drawPlanSeg(); timeNote(); $("planSeg").scrollIntoView({ block: "center" }); };
+    c.appendChild(wkb);
     c.appendChild(el("p", "hint", "㩒咗之後，「卡路里上限」會跟住每餐 " + mp.perMeal + " kcal（分享模式會扣起一碗白飯約 230 kcal），建議嘅餸亦會配合你嘅目標。"));
     c.appendChild(el("p", "hint", (mp.rough ? "未填年齡同性別，所以當 30 歲、男女平均嚟計，會粗略啲。" : "用 Mifflin-St Jeor 公式計。") + "BMI 分類用亞洲成人標準。呢啲都係估算，唔係醫療建議；未成年、懷孕、餵哺母乳或者有長期病患，請先問醫生或營養師。"));
   }
   dbReady.then(function (col) {
     if (!col) return;
-    return col.doc("profile").get().then(function (snap) {
+    col.doc("profile").onSnapshot(function (snap) {
       var d = snap.exists ? snap.data() : null;
-      if (d && Number(d.t) > me.t) { meClean(d); try { localStorage.setItem("recipe-maker-me", JSON.stringify(me)); } catch (e) {} if (!$("meView").hidden) drawMe(); timeNote(); }
-    });
+      if (d && !meDirty && Number(d.t) !== me.t) { meClean(d); try { localStorage.setItem("recipe-maker-me", JSON.stringify(me)); } catch (e) {} if (!$("meView").hidden) drawMe(); timeNote(); }
+    }, function () {});
   }).catch(function () {});
 
   drawCountries();

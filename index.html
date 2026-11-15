@@ -360,12 +360,13 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
           <div class="chips seg" id="vegSeg" role="radiogroup" aria-label="幾多個菜餸"></div>
           <p class="note" id="dishNote" hidden></p>
         </div>
-        <div class="field">
-          <div class="label"><span>想食咩肉 <small>選填</small></span> <b id="meatsOut"></b></div>
-          <div class="chips" id="meats"></div>
-          <p class="hint">可以揀多過一種；唔揀就乜嘢肉都得。揀咗之後，下面可以再揀部位。</p>
-          <div class="cuts" id="cuts"></div>
-        </div>
+      </div>
+
+      <div class="field">
+        <div class="label"><span>想食咩肉 <small>選填</small></span> <b id="meatsOut"></b></div>
+        <div class="chips" id="meats"></div>
+        <p class="hint">可以揀多過一種，會當係「其中一樣都得」；唔揀就乜嘢肉都得。揀咗之後，下面可以再揀部位。</p>
+        <div class="cuts" id="cuts"></div>
       </div>
 
       <div class="field">
@@ -1299,7 +1300,7 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
       if (v !== ANY) parts.push(v + " vegetable dish(es) (type \"veg\")");
       mix = " " + shared.join(" and ") + " is a shared meal of several dishes with rice" + (parts.length ? ", made of " + parts.join(" and ") + " and the rest type \"other\" (egg, tofu, soup)" : ", a balanced mix of meat, vegetable and other dishes") +
         "; offer the options for it in that same proportion and set each dish's type to \"meat\", \"veg\" or \"other\"." +
-        (st.meats.length ? " Meat dishes use ONE of these meats as the main ingredient, covering the list across the week: " + st.meats.join("、") + "." + cutsLine() : "");
+        "";
     }
     var need = W.meals.map(function (x, i) { return x + " " + W.per[i]; }).join("、");
     return "Plan a menu for " + W.days + " days. Dishes needed each day, by meal: " + need + "." + mix +
@@ -1327,6 +1328,7 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
       kcalRule(kcalNow(), st.meal, dishTotal()) + (W && kcalNow() > 0 ? " This limit applies to each meal of the week." : ""),
       goalRule(),
       dietRule(st.diet),
+      (W || st.meal !== "share") && st.meats.length ? "Meat choice: the cook picked these meats as ALTERNATIVES, not a combination: " + st.meats.join("、") + ". Every dish whose main ingredient is meat, poultry, fish or seafood must use ONE of them and no other meat, and the dishes should cover the list as far as their number allows. Use them even if they are not among the cook's ingredients; the cook will buy them." + cutsLine() : "",
       st.methods.length
         ? "Cooking method: the main cooking method of every dish must be one of these: " + st.methods.join("、") + ". These are alternatives: each dish uses one of them, and across the dishes every listed method should appear at least once where the number of dishes allows. Set method to the one used, written exactly as in this list. If a method clashes with the health minimum, use a lighter version of the dish that still satisfies both."
         : "Cooking method: any. Set method to the dish's main cooking method in one or two Chinese characters (for example 蒸, 炒, 煎, 炸, 焗, 炆, 水煮, 煲湯, 涼拌).",

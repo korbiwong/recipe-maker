@@ -1,0 +1,1615 @@
+<!doctype html>
+<html lang="zh-Hant-HK">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>食譜製造器</title>
+<meta name="description" content="影低食材，揀菜式、排時間、計卡路里，記低每日食咗乜。">
+<meta name="theme-color" content="#fffdf7">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="食譜製造器">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-180.png">
+<style>html{box-sizing:border-box}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=LXGW+Marker+Gothic&family=Iansui&display=swap">
+<script src="app.js"></script>
+</head>
+<body>
+<style>
+/* Look: a hand-drawn Hong Kong snack doodle sheet. Ink outlines, boxed name tags with an offset shadow, egg-tart yellow, blue highlighter under the little notes. Left = the order; right = the menu of ideas, then the chosen recipe. */
+:root {
+  --bg: #fffdf7; --surface: #ffffff; --sunk: #fff3c4;
+  --ink: #1f1a17; --muted: #5a5049; --line: #d9cdb8;
+  --accent: #c8372e; --on-accent: #ffffff;
+  --yellow: #f7d24a; --on-yellow: #1f1a17; --blue: #bfe3f5;
+  --prep: #5fae57; --marinate: #e9a13b; --cook: #e4574c;
+  --warn-bg: #fff0b3; --warn-ink: #4a3a00;
+  --tile: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cpath d='M30 18l3 9 9 3-9 3-3 9-3-9-9-3 9-3z' fill='%23f7d24a'/%3E%3Cpath d='M130 104c-4-6-12-1-8 5l8 8 8-8c4-6-4-11-8-5z' fill='%23f6b5ae'/%3E%3Ccircle cx='150' cy='34' r='3.5' fill='%23bfe3f5'/%3E%3Ccircle cx='64' cy='150' r='3.5' fill='%23b4dcae'/%3E%3Cpath d='M92 60l1.5 4.5 4.5 1.5-4.5 1.5-1.5 4.5-1.5-4.5-4.5-1.5 4.5-1.5z' fill='%23d9c8f0'/%3E%3C/svg%3E");
+  --wob: 255px 18px 225px 18px / 18px 225px 18px 255px;
+  --display: "LXGW Marker Gothic", "Iansui", "PingFang TC", "Microsoft JhengHei", system-ui, sans-serif;
+  --body: "LXGW Marker Gothic", "Iansui", "PingFang TC", "Microsoft JhengHei", system-ui, sans-serif;
+  --mono: "LXGW Marker Gothic", "Iansui", "PingFang TC", "Microsoft JhengHei", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #1b1815; --surface: #27221e; --sunk: #3b331f;
+  --ink: #f6efe4; --muted: #bdb2a5; --line: #4a4238;
+  --accent: #ff8f83; --on-accent: #2a0d0a;
+  --yellow: #e6bf3c; --blue: #2f5a70;
+  --prep: #8fcf86; --marinate: #f0b458; --cook: #f0776c;
+  --warn-bg: #4a3a0c; --warn-ink: #f7e3a0; --tile: none; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #1b1815; --surface: #27221e; --sunk: #3b331f;
+  --ink: #f6efe4; --muted: #bdb2a5; --line: #4a4238;
+  --accent: #ff8f83; --on-accent: #2a0d0a;
+  --yellow: #e6bf3c; --blue: #2f5a70;
+  --prep: #8fcf86; --marinate: #f0b458; --cook: #f0776c;
+  --warn-bg: #4a3a0c; --warn-ink: #f7e3a0; --tile: none; color-scheme: dark }
+
+* { box-sizing: border-box }
+body { background: var(--bg) var(--tile); color: var(--ink); font: 400 17px/1.65 var(--body);
+  padding-block: 28px 56px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.wrap { max-width: 1120px; margin: 0 auto; display: grid; gap: 24px }
+h1, h2, h3 { font-family: var(--display); margin: 0; text-wrap: balance; line-height: 1.25 }
+h1 { font-size: clamp(2.2rem, 5vw, 3.2rem); font-weight: 400; letter-spacing: 0.12em; display: inline-block;
+  padding: 2px 6px 4px; border-top: 3px solid var(--ink); border-bottom: 3px solid var(--ink) }
+p { margin: 0 }
+.top { display: flex; flex-wrap: wrap; gap: 14px 24px; align-items: center; justify-content: space-between }
+.top > div:first-child { min-width: 0; flex: 1 1 320px }
+.doodles { display: flex; flex-wrap: wrap; gap: 6px; flex: none; color: var(--ink) }
+.doodles svg { width: 58px; height: 58px; display: block }
+.doodles svg:nth-child(odd) { transform: rotate(-7deg) }
+.doodles svg:nth-child(even) { transform: rotate(6deg) translateY(4px) }
+@media (max-width: 520px) { .doodles svg { width: 42px; height: 42px } }
+.lede { color: var(--ink); max-width: 34em; margin-top: 12px;
+  text-decoration: underline; text-decoration-color: var(--blue); text-decoration-thickness: 5px; text-underline-offset: 3px; text-decoration-skip-ink: none }
+.cols { display: grid; gap: 24px; grid-template-columns: minmax(0, 380px) minmax(0, 1fr); align-items: start }
+@media (max-width: 820px) { .cols { grid-template-columns: minmax(0, 1fr) } }
+
+.dz { display: inline-block; flex: none; line-height: 0; color: var(--ink) }
+.dz svg { display: block; width: 100%; height: 100% }
+.dz:nth-child(odd) { transform: rotate(-7deg) }
+.dz:nth-child(even) { transform: rotate(6deg) }
+.band { display: flex; flex-wrap: wrap; gap: 10px; justify-content: space-between }
+.band .dz { width: 58px; height: 58px }
+@media (max-width: 640px) { .band { justify-content: center } .band .dz { width: 42px; height: 42px } }
+.ihead { display: flex; gap: 8px; align-items: flex-start; justify-content: space-between }
+.ihead .dz { width: 42px; height: 42px; transform: rotate(8deg); margin: -4px -4px 0 0 }
+.panel { position: relative }
+.panel .corner { position: absolute; top: -16px; right: -8px; width: 58px; height: 58px; transform: rotate(12deg) }
+.hrow { display: flex; align-items: center; justify-content: center; gap: 14px; margin-bottom: 14px }
+.body .hrow h3 { margin: 0 }
+.hrow .dz { width: 50px; height: 50px }
+.rdeco { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px 20px; padding-top: 4px }
+.rdeco .dz { width: 54px; height: 54px }
+.tray { border: 2.5px solid var(--ink); border-radius: 18px; background: var(--sunk); padding: 14px 16px; display: grid; gap: 10px; box-shadow: 4px 4px 0 var(--ink) }
+.tray .primary { font-size: 1.05rem; padding: 8px 16px; letter-spacing: 0.1em }
+.acts2 { display: flex; flex-wrap: wrap; gap: 8px; align-items: center }
+.idea .acts2 .btn2 { font-size: 0.88rem; padding: 4px 12px }
+.idea.pick { cursor: default }
+.idea.pick:hover { background: var(--surface) }
+.idea.pick:active { transform: none; box-shadow: 3px 3px 0 var(--ink) }
+.idea.picked, .idea.picked:hover { background: var(--sunk) }
+.idea.picked .on { background: var(--yellow); color: var(--on-yellow) }
+.tl { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; font-size: 1.02rem; line-height: 1.7 }
+.tl li { display: grid; grid-template-columns: 62px minmax(0, 1fr); gap: 12px; align-items: start }
+.tl .at { background: var(--yellow); color: var(--on-yellow); border: 2px solid var(--ink); border-radius: var(--wob); text-align: center; font-size: 0.88rem; padding: 0 4px; margin-top: 4px; white-space: nowrap }
+.tl .who { display: inline-block; border: 2px solid var(--ink); background: var(--surface); padding: 0 6px; font-size: 0.8rem; line-height: 1.5; margin-right: 6px }
+.tl small { color: var(--muted); white-space: nowrap }
+.tips { margin: 0; padding-left: 1.3em }
+.cuts { display: grid; gap: 10px }
+.cuts:empty { display: none }
+.cutrow { display: grid; gap: 6px; border-left: 3px solid var(--ink); padding-left: 10px }
+.cutrow > span { font-size: 0.9rem; color: var(--muted) }
+.cutrow .chip { font-size: 0.88rem; padding: 2px 10px }
+.numf { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; white-space: nowrap }
+.numf input { min-width: 0; width: 100% }
+.big { font: 400 2.2rem/1.2 var(--display); color: var(--accent) }
+.rows { display: grid; gap: 6px; margin: 0 }
+.rows div { display: flex; justify-content: space-between; gap: 12px; border-bottom: 2px dashed var(--ink); padding: 6px 0 }
+.rows div:last-child { border-bottom: 0 }
+.rows dt { color: var(--muted) } .rows dd { margin: 0; text-align: right }
+.wday { display: grid; gap: 8px; border-top: 2px dashed var(--ink); padding-top: 10px }
+.wday > strong { font: 400 1.05rem var(--display); display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap }
+.wday > strong small { color: var(--muted); font-size: 0.85rem }
+.wmeal { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 8px; align-items: start }
+.wmeal .slot { margin-top: 6px }
+.wsel { display: grid; gap: 6px; min-width: 0 }
+select { font: inherit; color: var(--ink); background: var(--surface); border: 2px solid var(--ink); border-radius: 12px; padding: 8px 10px; width: 100%; min-width: 0 }
+select:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px }
+.tabs { display: flex; flex-wrap: wrap; gap: 10px }
+.tabs .chip { font-size: 1.1rem; padding: 6px 22px }
+.calcols { display: grid; gap: 24px; grid-template-columns: minmax(0, 1fr) minmax(0, 380px); align-items: start }
+@media (max-width: 820px) { .calcols { grid-template-columns: minmax(0, 1fr) } }
+.calcard, .daycard { padding: 18px; display: grid; gap: 14px }
+.calhead { display: flex; align-items: center; gap: 10px; flex-wrap: wrap }
+.calhead h2 { font-size: 1.5rem; flex: 1; min-width: 0; text-align: center }
+.calgrid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px }
+.wd { text-align: center; font-size: 0.9rem; color: var(--muted) }
+.day { font: inherit; color: var(--ink); background: var(--surface); border: 2px solid var(--ink); border-radius: 12px; min-height: 66px; padding: 4px 6px;
+  cursor: pointer; display: grid; align-content: start; justify-items: start; position: relative; min-width: 0 }
+.day .n { font-size: 0.95rem; line-height: 1.2 }
+.day .dz { width: 32px; height: 32px; justify-self: center; transform: none }
+.day .c { position: absolute; right: 5px; bottom: 1px; font-size: 0.75rem; color: var(--accent) }
+.day.today { background: var(--sunk) }
+.day[aria-pressed="true"] { background: var(--yellow); color: var(--on-yellow); box-shadow: 3px 3px 0 var(--ink) }
+@media (max-width: 520px) { .calgrid { gap: 4px } .day { min-height: 54px; padding: 2px 4px; border-radius: 9px } .day .dz { width: 24px; height: 24px } }
+.daycard h2 { font-size: 1.3rem }
+.meal { border: 2px dashed var(--ink); border-radius: 14px; padding: 10px 12px; display: grid; gap: 4px }
+.mtop { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap }
+.mtop strong { font: 400 1.1rem var(--display); flex: 1; min-width: 0 }
+.slot { background: var(--yellow); color: var(--on-yellow); border: 2px solid var(--ink); border-radius: var(--wob); padding: 0 10px; font-size: 0.85rem; white-space: nowrap }
+.meal .sub { font-size: 0.88rem; color: var(--muted) }
+.meal details { font-size: 0.92rem }
+.meal summary { cursor: pointer; color: var(--accent) }
+.meal ul, .meal ol { margin: 6px 0; padding-left: 1.4em }
+.foot .acts { display: flex; flex-wrap: wrap; gap: 10px }
+.order { display: grid; gap: 24px; min-width: 0 }
+.field { display: grid; gap: 10px; min-width: 0 }
+.label { font: 400 1rem/1.3 var(--display); color: var(--ink);
+  display: flex; justify-content: space-between; gap: 8px; align-items: center }
+.label > span:first-child, .tag { background: var(--surface); border: 2px solid var(--ink); box-shadow: 3px 3px 0 var(--ink);
+  padding: 1px 9px 2px; letter-spacing: 0.08em }
+.label b { font: 400 0.92rem var(--body); letter-spacing: 0; color: var(--muted) }
+.label small { font: 400 0.78rem var(--body); letter-spacing: 0; color: var(--muted) }
+.label small.req { color: var(--accent) }
+.hint { font-size: 0.9rem; color: var(--muted);
+  text-decoration: underline; text-decoration-color: var(--blue); text-decoration-thickness: 4px; text-underline-offset: 2px; text-decoration-skip-ink: none }
+
+.drop { position: relative; display: grid; place-items: center; text-align: center; gap: 6px; min-height: 170px;
+  border: 2.5px dashed var(--ink); border-radius: 18px; background: var(--surface); padding: 18px; cursor: pointer; overflow: hidden }
+.drop.over { background: var(--sunk) }
+.drop:focus-within { outline: 3px solid var(--accent); outline-offset: 2px }
+.drop input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100% }
+.drop strong { font: 400 1.2rem var(--display); letter-spacing: 0.1em }
+.drop strong::before, .drop strong::after { content: " ✦ "; color: var(--yellow) }
+.drop img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover }
+.drop .hint { text-decoration: none }
+.drop .swap { position: absolute; left: 10px; bottom: 10px; background: var(--surface); color: var(--ink); border: 2px solid var(--ink); font-size: 0.85rem; padding: 2px 10px; border-radius: var(--wob) }
+.linkbtn { background: none; border: 0; padding: 0; color: var(--accent); font: 400 0.92rem var(--body); text-decoration: underline; cursor: pointer; justify-self: start }
+
+textarea, input[type="text"], input[type="number"] { width: 100%; font: inherit; color: var(--ink); background: var(--surface);
+  border: 2px solid var(--ink); border-radius: 12px; padding: 10px 12px }
+textarea { resize: vertical; min-height: 64px }
+textarea:focus-visible, input:focus-visible, button:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px }
+
+.chips { display: flex; flex-wrap: wrap; gap: 8px }
+.chip { font: 400 0.98rem var(--body); color: var(--ink); background: var(--surface); border: 2px solid var(--ink);
+  border-radius: var(--wob); padding: 4px 14px; cursor: pointer }
+.chip:hover { background: var(--sunk) }
+.chip[aria-pressed="true"], .chip[aria-checked="true"] { background: var(--yellow); color: var(--on-yellow); box-shadow: 2px 2px 0 var(--ink) }
+.seg .chip { font-size: 0.92rem; padding: 4px 12px }
+.addrow { display: flex; gap: 8px }
+.addrow input { min-width: 0; flex: 1 }
+.btn2 { font: 400 0.95rem var(--body); background: var(--surface); color: var(--ink); border: 2px solid var(--ink); border-radius: var(--wob); padding: 6px 16px; cursor: pointer; white-space: nowrap; box-shadow: 2px 2px 0 var(--ink) }
+.btn2:active { transform: translate(2px, 2px); box-shadow: none }
+
+.note { background: var(--warn-bg); color: var(--warn-ink); border: 2px dashed var(--warn-ink); border-radius: 12px; padding: 8px 12px; font-size: 0.92rem }
+.go { display: grid; gap: 12px }
+.primary { font: 400 1.25rem var(--display); letter-spacing: 0.2em; background: var(--accent); color: var(--on-accent); border: 2.5px solid var(--ink); border-radius: var(--wob); padding: 12px 18px; cursor: pointer; box-shadow: 4px 4px 0 var(--ink) }
+.primary:active { transform: translate(3px, 3px); box-shadow: 1px 1px 0 var(--ink) }
+.primary:disabled { opacity: 0.5; cursor: not-allowed }
+.status { display: flex; gap: 10px; align-items: center; font-size: 0.95rem; color: var(--muted) }
+.dot { width: 12px; height: 12px; border-radius: 50%; background: var(--yellow); border: 2px solid var(--ink); flex: none; animation: pulse 1.1s ease-in-out infinite }
+@keyframes pulse { 50% { opacity: 0.25 } }
+@media (prefers-reduced-motion: reduce) { .dot { animation: none } }
+
+.ticket { background: var(--surface); border: 2.5px solid var(--ink); border-radius: 22px; box-shadow: 6px 6px 0 var(--ink); min-width: 0; overflow: hidden }
+.ticket-top { padding: 14px 20px; border-bottom: 2.5px dashed var(--ink); display: grid; gap: 10px }
+.eg { font: 400 0.85rem var(--body); color: var(--warn-ink); background: var(--warn-bg); border: 2px solid var(--warn-ink); border-radius: var(--wob); padding: 1px 12px; justify-self: start }
+.found { font-size: 0.95rem; color: var(--muted) }
+.found span { color: var(--ink) }
+.recipe { padding: 22px 20px 26px; display: grid; gap: 24px }
+.country { font: 400 1rem var(--display); letter-spacing: 0.2em; color: var(--ink); justify-self: start; display: inline-block;
+  background: var(--surface); border: 2px solid var(--ink); box-shadow: 3px 3px 0 var(--ink); padding: 0 10px 1px }
+.recipe h2 { font-size: clamp(2rem, 4.6vw, 3rem); font-weight: 400; margin-top: 12px; letter-spacing: 0.06em }
+.rhead { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: 14px 24px }
+.rhead > div:first-child { min-width: 0; flex: 1 1 260px }
+.meta { display: flex; flex-wrap: wrap; gap: 8px; flex: none }
+.meta span { background: var(--yellow); color: var(--on-yellow); border: 2px solid var(--ink); border-radius: var(--wob); padding: 3px 14px; font-size: 1rem; white-space: nowrap }
+.hero { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 18px; border: 2.5px solid var(--ink) }
+.desc { color: var(--muted); max-width: 36em; margin-top: 8px }
+
+/* menu of dish ideas */
+.menu-head h2 { font-size: 1.5rem; margin-top: 0 }
+.menu-head h2::after { content: " ✦"; color: var(--yellow) }
+.group { display: grid; gap: 12px }
+.ideas { display: grid; gap: 14px; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)) }
+.idea { text-align: left; font: inherit; color: var(--ink); background: var(--surface); border: 2px solid var(--ink); border-radius: 16px;
+  box-shadow: 3px 3px 0 var(--ink); padding: 14px; cursor: pointer; display: grid; gap: 8px; align-content: start; min-width: 0 }
+.idea:hover { background: var(--sunk) }
+.idea:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 var(--ink) }
+.idea:disabled { cursor: wait; opacity: 0.6 }
+.idea strong { font: 400 1.2rem/1.3 var(--display); letter-spacing: 0.04em }
+.idea .d { font-size: 0.92rem; color: var(--muted) }
+.idea .u { font-size: 0.88rem }
+.idea .u em { font-style: normal; color: var(--muted) }
+.idea .t { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; font-size: 0.9rem; font-variant-numeric: tabular-nums }
+.idea .t span:last-child { color: var(--accent) }
+.idea .bar { height: 10px }
+.hp { font-size: 0.88rem; color: var(--muted); display: flex; gap: 6px; align-items: baseline }
+.hp i { font-style: normal; color: var(--prep); letter-spacing: 0.1em }
+.hp b { font-weight: 400; color: var(--ink) }
+.hnote { font-size: 0.95rem; color: var(--muted); margin-top: 6px;
+  text-decoration: underline; text-decoration-color: var(--blue); text-decoration-thickness: 4px; text-underline-offset: 2px; text-decoration-skip-ink: none }
+
+.times { display: grid; gap: 10px; border: 2px dashed var(--ink); border-radius: 18px; padding: 14px 18px }
+.figs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px }
+@media (max-width: 460px) { .figs { grid-template-columns: repeat(2, minmax(0, 1fr)) } }
+.fig { display: grid; gap: 2px }
+.fig dt { font-size: 0.88rem; color: var(--muted); display: flex; align-items: center; gap: 6px }
+.fig dt i { width: 11px; height: 11px; border-radius: 50%; border: 1.5px solid var(--ink); display: inline-block }
+.fig dd { margin: 0; font-size: 1.12rem; font-variant-numeric: tabular-nums }
+.fig.total dd { color: var(--accent) }
+dl { margin: 0 }
+.bar { display: flex; height: 16px; border-radius: 99px; overflow: hidden; background: var(--surface); border: 2px solid var(--ink) }
+.bar span { min-width: 4px; border-right: 2px solid var(--ink) }
+.bar span:last-child { border-right: 0 }
+.over { font-size: 0.9rem; color: var(--warn-ink); background: var(--warn-bg); border-radius: 8px; padding: 6px 10px; justify-self: start }
+
+.body { display: grid; gap: 24px; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); align-items: start }
+.panel { background: var(--sunk); border: 2.5px solid var(--ink); border-radius: 20px; box-shadow: 4px 4px 0 var(--ink); padding: 20px 22px 14px }
+.dirs { border-left: 2.5px solid var(--ink); padding: 6px 0 6px 24px; align-self: stretch }
+@media (max-width: 640px) { .body { grid-template-columns: minmax(0, 1fr) } .dirs { border-left: 0; padding-left: 0 } }
+.body h3 { font-size: 1.3rem; font-weight: 400; margin: 0 auto 14px; letter-spacing: 0.3em; text-indent: 0.3em; display: table;
+  background: var(--surface); border: 2px solid var(--ink); box-shadow: 3px 3px 0 var(--ink); padding: 0 12px 2px }
+.ings { list-style: none; margin: 0; padding: 0; display: grid; gap: 0 }
+.ings li { display: flex; gap: 10px; justify-content: space-between; align-items: baseline; padding: 9px 0; border-bottom: 2px dashed var(--ink); font-size: 1.05rem }
+.ings li:last-child { border-bottom: 0 }
+.ings .q { font-size: 0.92rem; color: var(--muted); white-space: nowrap }
+.ings .buy { color: var(--muted) }
+.ings .buy::after { content: " · 要另備"; font-size: 0.8rem; color: var(--accent) }
+.steps { margin: 0; padding: 0; list-style: none; display: grid; gap: 14px; max-width: 36em; counter-reset: step; font-size: 1.08rem; line-height: 1.8 }
+.steps li { counter-increment: step; display: grid; grid-template-columns: 32px minmax(0, 1fr); gap: 12px; align-items: start }
+.steps li::before { content: counter(step); width: 32px; height: 32px; border-radius: 50%; background: var(--yellow); color: var(--on-yellow); border: 2px solid var(--ink);
+  font: 400 1rem/28px var(--display); text-align: center; margin-top: 2px }
+.foot { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; font-size: 0.9rem; color: var(--muted) }
+dialog.keydlg { border: 2.5px solid var(--ink); border-radius: 18px; padding: 18px; width: min(440px, 92vw); background: var(--surface); color: var(--ink); box-shadow: 6px 6px 0 var(--ink) }
+dialog.keydlg[open] { display: grid; gap: 12px }
+dialog.keydlg::backdrop { background: rgba(0, 0, 0, 0.45) }
+dialog.keydlg h2 { font-size: 1.4rem }
+dialog.keydlg input { width: 100%; font: inherit; color: var(--ink); background: var(--surface); border: 2px solid var(--ink); border-radius: 12px; padding: 10px 12px }
+body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div>
+    <h1>食譜製造器</h1>
+    <p class="lede">影低你手上的食材，揀想食的國家菜式，設定時間。先俾你幾個菜式揀，揀好再寫完整食譜。</p>
+    </div>
+  </header>
+  <div class="band" id="band" aria-hidden="true"></div>
+
+  <nav class="tabs" aria-label="版面">
+    <button type="button" class="chip" id="tabCook" aria-pressed="true">煮乜好</button>
+    <button type="button" class="chip" id="tabCal" aria-pressed="false">飲食日曆</button>
+    <button type="button" class="chip" id="tabMe" aria-pressed="false">我嘅目標</button>
+  </nav>
+
+  <div class="cols" id="cookView">
+    <section class="order" aria-label="你的要求">
+      <div class="field">
+        <div class="label"><span>計劃</span> <b id="planOut"></b></div>
+        <div class="chips seg" id="planSeg" role="radiogroup" aria-label="計劃"></div>
+        <p class="hint" id="planHint"></p>
+      </div>
+
+      <div class="order" id="weekOpts" hidden>
+        <div class="field">
+          <div class="label"><span>計幾多日</span> <b id="wDaysOut"></b></div>
+          <div class="chips seg" id="wDaysSeg" role="radiogroup" aria-label="計幾多日"></div>
+        </div>
+        <div class="field">
+          <div class="label"><span>每日邊餐</span> <b id="wMealsOut"></b></div>
+          <div class="chips" id="wMeals"></div>
+        </div>
+      </div>
+
+      <div class="field" id="photoField">
+        <div class="label"><span>你的食材</span> </div>
+        <label class="drop" id="drop">
+          <input type="file" id="photo" accept="image/jpeg,image/png,image/webp,image/gif" multiple>
+          <strong id="dropTitle">加入相片</strong>
+          <span class="hint" id="dropHint">點一下影相或揀相，或者將相片拖到這裡</span>
+        </label>
+        <button type="button" class="linkbtn" id="removePhoto" hidden>移除全部相片</button>
+        <p class="hint">不一定用晒所有食材，每個菜式只會揀最夾的幾樣。冇相、冇寫食材都得，會俾啲大眾化嘅食譜你。</p>
+      </div>
+
+      <div class="field">
+        <label class="label" for="extra"><span>其他補充</span></label>
+        <textarea id="extra" placeholder="其他食材、食物敏感或飲食習慣。例如：還有雞蛋，不要花生"></textarea>
+      </div>
+
+      <div class="field">
+        <div class="label"><span>國家／地區</span> <b id="countryCount"></b></div>
+        <div class="chips" id="countries"></div>
+        <div class="addrow">
+          <input type="text" id="addCountry" placeholder="加入其他國家" maxlength="20" aria-label="加入其他國家">
+          <button type="button" class="btn2" id="addCountryBtn">加入</button>
+        </div>
+      </div>
+
+      <div class="field">
+        <div class="label"><span>想點食</span> <b id="mealOut"></b></div>
+        <div class="chips seg" id="mealSeg" role="radiogroup" aria-label="想點食"></div>
+        <p class="hint" id="mealHint"></p>
+      </div>
+
+      <div class="order" id="shareOpts" hidden>
+        <div class="field">
+          <div class="label"><span>幾多個餸</span> <b id="dishOut"></b></div>
+          <div class="chips seg" id="dishSeg" role="radiogroup" aria-label="幾多個餸"></div>
+          <p class="hint">每個國家會俾多幾個選擇，你自己揀夠數，加入今日餐單。</p>
+        </div>
+        <div class="field">
+          <div class="label"><span>幾多個肉</span> <b id="meatOut"></b></div>
+          <div class="chips seg" id="meatSeg" role="radiogroup" aria-label="幾多個肉餸"></div>
+        </div>
+        <div class="field">
+          <div class="label"><span>幾多個菜</span> <b id="vegOut"></b></div>
+          <div class="chips seg" id="vegSeg" role="radiogroup" aria-label="幾多個菜餸"></div>
+          <p class="note" id="dishNote" hidden></p>
+        </div>
+        <div class="field">
+          <div class="label"><span>想食咩肉 <small>選填</small></span> <b id="meatsOut"></b></div>
+          <div class="chips" id="meats"></div>
+          <p class="hint">可以揀多過一種；唔揀就乜嘢肉都得。揀咗之後，下面可以再揀部位。</p>
+          <div class="cuts" id="cuts"></div>
+        </div>
+      </div>
+
+      <div class="field">
+        <div class="label"><span>健康指數 <small>選填</small></span> <b id="healthOut"></b></div>
+        <div class="chips seg" id="healthSeg" role="radiogroup" aria-label="最低健康指數"></div>
+        <p class="hint">每個菜式都有 1 至 5 分，5 分最健康：多菜、少油少糖少鹽、少煎炸。揀了分數，就只會建議達標的菜式。</p>
+      </div>
+
+      <div class="field">
+        <div class="label"><span>卡路里上限 <small>選填</small></span> <b id="kcalOut"></b></div>
+        <div class="chips seg" id="kcalSeg" role="radiogroup" aria-label="每人卡路里上限"></div>
+        <p class="hint" id="kcalHint"></p>
+      </div>
+
+      <div class="field">
+        <div class="label"><span>烹調方式 <small>選填</small></span> <b id="methodOut"></b></div>
+        <div class="chips" id="methods"></div>
+        <p class="hint">可以揀多過一種；唔揀就乜嘢煮法都得。</p>
+      </div>
+
+      <div class="field">
+        <div class="label"><span>總時間 <small class="req">必選</small></span> <b id="totOut"></b></div>
+        <div class="chips seg" id="totSeg" role="radiogroup" aria-label="總時間"></div>
+        <p class="hint">由開始準備到上碟，包括準備、醃製和烹調。</p>
+        <p class="note" id="timeNote" hidden></p>
+      </div>
+      <div class="field">
+        <div class="label"><span>烹調時間上限 <small>選填</small></span> <b id="cookOut"></b></div>
+        <div class="chips seg" id="cookSeg" role="radiogroup" aria-label="烹調時間上限"></div>
+      </div>
+      <div class="field">
+        <div class="label"><span>醃製時間上限 <small>選填</small></span> <b id="marOut"></b></div>
+        <div class="chips seg" id="marSeg" role="radiogroup" aria-label="醃製時間上限"></div>
+      </div>
+      <div class="field">
+        <div class="label"><span>幾多人食</span> <b id="servOut"></b></div>
+        <div class="chips seg" id="servSeg" role="radiogroup" aria-label="份量"></div>
+      </div>
+
+      <div class="go">
+        <button type="button" class="primary" id="go">建議菜式</button>
+        <div class="status" id="status" hidden><span class="dot"></span><span id="statusText"></span><button type="button" class="linkbtn" id="stop">停止</button></div>
+        <p class="note" id="error" hidden></p>
+      </div>
+    </section>
+
+    <section class="ticket" id="ticket" aria-live="polite">
+      <div class="ticket-top">
+        <span class="eg" id="egTag">示範，你的菜式會取代它</span>
+        <p class="found" id="found"></p>
+        <button type="button" class="linkbtn" id="back" hidden>← 返回菜式選擇</button>
+        <p class="note" id="ticketError" hidden></p>
+      </div>
+      <article class="recipe" id="recipe"></article>
+    </section>
+  </div>
+
+  <section class="calcols" id="calView" hidden aria-label="飲食日曆">
+    <div class="ticket calcard">
+      <div class="calhead">
+        <button type="button" class="btn2" id="calPrev" aria-label="上個月">‹</button>
+        <h2 id="calTitle"></h2>
+        <button type="button" class="btn2" id="calNext" aria-label="下個月">›</button>
+        <button type="button" class="btn2" id="calToday">今日</button>
+      </div>
+      <p class="note" id="calNote" hidden></p>
+      <div class="calgrid" id="calGrid"></div>
+      <p class="hint">㩒一日睇返食咗乜。喺食譜頁㩒「記低今日食咗」，或者喺呢度自己打，都會記低。</p>
+    </div>
+    <div class="ticket daycard" id="dayCard"></div>
+  </section>
+
+  <section class="calcols" id="meView" hidden aria-label="我嘅目標">
+    <div class="ticket calcard">
+      <div class="field">
+        <div class="label"><span>目標</span></div>
+        <div class="chips seg" id="goalSeg" role="radiogroup" aria-label="目標"></div>
+      </div>
+      <div class="field">
+        <div class="label"><span>身高同體重</span></div>
+        <div class="addrow">
+          <label class="numf">身高 <input type="number" id="meH" inputmode="decimal" min="120" max="220" step="0.5"> cm</label>
+          <label class="numf">體重 <input type="number" id="meW" inputmode="decimal" min="30" max="250" step="0.1"> kg</label>
+        </div>
+      </div>
+      <div class="field">
+        <div class="label"><span>年齡同性別 <small>選填，填咗會準啲</small></span></div>
+        <div class="addrow"><label class="numf">年齡 <input type="number" id="meAge" inputmode="numeric" min="18" max="100" step="1"> 歲</label></div>
+        <div class="chips seg" id="sexSeg" role="radiogroup" aria-label="性別"></div>
+      </div>
+      <div class="field">
+        <div class="label"><span>活動量</span></div>
+        <div class="chips seg" id="actSeg" role="radiogroup" aria-label="活動量"></div>
+      </div>
+      <p class="hint">呢啲資料只存喺呢部裝置。</p>
+    </div>
+    <div class="ticket daycard" id="meOut"></div>
+  </section>
+</div>
+
+<script>
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  var COUNTRIES = ["意大利","日本","泰國","法國","中國","韓國","越南","西班牙","香港","英國","美國"];
+  var MAX_COUNTRIES = 4;
+  var ANY = -1;
+  var COOK = [ANY,10,20,30,45,60,90,120];
+  var MAR = [ANY,0,15,30,60,120,240,720];
+  var TOT = [30,45,60,90,120,180,300,840];
+  var SERV = [1,2,3,4,6];
+  var MEAL = ["set","share"];
+  var HEALTH = [ANY,3,4,5];
+  var KCAL = [ANY,-2,300,400,500,600,800,1000];
+  var DISHES = [1,2,3,4,5], PART = [ANY,0,1,2,3];
+  var MEATS = ["豬","牛","雞","鴨","羊","魚","蝦蟹貝類"];
+  var CUTS = {
+    "豬": ["肉碎","豬扒","排骨","五花腩","梅頭肉","瘦肉","豬手"],
+    "牛": ["牛肉片","免治牛肉","牛扒","牛腩","牛腱","肥牛"],
+    "雞": ["雞翼","雞髀","雞胸","雞扒","雞柳","半隻雞"],
+    "鴨": ["鴨胸","鴨髀","半隻鴨"],
+    "羊": ["羊架","羊腩","羊肉片"],
+    "魚": ["魚柳","原條魚","三文魚","魚腩"],
+    "蝦蟹貝類": ["蝦","蟹","蜆","帶子","魷魚","青口"]
+  };
+  var METHODS = ["蒸","炒","煎","炸","焗","炆燉","水煮","煲湯","氣炸","涼拌"];
+
+  var st = { countries: ["香港","日本"], cook: ANY, marinate: ANY, total: 60, servings: 2, meal: "set", health: ANY, methods: [], dishes: 3, meatN: ANY, vegN: ANY, meats: [], cuts: {}, kcalMax: ANY, plan: "meal", wDays: 7, wMeals: ["晚餐"] };
+  try {
+    var saved = JSON.parse(localStorage.getItem("recipe-maker-zh") || "null");
+    if (saved && Array.isArray(saved.countries)) {
+      st.countries = saved.countries.filter(function (c) { return typeof c === "string"; }).slice(0, MAX_COUNTRIES);
+      if (COOK.indexOf(saved.cook) >= 0) st.cook = saved.cook;
+      if (MAR.indexOf(saved.marinate) >= 0) st.marinate = saved.marinate;
+      if (TOT.indexOf(saved.total) >= 0) st.total = saved.total;
+      if (SERV.indexOf(saved.servings) >= 0) st.servings = saved.servings;
+      if (MEAL.indexOf(saved.meal) >= 0) st.meal = saved.meal;
+      if (HEALTH.indexOf(saved.health) >= 0) st.health = saved.health;
+      if (KCAL.indexOf(saved.kcalMax) >= 0) st.kcalMax = saved.kcalMax;
+      if (saved.plan === "week") st.plan = "week";
+      if ([3, 5, 7].indexOf(saved.wDays) >= 0) st.wDays = saved.wDays;
+      if (Array.isArray(saved.wMeals)) { var wm = saved.wMeals.filter(function (x) { return x === "午餐" || x === "晚餐"; }); if (wm.length) st.wMeals = wm; }
+      if (DISHES.indexOf(saved.dishes) >= 0) st.dishes = saved.dishes;
+      if (PART.indexOf(saved.meatN) >= 0) st.meatN = saved.meatN;
+      if (PART.indexOf(saved.vegN) >= 0) st.vegN = saved.vegN;
+      if (Array.isArray(saved.meats)) st.meats = saved.meats.filter(function (m) { return MEATS.indexOf(m) >= 0; });
+      if (saved.cuts && typeof saved.cuts === "object") MEATS.forEach(function (m) {
+        if (Array.isArray(saved.cuts[m])) st.cuts[m] = saved.cuts[m].filter(function (c) { return CUTS[m].indexOf(c) >= 0; });
+      });
+      if (Array.isArray(saved.methods)) st.methods = saved.methods.filter(function (m) { return METHODS.indexOf(m) >= 0; });
+    }
+  } catch (e) {}
+  function save() { try { localStorage.setItem("recipe-maker-zh", JSON.stringify(st)); } catch (e) {} }
+
+  /* ---- body profile and daily calorie target ---- */
+  var GOAL = -2;
+  var me = { goal: "none", h: 0, w: 0, age: 0, sex: "", act: 1, t: 0 };
+  function meClean(v) {
+    if (!v || typeof v !== "object") return;
+    if (["none", "cut", "bulk"].indexOf(v.goal) >= 0) me.goal = v.goal;
+    me.h = Number(v.h) || 0; me.w = Number(v.w) || 0; me.age = Number(v.age) || 0;
+    me.sex = v.sex === "m" || v.sex === "f" ? v.sex : ""; me.act = [0, 1, 2, 3].indexOf(v.act) >= 0 ? v.act : 1; me.t = Number(v.t) || 0;
+  }
+  try { meClean(JSON.parse(localStorage.getItem("recipe-maker-me") || "null")); } catch (e) {}
+  function mePlan() {
+    if (!(me.h >= 120 && me.h <= 220 && me.w >= 30 && me.w <= 250)) return null;
+    var age = me.age >= 18 && me.age <= 100 ? me.age : 0;
+    var bmr = 10 * me.w + 6.25 * me.h - 5 * (age || 30) + (me.sex === "m" ? 5 : me.sex === "f" ? -161 : -78);
+    var tdee = bmr * [1.2, 1.375, 1.55, 1.725][me.act], bmi = me.w / Math.pow(me.h / 100, 2);
+    var floor = me.sex === "m" ? 1500 : me.sex === "f" ? 1200 : 1350, target = tdee, warn = "";
+    if (me.goal === "cut") {
+      if (bmi < 18.5) warn = "你嘅 BMI 已經偏低，唔建議再減，所以目標定喺維持體重嘅份量。";
+      else { target = Math.max(tdee - 500, floor); if (target > tdee - 200) warn = "你嘅消耗量唔高，再食少會低過安全下限，所以減得慢啲；加多啲運動會比再食少好。"; }
+    } else if (me.goal === "bulk") target = tdee + 300;
+    target = Math.round(target / 10) * 10; tdee = Math.round(tdee / 10) * 10;
+    return { bmi: bmi, bmr: Math.round(bmr), tdee: tdee, target: target, perMeal: Math.round(target * 0.35 / 10) * 10,
+      protein: Math.round(me.w * (me.goal === "cut" ? 1.6 : me.goal === "bulk" ? 1.8 : 1.0)), warn: warn, rough: !(age && me.sex),
+      perWeek: me.goal === "cut" && tdee > target ? (tdee - target) * 7 / 7700 : me.goal === "bulk" ? 300 * 7 / 7700 : 0 };
+  }
+  function kcalNow() {
+    if (st.kcalMax !== GOAL) return st.kcalMax;
+    var mp = mePlan(); if (!mp) return ANY;
+    return st.meal === "share" ? Math.max(200, mp.perMeal - 230) : mp.perMeal;
+  }
+  function goalRule() {
+    var mp = mePlan();
+    if (me.goal === "cut") return "Goal: the cook is trying to lose body fat. Favour filling, high-protein, high-fibre dishes: lean cuts, plenty of vegetables, little oil and sugar, no deep-frying." + (mp ? " Aim for about " + Math.round(mp.protein * 0.35) + " g protein per person in the meal." : "");
+    if (me.goal === "bulk") return "Goal: the cook is trying to build muscle. Favour protein-rich dishes with enough carbohydrate." + (mp ? " Aim for about " + Math.round(mp.protein * 0.35) + " g protein and roughly " + mp.perMeal + " kcal per person in the whole meal." : "");
+    return "";
+  }
+  function fmt(m) {
+    m = Math.max(0, Math.round(Number(m) || 0));
+    if (m < 60) return m + " 分鐘";
+    var h = Math.floor(m / 60), r = m % 60;
+    return h + " 小時" + (r ? " " + r + " 分鐘" : "");
+  }
+  function el(tag, cls, text) {
+    var e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text != null) e.textContent = text;
+    return e;
+  }
+
+  /* ---- doodles ---- */
+  var D = {"waffle": "<circle cx=\"34\" cy=\"11\" r=\"7\" fill=\"#f2b544\"/><ellipse cx=\"31.5\" cy=\"8\" rx=\"2.4\" ry=\"1.5\" fill=\"#fde7a0\" stroke=\"none\"/><circle cx=\"46\" cy=\"11\" r=\"7\" fill=\"#f2b544\"/><ellipse cx=\"43.5\" cy=\"8\" rx=\"2.4\" ry=\"1.5\" fill=\"#fde7a0\" stroke=\"none\"/><circle cx=\"22\" cy=\"20\" r=\"7\" fill=\"#f2b544\"/><ellipse cx=\"19.5\" cy=\"17\" rx=\"2.4\" ry=\"1.5\" fill=\"#fde7a0\" stroke=\"none\"/><circle cx=\"34\" cy=\"20\" r=\"7\" fill=\"#f2b544\"/><ellipse cx=\"31.5\" cy=\"17\" rx=\"2.4\" ry=\"1.5\" fill=\"#fde7a0\" stroke=\"none\"/><circle cx=\"46\" cy=\"20\" r=\"7\" fill=\"#f2b544\"/><ellipse cx=\"43.5\" cy=\"17\" rx=\"2.4\" ry=\"1.5\" fill=\"#fde7a0\" stroke=\"none\"/><circle cx=\"58\" cy=\"20\" r=\"7\" fill=\"#f2b544\"/><ellipse cx=\"55.5\" cy=\"17\" rx=\"2.4\" ry=\"1.5\" fill=\"#fde7a0\" stroke=\"none\"/><circle cx=\"28\" cy=\"30\" r=\"7\" fill=\"#f2b544\"/><ellipse cx=\"25.5\" cy=\"27\" rx=\"2.4\" ry=\"1.5\" fill=\"#fde7a0\" stroke=\"none\"/><circle cx=\"40\" cy=\"30\" r=\"7\" fill=\"#f2b544\"/><ellipse cx=\"37.5\" cy=\"27\" rx=\"2.4\" ry=\"1.5\" fill=\"#fde7a0\" stroke=\"none\"/><circle cx=\"52\" cy=\"30\" r=\"7\" fill=\"#f2b544\"/><ellipse cx=\"49.5\" cy=\"27\" rx=\"2.4\" ry=\"1.5\" fill=\"#fde7a0\" stroke=\"none\"/><circle cx=\"22\" cy=\"40\" r=\"7\" fill=\"#f2b544\"/><ellipse cx=\"19.5\" cy=\"37\" rx=\"2.4\" ry=\"1.5\" fill=\"#fde7a0\" stroke=\"none\"/><circle cx=\"34\" cy=\"40\" r=\"7\" fill=\"#f2b544\"/><ellipse cx=\"31.5\" cy=\"37\" rx=\"2.4\" ry=\"1.5\" fill=\"#fde7a0\" stroke=\"none\"/><circle cx=\"46\" cy=\"40\" r=\"7\" fill=\"#f2b544\"/><ellipse cx=\"43.5\" cy=\"37\" rx=\"2.4\" ry=\"1.5\" fill=\"#fde7a0\" stroke=\"none\"/><circle cx=\"58\" cy=\"40\" r=\"7\" fill=\"#f2b544\"/><ellipse cx=\"55.5\" cy=\"37\" rx=\"2.4\" ry=\"1.5\" fill=\"#fde7a0\" stroke=\"none\"/><path d=\"M13 44h54l-6 33H19z\" fill=\"#a85a34\"/><path d=\"M24 45l3 31M56 45l-3 31\" fill=\"none\" stroke-width=\"1.5\"/><path d=\"M4 22l-3-2M5 30H1M76 22l3-2M75 30h4\" fill=\"none\" stroke-width=\"1.8\"/>", "tart": "<path d=\"M7 37c2 10 6 20 12 26 12 4 30 4 42 0 6-6 10-16 12-26z\" fill=\"#d98a3a\"/><path d=\"M17 50l2 10M27 53l1 11M40 54v11M53 53l-1 11M63 50l-2 10\" fill=\"none\" stroke-width=\"1.5\"/><path d=\"M72.0 36.0Q76.1 39.3 69.6 41.0Q70.6 45.4 62.6 45.2Q60.4 50.1 52.2 48.0Q47.2 52.6 40.0 49.0Q32.8 52.6 27.8 48.0Q19.6 50.1 17.4 45.2Q9.4 45.4 10.4 41.0Q3.9 39.3 8.0 36.0Q3.9 32.7 10.4 31.0Q9.4 26.6 17.4 26.8Q19.6 21.9 27.8 24.0Q32.8 19.4 40.0 23.0Q47.2 19.4 52.2 24.0Q60.4 21.9 62.6 26.8Q70.6 26.6 69.6 31.0Q76.1 32.7 72.0 36.0z\" fill=\"#f0b25a\"/><ellipse cx=\"40\" cy=\"36\" rx=\"23\" ry=\"8.5\" fill=\"#f9dc4e\"/><path d=\"M25 34c4-3 9-4 14-4\" fill=\"none\" stroke=\"#fff\" stroke-width=\"2.6\"/>", "tea": "<path d=\"M45 18l4-15h8\" fill=\"none\" stroke-width=\"4\"/><path d=\"M22 26h36l-5 47H27z\" fill=\"#c98b52\"/><path d=\"M23 27h34l-1.2 11H24.2z\" fill=\"#ecd0ad\" stroke=\"none\"/><path d=\"M18 26c0-8 10-12 22-12s22 4 22 12z\" fill=\"#4a4366\"/><circle cx=\"40\" cy=\"49\" r=\"6\" fill=\"#ecd0ad\" stroke-width=\"1.6\"/><path d=\"M36.5 49h7M40 45.5v7\" fill=\"none\" stroke-width=\"1.3\"/><g fill=\"currentColor\" stroke=\"none\"><circle cx=\"33\" cy=\"67\" r=\"2.8\"/><circle cx=\"40\" cy=\"68\" r=\"2.8\"/><circle cx=\"47\" cy=\"67\" r=\"2.8\"/><circle cx=\"36.5\" cy=\"62\" r=\"2.8\"/><circle cx=\"44\" cy=\"62\" r=\"2.8\"/></g>", "fishball": "<path d=\"M6 76L76 6\" fill=\"none\"/><circle cx=\"21\" cy=\"61\" r=\"10\" fill=\"#f2a03c\"/><ellipse cx=\"17.5\" cy=\"57\" rx=\"2.4\" ry=\"1.5\" fill=\"#fbd28e\" stroke=\"none\"/><circle cx=\"35\" cy=\"47\" r=\"10\" fill=\"#f2a03c\"/><ellipse cx=\"31.5\" cy=\"43\" rx=\"2.4\" ry=\"1.5\" fill=\"#fbd28e\" stroke=\"none\"/><circle cx=\"49\" cy=\"33\" r=\"10\" fill=\"#f2a03c\"/><ellipse cx=\"45.5\" cy=\"29\" rx=\"2.4\" ry=\"1.5\" fill=\"#fbd28e\" stroke=\"none\"/><circle cx=\"63\" cy=\"19\" r=\"10\" fill=\"#f2a03c\"/><ellipse cx=\"59.5\" cy=\"15\" rx=\"2.4\" ry=\"1.5\" fill=\"#fbd28e\" stroke=\"none\"/>", "siumai": "<path d=\"M14 26l2 17c4 3 14 3 18 0l2-17z\" fill=\"#f5d651\"/><path d=\"M20 32v11M25 33v12M30 32v11\" fill=\"none\" stroke-width=\"1.4\"/><ellipse cx=\"25\" cy=\"26\" rx=\"11\" ry=\"4.8\" fill=\"#fbe98a\"/><circle cx=\"25\" cy=\"26\" r=\"2.8\" fill=\"#ef7a3a\" stroke-width=\"1.6\"/><path d=\"M44 26l2 17c4 3 14 3 18 0l2-17z\" fill=\"#f5d651\"/><path d=\"M50 32v11M55 33v12M60 32v11\" fill=\"none\" stroke-width=\"1.4\"/><ellipse cx=\"55\" cy=\"26\" rx=\"11\" ry=\"4.8\" fill=\"#fbe98a\"/><circle cx=\"55\" cy=\"26\" r=\"2.8\" fill=\"#ef7a3a\" stroke-width=\"1.6\"/><path d=\"M29 48l2 17c4 3 14 3 18 0l2-17z\" fill=\"#f5d651\"/><path d=\"M35 54v11M40 55v12M45 54v11\" fill=\"none\" stroke-width=\"1.4\"/><ellipse cx=\"40\" cy=\"48\" rx=\"11\" ry=\"4.8\" fill=\"#fbe98a\"/><circle cx=\"40\" cy=\"48\" r=\"2.8\" fill=\"#ef7a3a\" stroke-width=\"1.6\"/>", "bun": "<path d=\"M8 52c0-22 14-36 32-36s32 14 32 36c0 12-64 12-64 0z\" fill=\"#f4c04a\"/><path d=\"M8 52c10 7 54 7 64 0 0 12-64 12-64 0z\" fill=\"#fae3a8\"/><path d=\"M24 23l8 28M40 17l6 35M55 22l9 27M13 40l52-18M10 51l60-17\" fill=\"none\" stroke-width=\"1.5\"/>", "cone": "<g transform=\"translate(0 2) scale(1.2)\"><path d=\"M20 30c-4-5 0-10 5-10-1-6 4-9 8-8 1-5 7-7 7-7s-2 5 1 7c5 0 8 4 6 9 4 1 4 6 1 9z\" fill=\"#fff\" stroke-width=\"2\"/><path d=\"M19 30h30L34 61z\" fill=\"#e9a13b\" stroke-width=\"2\"/><path d=\"M26 30l13 21M36 30l8 11M42 30L27 48M32 30l-9 10\" fill=\"none\" stroke-width=\"1.2\"/></g>", "wok": "<path d=\"M22 16c-3-4 3-6 0-10M36 14c-3-4 3-6 0-10M50 16c-3-4 3-6 0-10\" fill=\"none\" stroke-width=\"1.8\"/><circle cx=\"24\" cy=\"34\" r=\"5\" fill=\"#5fae57\"/><circle cx=\"36\" cy=\"32\" r=\"5\" fill=\"#e4574c\"/><circle cx=\"48\" cy=\"34\" r=\"5\" fill=\"#f7d24a\"/><path d=\"M8 36h56c0 18-12 30-28 30S8 54 8 36z\" fill=\"#5a544e\"/><path d=\"M64 38l13-5\" fill=\"none\" stroke-width=\"5\"/>", "steamer": "<path d=\"M26 16c-3-4 3-6 0-10M40 14c-3-4 3-6 0-10M54 16c-3-4 3-6 0-10\" fill=\"none\" stroke-width=\"1.8\"/><path d=\"M10 42h60v22c0 6-60 6-60 0z\" fill=\"#e2b56b\"/><path d=\"M10 52c10 5 50 5 60 0\" fill=\"none\" stroke-width=\"1.6\"/><path d=\"M8 42c2-14 16-20 32-20s30 6 32 20z\" fill=\"#f2d49a\"/><circle cx=\"40\" cy=\"22\" r=\"3.5\" fill=\"#b5653a\"/>", "pot": "<path d=\"M28 16c-3-4 3-6 0-10M40 14c-3-4 3-6 0-10M52 16c-3-4 3-6 0-10\" fill=\"none\" stroke-width=\"1.8\"/><path d=\"M14 42H6M66 42h8\" fill=\"none\" stroke-width=\"4\"/><path d=\"M14 36h52v24c0 10-52 10-52 0z\" fill=\"#e4574c\"/><path d=\"M12 36c0-8 56-8 56 0z\" fill=\"#f2a59e\"/><circle cx=\"40\" cy=\"27\" r=\"3.5\" fill=\"#5a544e\"/>", "pan": "<path d=\"M52 30l22-18\" fill=\"none\" stroke-width=\"6\"/><circle cx=\"34\" cy=\"46\" r=\"26\" fill=\"#5a544e\"/><path d=\"M20 44c-2-10 8-14 14-10 8-4 16 2 14 10 4 8-4 14-12 12-8 4-18-2-16-12z\" fill=\"#fff\" stroke-width=\"2\"/><circle cx=\"34\" cy=\"46\" r=\"6.5\" fill=\"#f7d24a\" stroke-width=\"2\"/>", "rice": "<path d=\"M50 6l14 30M59 5l10 30\" fill=\"none\" stroke-width=\"2.6\"/><path d=\"M14 42c2-14 14-20 26-20s24 6 26 20z\" fill=\"#fff\"/><path d=\"M10 42h60c0 18-12 30-30 30S10 60 10 42z\" fill=\"#e4574c\"/><path d=\"M28 34c2-2 4-2 6 0M42 30c2-2 4-2 6 0\" fill=\"none\" stroke-width=\"1.5\"/>", "tomato": "<circle cx=\"40\" cy=\"46\" r=\"26\" fill=\"#e4574c\"/><path d=\"M40 22l-4-8M40 24c-6-6-12-4-14 0 6 0 8 4 14 0zM40 24c6-6 12-4 14 0-6 0-8 4-14 0z\" fill=\"#5fae57\" stroke-width=\"2\"/><path d=\"M24 40c2-6 6-9 10-10\" fill=\"none\" stroke=\"#fff\" stroke-width=\"2.6\"/>", "carrot": "<path d=\"M30 28c8-6 18-2 22 6L20 72c-3 2-6 0-5-4z\" fill=\"#f08a2c\"/><path d=\"M32 42l6 3M27 52l5 3M40 34l5 3\" fill=\"none\" stroke-width=\"1.6\"/><path d=\"M44 28c-2-10 2-18 8-22 2 8 0 16-4 22zM48 30c4-8 12-12 20-10-2 8-10 12-18 12z\" fill=\"#5fae57\" stroke-width=\"2\"/>", "chili": "<path d=\"M55 30c0-8 5-12 13-13\" fill=\"none\" stroke-width=\"4\"/><path d=\"M14 62c20 4 36-10 44-32-5-3-10-1-12 3-5 13-14 22-32 22z\" fill=\"#d8362c\"/><path d=\"M26 58c8-2 14-8 18-14\" fill=\"none\" stroke=\"#fff\" stroke-width=\"2\"/>", "fish": "<path d=\"M8 40c10-16 32-18 46-5l16-11-4 16 4 16-16-11c-14 13-36 11-46-5z\" fill=\"#8fc4e0\"/><circle cx=\"20\" cy=\"37\" r=\"2.4\" fill=\"currentColor\" stroke=\"none\"/><path d=\"M30 30c3 6 3 14 0 20M40 34c2 4 2 8 0 12\" fill=\"none\" stroke-width=\"1.6\"/>", "mushroom": "<path d=\"M30 42h20l4 26c-8 4-20 4-28 0z\" fill=\"#f6e8cf\"/><path d=\"M10 42c0-18 13-28 30-28s30 10 30 28c-10 5-50 5-60 0z\" fill=\"#b5653a\"/><circle cx=\"28\" cy=\"28\" r=\"4\" fill=\"#f6e8cf\" stroke-width=\"1.6\"/><circle cx=\"46\" cy=\"24\" r=\"3\" fill=\"#f6e8cf\" stroke-width=\"1.6\"/><circle cx=\"54\" cy=\"34\" r=\"3.5\" fill=\"#f6e8cf\" stroke-width=\"1.6\"/>", "bokchoy": "<path d=\"M40 40C26 36 16 24 20 10c10 2 18 12 20 30zM40 40c14-4 24-16 20-30-10 2-18 12-20 30z\" fill=\"#5fae57\"/><path d=\"M40 38c-6-10-6-22 0-32 6 10 6 22 0 32z\" fill=\"#7cc674\"/><path d=\"M30 72c-6-12-2-26 10-34 12 8 16 22 10 34-6 3-14 3-20 0z\" fill=\"#f4f4e2\"/><path d=\"M40 46v22M34 52l2 16M46 52l-2 16\" fill=\"none\" stroke-width=\"1.5\"/>", "garlic": "<path d=\"M40 10c0 12 24 20 24 40 0 14-10 20-24 20S16 64 16 50c0-20 24-28 24-40z\" fill=\"#f6f0e2\"/><path d=\"M40 22c-6 14-8 30-4 46M40 22c6 14 8 30 4 46\" fill=\"none\" stroke-width=\"1.6\"/>", "dumpling": "<path d=\"M6 54c2-20 16-32 34-32s32 12 34 32c-10 8-58 8-68 0z\" fill=\"#f8ecd0\"/><path d=\"M16 36c4 0 6 3 6 6M28 28c4 1 5 4 5 8M42 25c3 2 4 5 3 9M55 29c2 3 2 6 0 9M65 38c0 3-1 5-4 7\" fill=\"none\" stroke-width=\"1.8\"/>"};
+  var SNACKS = ["waffle","tart","tea","fishball","siumai","bun","cone"];
+  var FOODS = ["tomato","bokchoy","carrot","fish","mushroom","garlic","chili","dumpling","rice"];
+  function doodle(k, cls) {
+    var w = el("span", "dz" + (cls ? " " + cls : "")); w.setAttribute("aria-hidden", "true");
+    w.innerHTML = '<svg viewBox="0 0 80 80"><g stroke="currentColor" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round">' + D[k] + '</g></svg>';
+    return w;
+  }
+  function methodDoodle(m) {
+    m = m || "";
+    return /蒸/.test(m) ? "steamer" : /炒|炸/.test(m) ? "wok" : /煎|氣/.test(m) ? "pan" : /拌/.test(m) ? "rice" : m ? "pot" : "wok";
+  }
+  ["waffle","tomato","tart","wok","tea","bokchoy","fishball","steamer","siumai","fish","bun","pan","cone","carrot","dumpling","pot"].forEach(function (k) { $("band").appendChild(doodle(k)); });
+
+  /* ---- countries ---- */
+  var extraCountries = st.countries.filter(function (c) { return COUNTRIES.indexOf(c) < 0; });
+  function tooMany(c) { showError("每次最多揀 " + MAX_COUNTRIES + " 個國家。先取消一個，再加入" + c + "。"); }
+  function drawCountries() {
+    var box = $("countries"); box.textContent = "";
+    COUNTRIES.concat(extraCountries).forEach(function (c) {
+      var on = st.countries.indexOf(c) >= 0;
+      var b = el("button", "chip", c); b.type = "button"; b.setAttribute("aria-pressed", on ? "true" : "false");
+      b.onclick = function () {
+        var i = st.countries.indexOf(c);
+        if (i >= 0) st.countries.splice(i, 1);
+        else if (st.countries.length < MAX_COUNTRIES) st.countries.push(c);
+        else { tooMany(c); return; }
+        clearError(); save(); drawCountries();
+      };
+      box.appendChild(b);
+    });
+    $("countryCount").textContent = "已選 " + st.countries.length + "／" + MAX_COUNTRIES;
+  }
+  function addCountry() {
+    var v = $("addCountry").value.trim().replace(/\s+/g, " ");
+    if (!v) return;
+    var all = COUNTRIES.concat(extraCountries);
+    var hit = all.filter(function (c) { return c.toLowerCase() === v.toLowerCase(); })[0];
+    if (!hit) { extraCountries.push(v); hit = v; }
+    if (st.countries.indexOf(hit) < 0) {
+      if (st.countries.length >= MAX_COUNTRIES) { tooMany(hit); drawCountries(); return; }
+      st.countries.push(hit);
+    }
+    $("addCountry").value = ""; clearError(); save(); drawCountries();
+  }
+  $("addCountryBtn").onclick = addCountry;
+  $("addCountry").addEventListener("keydown", function (e) { if (e.key === "Enter" && !e.isComposing) { e.preventDefault(); addCountry(); } });
+
+  /* ---- time + servings pickers ---- */
+  function seg(boxId, outId, opts, key, label) {
+    var box = $(boxId);
+    function draw() {
+      box.textContent = "";
+      opts.forEach(function (v) {
+        var b = el("button", "chip", label(v)); b.type = "button"; b.setAttribute("role", "radio");
+        b.setAttribute("aria-checked", st[key] === v ? "true" : "false");
+        b.onclick = function () { st[key] = v; save(); draw(); timeNote(); };
+        box.appendChild(b);
+      });
+      $(outId).textContent = label(st[key]);
+    }
+    draw();
+    return draw;
+  }
+  seg("totSeg", "totOut", TOT, "total", function (v) { return v === 840 ? "過夜" : fmt(v); });
+  seg("cookSeg", "cookOut", COOK, "cook", function (v) { return v === ANY ? "不限" : fmt(v); });
+  seg("marSeg", "marOut", MAR, "marinate", function (v) { return v === ANY ? "不限" : v === 0 ? "不醃" : v === 720 ? "過夜" : fmt(v); });
+  seg("servSeg", "servOut", SERV, "servings", function (v) { return v + " 人"; });
+  seg("mealSeg", "mealOut", MEAL, "meal", function (v) { return v === "set" ? "一人一份" : "幾個餸分享"; });
+  seg("healthSeg", "healthOut", HEALTH, "health", function (v) { return v === ANY ? "不限" : v === 5 ? "5 分" : v + " 分或以上"; });
+  function drawCuts() {
+    var box = $("cuts"); box.textContent = "";
+    MEATS.forEach(function (m) {
+      if (st.meats.indexOf(m) < 0) return;
+      var mine = st.cuts[m] = st.cuts[m] || [];
+      var row = el("div", "cutrow"), chips = el("div", "chips");
+      row.appendChild(el("span", null, m + "：" + (mine.length ? "已選 " + mine.length + " 款" : "乜嘢部位都得")));
+      CUTS[m].forEach(function (c) {
+        var b = el("button", "chip", c); b.type = "button"; b.setAttribute("aria-pressed", mine.indexOf(c) >= 0 ? "true" : "false");
+        b.onclick = function () { var i = mine.indexOf(c); if (i >= 0) mine.splice(i, 1); else mine.push(c); save(); drawCuts(); };
+        chips.appendChild(b);
+      });
+      row.appendChild(chips); box.appendChild(row);
+    });
+  }
+  function multi(boxId, outId, opts, key, unit, after) {
+    function draw() {
+      var box = $(boxId); box.textContent = "";
+      opts.forEach(function (m) {
+        var on = st[key].indexOf(m) >= 0;
+        var b = el("button", "chip", m); b.type = "button"; b.setAttribute("aria-pressed", on ? "true" : "false");
+        b.onclick = function () { var i = st[key].indexOf(m); if (i >= 0) st[key].splice(i, 1); else st[key].push(m); save(); draw(); if (after) after(); };
+        box.appendChild(b);
+      });
+      $(outId).textContent = st[key].length ? "已選 " + st[key].length + " " + unit : "不限";
+    }
+    draw();
+  }
+  multi("methods", "methodOut", METHODS, "methods", "種");
+  multi("meats", "meatsOut", MEATS, "meats", "種", drawCuts);
+  drawCuts();
+  function partLabel(v) { return v === ANY ? "隨意" : v + " 個"; }
+  seg("dishSeg", "dishOut", DISHES, "dishes", function (v) { return v + " 個餸"; });
+  seg("meatSeg", "meatOut", PART, "meatN", partLabel);
+  seg("vegSeg", "vegOut", PART, "vegN", partLabel);
+  function dishTotal() { return Math.max(st.dishes, Math.max(0, st.meatN) + Math.max(0, st.vegN)); }
+  var drawKcal = seg("kcalSeg", "kcalOut", KCAL, "kcalMax", function (v) {
+    if (v === GOAL) { var k = kcalNow(); return k > 0 ? "跟我目標 " + k + " kcal" : "跟我目標"; }
+    return v === ANY ? "不限" : v + " kcal";
+  });
+  seg("planSeg", "planOut", ["meal", "week"], "plan", function (v) { return v === "week" ? "一個禮拜" : "今餐"; });
+  seg("wDaysSeg", "wDaysOut", [3, 5, 7], "wDays", function (v) { return v + " 日"; });
+  var WM = ["午餐", "晚餐"];
+  function drawWMeals() {
+    var box = $("wMeals"); box.textContent = "";
+    WM.forEach(function (m) {
+      var on = st.wMeals.indexOf(m) >= 0, b = el("button", "chip", m); b.type = "button"; b.setAttribute("aria-pressed", on ? "true" : "false");
+      b.onclick = function () { var i = st.wMeals.indexOf(m); if (i >= 0) { if (st.wMeals.length > 1) st.wMeals.splice(i, 1); } else st.wMeals.push(m); save(); drawWMeals(); };
+      box.appendChild(b);
+    });
+    $("wMealsOut").textContent = WM.filter(function (m) { return st.wMeals.indexOf(m) >= 0; }).join("、");
+  }
+  drawWMeals();
+  function weekShape() {
+    var meals = WM.filter(function (m) { return st.wMeals.indexOf(m) >= 0; }), per = st.meal === "share" ? dishTotal() : 1;
+    var slots = st.wDays * meals.length * per;
+    return { days: st.wDays, meals: meals, per: per, slots: slots, pool: Math.min(28, slots + Math.max(3, Math.ceil(slots * 0.4))) };
+  }
+  function hearts(h) { var o = ""; for (var k = 1; k <= 5; k++) o += k <= h ? "●" : "○"; return o; }
+  function timeNote() {
+    $("mealHint").textContent = st.meal === "set"
+      ? "每個菜式都是完整一餐，例如碟頭飯、丼、麵或套餐，每人一份。"
+      : "每個菜式是一碟餸，幾個人一齊分，另外配白飯。下面可以揀幾多個餸、幾多肉幾多菜。";
+    $("shareOpts").hidden = st.meal !== "share";
+    var wk = st.plan === "week";
+    $("weekOpts").hidden = !wk;
+    $("planHint").textContent = wk ? "買完餸一次過影晒（可以加多張相），會俾一個禮拜嘅選擇你，每日食乜由你揀。" : "諗今餐煮乜。";
+    $("go").textContent = wk ? "建議一週餐單" : "建議菜式";
+    drawKcal();
+    $("kcalHint").textContent = st.kcalMax === GOAL && !mePlan() ? "未填身高體重。去「我嘅目標」填咗先用得，而家當不限。" : st.meal === "share" ? "每人成餐（所有餸加埋）嘅上限，未計白飯。數字係估算。" : "每人一餐嘅上限。數字係估算。";
+    var dn = $("dishNote"), dt = dishTotal();
+    if (dt > st.dishes) { dn.textContent = "肉加菜已經有 " + dt + " 個，多過你揀嘅 " + st.dishes + " 個餸，所以會出 " + dt + " 個餸。"; dn.hidden = false; } else dn.hidden = true;
+    var n = $("timeNote"), sum = Math.max(0, st.cook) + Math.max(0, st.marinate);
+    if (sum > st.total) {
+      n.textContent = "烹調加醃製的上限（" + fmt(sum) + "）比總時間（" + fmt(st.total) + "）長。食譜會以總時間為準。";
+      n.hidden = false;
+    } else n.hidden = true;
+  }
+  timeNote();
+
+  /* ---- photo ---- */
+  var files = [], previewUrl = null, imageLimits = null, photosOk = true;
+  function maxPhotos() { return Math.max(1, Math.min(8, (imageLimits && imageLimits.maxCount) || 4)); }
+  function drawPhotos() {
+    if (previewUrl) { URL.revokeObjectURL(previewUrl); previewUrl = null; }
+    var drop = $("drop"), old = drop.querySelector("img"), tag = drop.querySelector(".swap");
+    if (old) old.remove(); if (tag) tag.remove();
+    if (files.length) {
+      previewUrl = URL.createObjectURL(files[0]);
+      var img = el("img"); img.src = previewUrl; img.alt = "你的食材相片";
+      drop.appendChild(img);
+      drop.appendChild(el("span", "swap", files.length + " 張相 · " + (files.length < maxPhotos() ? "點一下加多張" : "已經夠數")));
+    }
+    $("removePhoto").hidden = !files.length;
+  }
+  function addFiles(list) {
+    clearError();
+    for (var i = 0; i < list.length; i++) {
+      var f = list[i];
+      if (!/^image\/(jpeg|png|webp|gif)$/.test(f.type)) { showError("不支援這種檔案。請用 JPEG、PNG 或 WebP 相片。"); continue; }
+      if (imageLimits && f.size > imageLimits.maxInputBytes) { showError("有相片太大，請揀細一點的。"); continue; }
+      if (files.length >= maxPhotos()) { showError("每次最多 " + maxPhotos() + " 張相。"); break; }
+      files.push(f);
+    }
+    $("photo").value = ""; drawPhotos();
+  }
+  function clearFiles() { files = []; $("photo").value = ""; drawPhotos(); }
+  $("photo").addEventListener("change", function (e) { if (e.target.files && e.target.files.length) addFiles(Array.prototype.slice.call(e.target.files)); });
+  $("removePhoto").onclick = function () { clearError(); clearFiles(); };
+  var drop = $("drop");
+  ["dragenter", "dragover"].forEach(function (t) { drop.addEventListener(t, function (e) { e.preventDefault(); drop.classList.add("over"); }); });
+  ["dragleave", "drop"].forEach(function (t) { drop.addEventListener(t, function (e) { e.preventDefault(); drop.classList.remove("over"); }); });
+  drop.addEventListener("drop", function (e) { var fl = e.dataTransfer && e.dataTransfer.files; if (fl && fl.length) addFiles(Array.prototype.slice.call(fl)); });
+
+  /* ---- messages ---- */
+  function showError(t) { $("error").textContent = t; $("error").hidden = false; }
+  function clearError() { $("error").hidden = true; }
+  var COPY = {
+    not_granted: "需要你允許使用 Claude。請重新載入頁面，在詢問時揀「允許」。",
+    sampling_disabled: "這個帳戶用不到 Claude，所以這裡寫不到食譜。",
+    images_unavailable: "這裡傳送不到相片。請改為在補充欄輸入食材。",
+    image_rejected: "讀不到這張相片，請試另一張。",
+    rate_limited: "已達到用量上限。請等一會再試。",
+    session_expired: "你已登出。請重新登入 Claude 再試。",
+    refused: "Claude 處理不到這張相片或這個要求。請試另一張相片或改一改字眼。",
+    empty_completion: "沒有收到任何內容。請揀少一點國家再試。",
+    invalid_json: "收到的內容格式有問題。請再試一次。",
+    prompt_too_large: "文字太多，請縮短補充欄的內容。",
+    no_key: "未有 API key。㩒上面「設定 API key」貼入你嘅 Anthropic API key。",
+    bad_key: "API key 唔啱，或者冇權限。㩒上面「API key」檢查一次。",
+    bad_request: "Anthropic 拒絕咗呢個要求。最常見係 API 戶口未增值；請去 Anthropic Console 睇下餘額。",
+    upstream_error: "連線中斷了。請再試一次。"
+  };
+
+  /* ---- data ---- */
+  // S = one round: what was spotted, the dish ideas, and each idea's recipe once written.
+  var S = null, view = "ideas", working = false, ticketErr = "";
+  function num(v) { v = Math.round(Number(v)); return isFinite(v) && v > 0 ? v : 0; }
+  function strs(a, n) { return (Array.isArray(a) ? a : []).map(String).filter(Boolean).slice(0, n || 40); }
+  function cleanIdeas(raw) {
+    var out = { ingredients: [], ideas: [], note: "" };
+    if (!raw || typeof raw !== "object") return out;
+    out.ingredients = strs(raw.ingredients);
+    if (typeof raw.note === "string") out.note = raw.note;
+    (Array.isArray(raw.ideas) ? raw.ideas : []).forEach(function (r) {
+      if (!r || typeof r !== "object" || !r.dish) return;
+      var p = num(r.prepMin), m = num(r.marinateMin), c = num(r.cookMin);
+      out.ideas.push({ country: String(r.country || ""), dish: String(r.dish), description: String(r.description || ""),
+        health: Math.min(5, num(r.health)), kcal: num(r.kcal), day: num(r.day), method: String(r.method || "").slice(0, 12), type: { meat: "肉餸", veg: "菜餸", other: "其他" }[r.type] || "", uses: strs(r.uses, 12), prepMin: p, marinateMin: m, cookMin: c, totalMin: p + m + c, recipe: null });
+    });
+    return out;
+  }
+  function cleanRecipe(r, idea) {
+    if (r && typeof r === "object" && r.recipe && typeof r.recipe === "object") r = r.recipe;
+    if (!r || typeof r !== "object") return null;
+    var steps = strs(r.steps, 30);
+    var ings = (Array.isArray(r.ingredients) ? r.ingredients : []).map(function (i) {
+      return i && typeof i === "object" ? { item: String(i.item || ""), qty: String(i.qty || ""), have: !!i.have } : { item: String(i), qty: "", have: false };
+    }).filter(function (i) { return i.item; });
+    if (!steps.length || !ings.length) return null;
+    var p = num(r.prepMin), m = num(r.marinateMin), c = num(r.cookMin);
+    return { country: idea.country, dish: String(r.dish || idea.dish), description: String(r.description || idea.description),
+      prepMin: p, marinateMin: m, cookMin: c, totalMin: p + m + c, servings: num(r.servings), ingredients: ings, steps: steps,
+      health: Math.min(5, num(r.health)) || idea.health || 0, healthNote: typeof r.healthNote === "string" ? r.healthNote : "",
+      kcal: num(r.kcal) || idea.kcal || 0, proteinG: num(r.proteinG), carbsG: num(r.carbsG), fatG: num(r.fatG) };
+  }
+  function timeBar(r, cls) {
+    var bar = el("div", cls || "bar"); bar.setAttribute("role", "img");
+    bar.setAttribute("aria-label", "準備 " + fmt(r.prepMin) + "，醃製 " + fmt(r.marinateMin) + "，烹調 " + fmt(r.cookMin));
+    [[r.prepMin, "--prep"], [r.marinateMin, "--marinate"], [r.cookMin, "--cook"]].forEach(function (s) {
+      if (!s[0]) return; var sp = el("span"); sp.style.flex = s[0] + " 0 0"; sp.style.background = "var(" + s[1] + ")"; bar.appendChild(sp);
+    });
+    return bar;
+  }
+
+  /* ---- render ---- */
+  function render() {
+    $("egTag").hidden = !S.isExample;
+    $("found").textContent = "";
+    if (S.ingredients.length) {
+      $("found").appendChild(document.createTextNode("認到的食材："));
+      $("found").appendChild(el("span", null, S.ingredients.join("、")));
+    }
+    $("back").hidden = view === "ideas";
+    $("ticketError").hidden = !ticketErr; $("ticketError").textContent = ticketErr;
+    var box = $("recipe"); box.textContent = "";
+    if (view === "ideas") renderIdeas(box); else if (view === "plan") renderPlan(box); else renderRecipe(box, S.ideas[view]);
+  }
+  function renderIdeas(box) {
+    var head = el("div", "menu-head");
+    head.appendChild(el("h2", null, "揀一個你想煮的菜式"));
+    head.appendChild(el("p", "desc", S.meal === "share"
+      ? "每個國家都有幾個選擇。揀你想煮嘅餸加入今日餐單，揀好就可以排時間一齊煮。"
+      : "每個都是完整一餐。點一下菜式，就會寫出完整食譜。之後可以返回再揀另一個。"));
+    box.appendChild(head);
+    var share = S.meal === "share" && !S.isExample && !S.week;
+    if (S.week) { head.querySelector("h2").textContent = "一個禮拜嘅選擇"; head.querySelector("p").textContent = "上面係一週餐單，每格都可以自己改；下面係全部選擇，㩒入去會寫完整食譜。"; renderWeek(box); }
+    if (share) renderTray(box);
+    var order = [];
+    S.ideas.forEach(function (d) { if (order.indexOf(d.country) < 0) order.push(d.country); });
+    order.forEach(function (c) {
+      var g = el("div", "group"); g.appendChild(el("div", "country", c));
+      var grid = el("div", "ideas");
+      S.ideas.forEach(function (d, i) {
+        if (d.country !== c) return;
+        var b = el(share ? "div" : "button", "idea" + (share ? " pick" : "") + (share && S.picks.indexOf(i) >= 0 ? " picked" : ""));
+        if (!share) { b.type = "button"; b.disabled = working; }
+        var ih = el("span", "ihead"); ih.appendChild(el("strong", null, d.dish)); ih.appendChild(doodle(d.method ? methodDoodle(d.method) : FOODS[i % FOODS.length])); b.appendChild(ih);
+        if (d.description) b.appendChild(el("span", "d", d.description));
+        if (d.uses.length) { var u = el("span", "u"); u.appendChild(el("em", null, "用到：")); u.appendChild(document.createTextNode(d.uses.join("、"))); b.appendChild(u); }
+        if (d.method || d.type) { var mt = el("span", "u"); mt.appendChild(el("em", null, d.method ? "煮法：" : "類別：")); mt.appendChild(document.createTextNode([d.method, d.type].filter(Boolean).join(" · "))); b.appendChild(mt); }
+        if (d.health) { var hp = el("span", "hp"); hp.appendChild(document.createTextNode("健康指數")); hp.appendChild(el("i", null, hearts(d.health))); hp.appendChild(el("b", null, d.health + "/5")); b.appendChild(hp); }
+        var t = el("span", "t"); t.appendChild(el("span", null, d.totalMin ? "約 " + fmt(d.totalMin) + (d.kcal ? " · " + d.kcal + " kcal" : "") : "未寫食譜")); if (!share) t.appendChild(el("span", null, d.recipe ? "睇食譜 →" : "寫食譜 →")); b.appendChild(t);
+        b.appendChild(timeBar(d));
+        if (share) {
+          var on = S.picks.indexOf(i) >= 0, ac = el("span", "acts2");
+          var tg = el("button", "btn2 on", on ? "已加入 ✓" : "加入餐單"); tg.type = "button"; tg.disabled = working; tg.setAttribute("aria-pressed", on ? "true" : "false");
+          tg.onclick = function () { var k = S.picks.indexOf(i); if (k >= 0) S.picks.splice(k, 1); else S.picks.push(i); S.plan = null; render(); };
+          var vw = el("button", "linkbtn", d.recipe ? "睇食譜 →" : "寫食譜 →"); vw.type = "button"; vw.disabled = working; vw.onclick = function () { openIdea(i); };
+          ac.appendChild(tg); ac.appendChild(vw); b.appendChild(ac);
+        } else b.onclick = function () { openIdea(i); };
+        grid.appendChild(b);
+      });
+      g.appendChild(grid); box.appendChild(g);
+    });
+  }
+  function setRecipe(idea, r) {
+    idea.recipe = r;
+    if (idea.custom) { idea.prepMin = r.prepMin; idea.marinateMin = r.marinateMin; idea.cookMin = r.cookMin; idea.totalMin = r.totalMin; idea.health = r.health; idea.kcal = r.kcal; idea.description = r.description; }
+  }
+  function addOwnDish(name) {
+    name = name.trim().replace(/\s+/g, " ").slice(0, 40);
+    if (!name) return;
+    var hit = -1; S.ideas.forEach(function (d, i) { if (d.dish === name) hit = i; });
+    if (hit < 0) { S.ideas.push({ custom: true, country: "自己諗嘅餸", dish: name, description: "你自己加嘅餸，食譜會喺排時間或者㩒「寫食譜」嗰陣寫。", uses: [], type: "", method: "", health: 0, kcal: 0, prepMin: 0, marinateMin: 0, cookMin: 0, totalMin: 0, recipe: null }); hit = S.ideas.length - 1; }
+    if (S.picks.indexOf(hit) < 0) S.picks.push(hit);
+    S.plan = null; render();
+  }
+  function renderWeek(box) {
+    var W = S.week, wrap = el("div", "tray"), lab = el("div", "label"), filled = 0, total = 0;
+    Object.keys(W.slots).forEach(function (k) { total++; if (W.slots[k] >= 0) filled++; });
+    lab.appendChild(el("span", null, "一週餐單")); lab.appendChild(el("b", null, "已排 " + filled + "／" + total));
+    wrap.appendChild(lab);
+    wrap.appendChild(el("p", "desc", "易壞嘅食材（海鮮、葉菜、免治肉）排咗喺頭幾日。"));
+    for (var d = 1; d <= W.days; d++) (function (d) {
+      var dt = new Date(W.start[0], W.start[1], W.start[2] + d - 1), row = el("div", "wday"), kc = 0;
+      W.meals.forEach(function (mm, mi) { for (var k = 0; k < W.per; k++) { var i = W.slots[d + "-" + mi + "-" + k]; if (i >= 0) kc += S.ideas[i].kcal || 0; } });
+      var hd = el("strong", null, (dt.getMonth() + 1) + " 月 " + dt.getDate() + " 日（星期" + WD[dt.getDay()] + "）");
+      if (kc) hd.appendChild(el("small", null, "每人約 " + kc + " kcal" + (S.meal === "share" ? "，未計飯" : "")));
+      row.appendChild(hd);
+      W.meals.forEach(function (mm, mi) {
+        var line = el("div", "wmeal"), sels = el("div", "wsel");
+        line.appendChild(el("span", "slot", mm));
+        for (var k = 0; k < W.per; k++) (function (key) {
+          var sel = el("select"); sel.setAttribute("aria-label", (dt.getMonth() + 1) + " 月 " + dt.getDate() + " 日" + mm);
+          var o0 = el("option", null, "（未揀）"); o0.value = "-1"; sel.appendChild(o0);
+          S.ideas.forEach(function (x, i) { var o = el("option", null, x.dish + (x.type ? "（" + x.type + "）" : "")); o.value = String(i); sel.appendChild(o); });
+          sel.value = String(W.slots[key]);
+          sel.onchange = function () { W.slots[key] = Number(sel.value); W.logged = false; render(); };
+          sels.appendChild(sel);
+        })(d + "-" + mi + "-" + k);
+        line.appendChild(sels); row.appendChild(line);
+      });
+      wrap.appendChild(row);
+    })(d);
+    var ac = el("div", "acts2"), log = el("button", "primary", W.logged ? "已記入日曆 ✓" : "成個禮拜記入日曆"); log.type = "button"; log.disabled = !filled || !!W.logged;
+    log.onclick = function () {
+      log.disabled = true; log.textContent = "記緊…";
+      var jobs = [];
+      for (var d = 1; d <= W.days; d++) W.meals.forEach(function (mm, mi) { for (var k = 0; k < W.per; k++) { var i = W.slots[d + "-" + mi + "-" + k]; if (i >= 0) jobs.push([d, mm, S.ideas[i]]); } });
+      jobs.reduce(function (q, j) {
+        var dt = new Date(W.start[0], W.start[1], W.start[2] + j[0] - 1), x = j[2], r = x.recipe;
+        var entry = { id: newId(), slot: j[1], dish: x.dish, country: x.country, method: x.method || "", health: x.health || 0, kcal: (r && r.kcal) || x.kcal || 0 };
+        if (r) entry.recipe = { ingredients: r.ingredients.map(function (i) { return { item: i.item, qty: i.qty }; }), steps: r.steps };
+        return q.then(function () { return addMeal(dt.getFullYear(), dt.getMonth(), dt.getDate(), entry); });
+      }, Promise.resolve()).then(function () { W.logged = true; render(); }, function () { log.disabled = false; log.textContent = "記唔到，再試一次"; });
+    };
+    ac.appendChild(log); wrap.appendChild(ac);
+    wrap.appendChild(el("p", "hint", "記入之後可以喺「飲食日曆」睇返每日食乜；之後再寫嘅食譜唔會自動補入去。"));
+    box.appendChild(wrap);
+  }
+  function renderTray(box) {
+    var tray = el("div", "tray"), lab = el("div", "label"), T = S.target || { n: 0, m: ANY, v: ANY };
+    var cnt = { "肉餸": 0, "菜餸": 0 }; S.picks.forEach(function (i) { var ty = S.ideas[i].type; if (ty in cnt) cnt[ty]++; });
+    lab.appendChild(el("span", null, "今日餐單"));
+    lab.appendChild(el("b", null, "已揀 " + S.picks.length + "／" + T.n + " 個餸" + (T.m !== ANY ? "　肉 " + cnt["肉餸"] + "／" + T.m : "") + (T.v !== ANY ? "　菜 " + cnt["菜餸"] + "／" + T.v : "")));
+    tray.appendChild(lab);
+    var tk = 0; S.picks.forEach(function (i) { var d = S.ideas[i]; tk += (d.recipe && d.recipe.kcal) || d.kcal || 0; });
+    if (tk) tray.appendChild(el("p", S.kcalMax > 0 && tk > S.kcalMax ? "over" : "hint", "每人合共約 " + tk + " kcal" + (S.kcalMax > 0 ? "／上限 " + S.kcalMax + " kcal" + (tk > S.kcalMax ? "，超出咗 " + (tk - S.kcalMax) : "") : "") + "（未計白飯）"));
+    if (!S.picks.length) tray.appendChild(el("p", "desc", "喺下面每個餸㩒「加入餐單」。"));
+    else {
+      var chips = el("div", "chips");
+      S.picks.forEach(function (i) {
+        var c = el("button", "chip", S.ideas[i].dish + " ×"); c.type = "button"; c.disabled = working; c.setAttribute("aria-label", "移除 " + S.ideas[i].dish);
+        c.onclick = function () { S.picks.splice(S.picks.indexOf(i), 1); S.plan = null; render(); };
+        chips.appendChild(c);
+      });
+      tray.appendChild(chips);
+    }
+    var own = el("div", "addrow"), oi = el("input"); oi.type = "text"; oi.maxLength = 40; oi.placeholder = "自己有諗法？打個餸名，例如：蒸水蛋"; oi.setAttribute("aria-label", "自己加一個餸"); oi.disabled = working;
+    var ob = el("button", "btn2", "加入"); ob.type = "button"; ob.disabled = working; ob.onclick = function () { addOwnDish(oi.value); };
+    oi.addEventListener("keydown", function (ev) { if (ev.key === "Enter" && !ev.isComposing) { ev.preventDefault(); addOwnDish(oi.value); } });
+    own.appendChild(oi); own.appendChild(ob); tray.appendChild(own);
+    var ac = el("div", "acts2"), go = el("button", "primary", S.plan ? "睇返煮食流程" : "排好時間，一齊煮"); go.type = "button"; go.disabled = working || !S.picks.length;
+    go.onclick = function () { if (S.plan) { view = "plan"; render(); $("ticket").scrollIntoView({ block: "start" }); } else makePlan(); };
+    ac.appendChild(go); tray.appendChild(ac);
+    box.appendChild(tray);
+  }
+  function renderPlan(box) {
+    var P = S.plan, ideas = S.picks.map(function (i) { return S.ideas[i]; });
+    var head = el("div", "rhead"), hl = el("div");
+    hl.appendChild(el("div", "country", "今日餐單"));
+    hl.appendChild(el("h2", null, "一齊煮嘅流程"));
+    hl.appendChild(el("p", "desc", ideas.map(function (d) { return d.dish; }).join("、")));
+    if (P && P.summary) hl.appendChild(el("p", "hnote", P.summary));
+    head.appendChild(hl);
+    if (P) {
+      var sum = 0; ideas.forEach(function (d) { if (d.recipe) sum += d.recipe.totalMin; });
+      var meta = el("div", "meta");
+      meta.appendChild(el("span", null, ideas.length + " 個餸"));
+      meta.appendChild(el("span", null, "共 " + fmt(P.totalMin)));
+      if (sum > P.totalMin) meta.appendChild(el("span", null, "慳咗 " + fmt(sum - P.totalMin)));
+      var ksum = 0; ideas.forEach(function (d) { ksum += d.recipe.kcal || 0; });
+      if (ksum) { meta.appendChild(el("span", null, "每人約 " + ksum + " kcal")); hl.appendChild(el("p", "hint", "卡路里係每人食晒每個餸一份嘅估算，未計白飯（一碗約 230 kcal）。"));
+        if (S.kcalMax > 0 && ksum > S.kcalMax) hl.appendChild(el("p", "over", "成餐每人約 " + ksum + " kcal，超過咗你設定嘅 " + S.kcalMax + " kcal 上限。")); }
+      head.appendChild(meta);
+    }
+    box.appendChild(head);
+    if (!P) {
+      var s = el("div", "status"); s.appendChild(el("span", "dot")); s.appendChild(el("span", null, S.planMsg || "準備緊…"));
+      var stop = el("button", "linkbtn", "停止"); stop.type = "button"; stop.onclick = function () { if (ctl) ctl.abort(); };
+      s.appendChild(stop); box.appendChild(s); return;
+    }
+    var body = el("div", "body"), a = el("div", "panel"), b2 = el("div", "dirs");
+    a.appendChild(doodle("bokchoy", "corner"));
+    a.appendChild(el("h3", null, "材料"));
+    var merged = [], idx = {};
+    ideas.forEach(function (d) { d.recipe.ingredients.forEach(function (i) {
+      var k = i.item.trim(); if (!(k in idx)) { idx[k] = merged.length; merged.push({ item: k, qty: [], have: false }); }
+      var e = merged[idx[k]]; if (i.qty && e.qty.indexOf(i.qty) < 0) e.qty.push(i.qty); if (i.have) e.have = true;
+    }); });
+    var ul = el("ul", "ings");
+    merged.forEach(function (i) { var li = el("li"); li.appendChild(el("span", i.have || S.general ? null : "buy", i.item)); li.appendChild(el("span", "q", i.qty.join(" + "))); ul.appendChild(li); });
+    a.appendChild(ul);
+    var hr = el("div", "hrow"); hr.appendChild(doodle("wok")); hr.appendChild(el("h3", null, "流程")); hr.appendChild(doodle("steamer")); b2.appendChild(hr);
+    var ol = el("ol", "tl");
+    P.timeline.forEach(function (x) {
+      var li = el("li"); li.appendChild(el("span", "at", x.startMin + " 分"));
+      var c = el("span"); if (x.dish) c.appendChild(el("span", "who", x.dish)); c.appendChild(document.createTextNode(x.task + " "));
+      if (x.minutes) c.appendChild(el("small", null, "（約 " + fmt(x.minutes) + "）"));
+      li.appendChild(c); ol.appendChild(li);
+    });
+    b2.appendChild(ol); body.appendChild(a); body.appendChild(b2); box.appendChild(body);
+    if (P.tips.length) {
+      var tp = el("div", "times"); tp.appendChild(el("div", "country", "貼士"));
+      var tu = el("ul", "tips"); P.tips.forEach(function (x) { tu.appendChild(el("li", null, x)); }); tp.appendChild(tu); box.appendChild(tp);
+    }
+    var each = el("div", "acts2"); each.appendChild(el("span", "hint", "單獨睇每個餸嘅食譜："));
+    S.picks.forEach(function (i) { var bt = el("button", "btn2", S.ideas[i].dish); bt.type = "button"; bt.onclick = function () { openIdea(i); }; each.appendChild(bt); });
+    box.appendChild(each);
+    var foot = el("div", "foot");
+    foot.appendChild(el("span", null, "肉類、家禽、魚和蛋要徹底煮熟；時間只係估算，以食物熟透為準。"));
+    var log = el("button", "btn2", "記低今日食咗"); log.type = "button";
+    log.onclick = function () {
+      var t = new Date(), slot = defaultSlot(); log.disabled = true; log.textContent = "記緊…";
+      ideas.reduce(function (q, d) {
+        var r = d.recipe;
+        return q.then(function () { return addMeal(t.getFullYear(), t.getMonth(), t.getDate(), { id: newId(), slot: slot, dish: r.dish, country: r.country, method: d.method || "", health: r.health || 0, kcal: r.kcal || 0,
+          recipe: { ingredients: r.ingredients.map(function (i) { return { item: i.item, qty: i.qty }; }), steps: r.steps } }); });
+      }, Promise.resolve()).then(function () { log.textContent = "已記低 " + ideas.length + " 個餸（今日" + slot + "）✓"; }, function () { log.disabled = false; log.textContent = "記唔到，再試一次"; });
+    };
+    var acts = el("span", "acts"); acts.appendChild(log); foot.appendChild(acts); box.appendChild(foot);
+  }
+  function makePlan() {
+    if (working || !S.picks.length) return;
+    sampleP.then(function (sample) {
+      if (!sample || working) return;
+      var round = S, ideas = S.picks.map(function (i) { return S.ideas[i]; });
+      var need = ideas.filter(function (d) { return !d.recipe; }), done = 0;
+      ctl = new AbortController();
+      busy(true); ticketErr = ""; view = "plan"; S.plan = null;
+      S.planMsg = need.length ? "寫緊 " + need.length + " 個餸嘅食譜，可能要一兩分鐘…" : "排緊時間，睇下點樣一齊煮最快…";
+      render(); $("ticket").scrollIntoView({ block: "start" });
+      Promise.all(need.map(function (idea) {
+        return sample.json(recipePrompt(idea), { signal: ctl.signal, cache: false }).then(function (raw) {
+          var r = cleanRecipe(raw, idea); if (!r) throw { code: "invalid_json" };
+          setRecipe(idea, r); done++;
+          if (S === round && view === "plan") { S.planMsg = "寫好咗 " + done + "／" + need.length + " 個食譜…"; render(); }
+        });
+      })).then(function () {
+        if (S !== round) return;
+        S.planMsg = "排緊時間，睇下點樣一齊煮最快…"; if (view === "plan") render();
+        return sample.json(planPrompt(ideas), { signal: ctl.signal, cache: false }).then(function (raw) {
+          var p = cleanPlan(raw); if (!p) throw { code: "invalid_json" };
+          if (S === round) S.plan = p;
+        });
+      }).then(function () { busy(false); if (S === round) render(); },
+        function (e) { if (ctl) ctl.abort(); busy(false); if (S !== round) return; view = "ideas"; ticketErr = failCode(e); render(); });
+    });
+  }
+  function renderRecipe(box, idea) {
+    var r = idea.recipe;
+    var head = el("div", "rhead"), hl = el("div");
+    hl.appendChild(el("div", "country", idea.country));
+    hl.appendChild(el("h2", null, r ? r.dish : idea.dish));
+    var d = r ? r.description : idea.description;
+    if (d) hl.appendChild(el("p", "desc", d));
+    if (r && r.health && r.healthNote) hl.appendChild(el("p", "hnote", "健康指數 " + r.health + "/5：" + r.healthNote));
+    head.appendChild(hl);
+    if (r) {
+      var meta = el("div", "meta");
+      meta.appendChild(el("span", null, (r.servings || S.servings) + (S.meal === "share" ? " 人分享" : " 人份")));
+      if (idea.method) meta.appendChild(el("span", null, idea.method));
+      if (r.health) meta.appendChild(el("span", null, "健康 " + r.health + "/5"));
+      if (r.kcal) meta.appendChild(el("span", null, r.kcal + " kcal／人"));
+      meta.appendChild(el("span", null, "共 " + fmt(r.totalMin)));
+      head.appendChild(meta);
+    }
+    box.appendChild(head);
+    if (S.photoUrl) { var ph = el("img", "hero"); ph.src = S.photoUrl; ph.alt = "你的食材相片"; box.appendChild(ph); }
+    if (!r) {
+      var s = el("div", "status"); s.appendChild(el("span", "dot")); s.appendChild(el("span", null, "正在寫食譜，可能需要一分鐘。"));
+      var stop = el("button", "linkbtn", "停止"); stop.type = "button"; stop.onclick = function () { if (ctl) ctl.abort(); };
+      s.appendChild(stop); box.appendChild(s); return;
+    }
+    var times = el("div", "times"), figs = el("dl", "figs");
+    [["準備", r.prepMin, "--prep"], ["醃製", r.marinateMin, "--marinate"], ["烹調", r.cookMin, "--cook"]].forEach(function (f) {
+      var dv = el("div", "fig"), dt = el("dt"), sw = el("i"); sw.style.background = "var(" + f[2] + ")";
+      dt.appendChild(sw); dt.appendChild(document.createTextNode(f[0]));
+      dv.appendChild(dt); dv.appendChild(el("dd", null, f[1] ? fmt(f[1]) : "不用")); figs.appendChild(dv);
+    });
+    var t = el("div", "fig total"); t.appendChild(el("dt", null, "總時間")); t.appendChild(el("dd", null, fmt(r.totalMin))); figs.appendChild(t);
+    times.appendChild(figs); times.appendChild(timeBar(r));
+    if (r.kcal) times.appendChild(el("p", "hint", "每人約 " + r.kcal + " kcal" + (r.proteinG || r.carbsG || r.fatG ? "：蛋白質 " + r.proteinG + " 克、碳水 " + r.carbsG + " 克、脂肪 " + r.fatG + " 克" : "") + "（估算" + (S.meal === "share" ? "，未計白飯" : "") + "）"));
+    var L = S.limits;
+    if (L) {
+      var over = [];
+      if (r.totalMin > L.total) over.push("總時間");
+      if (L.cook !== ANY && r.cookMin > L.cook) over.push("烹調時間");
+      if (L.marinate !== ANY && r.marinateMin > L.marinate) over.push("醃製時間");
+      if (S.meal !== "share" && S.kcalMax > 0 && r.kcal > S.kcalMax) over.push("卡路里上限");
+      if (over.length) times.appendChild(el("p", "over", "這份食譜超過了你設定的" + over.join("和") + "。"));
+    }
+    box.appendChild(times);
+
+    var body = el("div", "body"), a = el("div", "panel"), b2 = el("div", "dirs");
+    var vi = S.ideas.indexOf(idea);
+    a.appendChild(doodle(FOODS[vi % FOODS.length], "corner"));
+    a.appendChild(el("h3", null, "材料"));
+    var ul = el("ul", "ings");
+    r.ingredients.forEach(function (i) {
+      var li = el("li"); li.appendChild(el("span", i.have || S.general ? null : "buy", i.item)); li.appendChild(el("span", "q", i.qty)); ul.appendChild(li);
+    });
+    a.appendChild(ul);
+    var hr = el("div", "hrow"); hr.appendChild(doodle(methodDoodle(idea.method))); hr.appendChild(el("h3", null, "做法")); hr.appendChild(doodle(FOODS[(vi + 3) % FOODS.length]));
+    b2.appendChild(hr);
+    var ol = el("ol", "steps"); r.steps.forEach(function (x) { ol.appendChild(el("li", null, x)); }); b2.appendChild(ol);
+    body.appendChild(a); body.appendChild(b2); box.appendChild(body);
+
+    var deco = el("div", "rdeco"), mix = FOODS.concat(SNACKS);
+    for (var q = 0; q < 8; q++) deco.appendChild(doodle(mix[(vi * 5 + q * 3 + 1) % mix.length]));
+    box.appendChild(deco);
+    var foot = el("div", "foot");
+    foot.appendChild(el("span", null, "肉類、家禽、魚和蛋要徹底煮熟；有食物敏感請留意材料標籤。"));
+    var copy = el("button", "btn2", "複製食譜"); copy.type = "button";
+    copy.onclick = function () {
+      var txt = r.dish + "（" + r.country + "）\n" + (r.health ? "健康指數 " + r.health + "/5\n" : "") + (r.kcal ? "每人約 " + r.kcal + " kcal\n" : "") + "準備 " + fmt(r.prepMin) + " · 醃製 " + fmt(r.marinateMin) + " · 烹調 " + fmt(r.cookMin) + " · 總時間 " + fmt(r.totalMin) +
+        "\n\n材料\n" + r.ingredients.map(function (i) { return "- " + i.item + (i.qty ? " " + i.qty : ""); }).join("\n") +
+        "\n\n做法\n" + r.steps.map(function (x, n) { return (n + 1) + ". " + x; }).join("\n");
+      var done = function () { copy.textContent = "已複製"; setTimeout(function () { copy.textContent = "複製食譜"; }, 1600); };
+      try { navigator.clipboard.writeText(txt).then(done, function () { copy.textContent = "這裡不能複製"; }); }
+      catch (e) { copy.textContent = "這裡不能複製"; }
+    };
+    var log = el("button", "btn2", "記低今日食咗"); log.type = "button";
+    log.onclick = function () {
+      var t = new Date(), slot = defaultSlot(); log.disabled = true; log.textContent = "記緊…";
+      addMeal(t.getFullYear(), t.getMonth(), t.getDate(), { id: newId(), slot: slot, dish: r.dish, country: r.country, method: idea.method || "", health: r.health || 0, kcal: r.kcal || 0,
+        recipe: { ingredients: r.ingredients.map(function (i) { return { item: i.item, qty: i.qty }; }), steps: r.steps } })
+        .then(function () { log.textContent = "已記低（今日" + slot + "）✓"; }, function () { log.disabled = false; log.textContent = "記唔到，再試一次"; });
+    };
+    var acts = el("span", "acts"); acts.appendChild(log); acts.appendChild(copy);
+    foot.appendChild(acts); box.appendChild(foot);
+  }
+  $("back").onclick = function () { if (working && ctl) ctl.abort(); view = "ideas"; ticketErr = ""; render(); };
+
+  /* ---- example round ---- */
+  function I(item, qty, have) { return { item: item, qty: qty, have: have }; }
+  S = { isExample: true, picks: [], plan: null, limits: null, servings: 2, notes: "", meal: "set", minHealth: ANY, kcalMax: ANY,
+    ingredients: ["雞髀肉", "洋蔥", "番茄", "蒜頭", "雞蛋", "白飯"],
+    ideas: [
+      { country: "香港", dish: "茄汁雞扒飯", description: "茶餐廳風味：香煎雞扒配鮮番茄汁，淋在白飯上。", uses: ["雞髀肉", "番茄", "洋蔥", "蒜頭", "白飯"],
+        recipe: { prepMin: 10, marinateMin: 20, cookMin: 20, servings: 2,
+          ingredients: [I("去骨雞髀扒","2 塊",true), I("番茄","3 個",true), I("洋蔥","半個",true), I("蒜頭","2 瓣",true), I("白飯","2 碗",true),
+            I("生抽","1 湯匙",false), I("粟粉","1 茶匙",false), I("茄汁","2 湯匙",false), I("糖","1 茶匙",false), I("油、鹽、胡椒粉","適量",false)],
+          steps: ["雞扒用生抽、粟粉和少許胡椒粉拌勻，放雪櫃醃 20 分鐘。", "番茄切塊，洋蔥切絲，蒜頭剁碎。",
+            "熱鑊落油，雞扒皮向下，煎至兩面金黃、全熟，約 10 分鐘，盛起切件。",
+            "原鑊爆香蒜頭和洋蔥，加入番茄炒至出汁，再加茄汁、糖和約 100 毫升水，煮 5 分鐘至濃稠，用鹽調味。", "雞扒鋪在白飯上，淋上番茄汁即成。"] } },
+      { country: "香港", dish: "番茄炒蛋飯", description: "酸酸甜甜的家常餸，十五分鐘有飯食。只用番茄、雞蛋和飯。", uses: ["番茄", "雞蛋", "蒜頭", "白飯"],
+        recipe: { prepMin: 5, marinateMin: 0, cookMin: 10, servings: 2,
+          ingredients: [I("番茄","3 個",true), I("雞蛋","4 隻",true), I("蒜頭","1 瓣",true), I("白飯","2 碗",true),
+            I("糖","1 茶匙",false), I("茄汁","1 湯匙",false), I("油、鹽","適量",false)],
+          steps: ["番茄切塊，蒜頭剁碎，雞蛋加少許鹽打散。", "熱鑊落油，倒入蛋液炒至七成熟，盛起。",
+            "原鑊爆香蒜蓉，落番茄炒至軟身出汁，加糖、茄汁和少許水煮 2 分鐘。", "雞蛋回鑊兜勻至全熟，用鹽調味，淋在白飯上。"] } },
+      { country: "日本", dish: "親子丼", description: "雞肉和滑蛋用甜豉油汁煮好，蓋在白飯上。一個鑊完成，不用醃。", uses: ["雞髀肉", "洋蔥", "雞蛋", "白飯"],
+        recipe: { prepMin: 10, marinateMin: 0, cookMin: 15, servings: 2,
+          ingredients: [I("去骨雞髀肉","300 克",true), I("洋蔥","1 個",true), I("雞蛋","4 隻",true), I("白飯","2 碗",true),
+            I("鰹魚高湯或清雞湯","200 毫升",false), I("日式豉油","2 湯匙",false), I("味醂","2 湯匙",false), I("糖","1 茶匙",false)],
+          steps: ["洋蔥切幼絲，雞肉切成一口大小。", "高湯、豉油、味醂和糖放入小平底鑊，煮至微滾。",
+            "加入洋蔥和雞肉，煮 8 至 10 分鐘，中途翻一次，直至雞肉全熟。", "雞蛋輕輕打散，慢慢打圈淋入，冚蓋煮約 1 分鐘至剛剛凝固。", "連汁鋪在熱飯上即成。"] } },
+      { country: "日本", dish: "照燒雞扒丼", description: "雞扒煎香後掛上甜甜鹹鹹的照燒汁，配洋蔥和白飯。", uses: ["雞髀肉", "洋蔥", "白飯"],
+        recipe: { prepMin: 5, marinateMin: 15, cookMin: 15, servings: 2,
+          ingredients: [I("去骨雞髀扒","2 塊",true), I("洋蔥","半個",true), I("白飯","2 碗",true),
+            I("日式豉油","2 湯匙",false), I("味醂","2 湯匙",false), I("糖","1 湯匙",false), I("油","適量",false)],
+          steps: ["豉油、味醂和糖拌勻成照燒汁，取一半醃雞扒 15 分鐘。", "洋蔥切絲。熱鑊落少許油，雞扒皮向下，中火煎約 6 分鐘至金黃，反轉再煎 4 分鐘。",
+            "加入洋蔥和餘下的照燒汁，煮至汁濃稠、雞肉全熟。", "雞扒切件，連洋蔥和汁鋪在白飯上。"] } }
+    ] };
+  S.ideas.forEach(function (d, i) {
+    d.health = [3, 4, 4, 3][i]; d.kcal = [680, 520, 640, 700][i]; d.method = ["煎", "炒", "水煮", "煎"][i];
+    var r = d.recipe; r.health = d.health; r.kcal = d.kcal; r.proteinG = [38, 22, 40, 36][i]; r.carbsG = [78, 70, 72, 80][i]; r.fatG = [22, 16, 18, 24][i]; r.healthNote = ["雞扒用煎的，茄汁有糖，但有新鮮番茄和洋蔥。", "少油快炒，番茄多，蛋白質足夠。", "用煮的不用煎炸，油份少；汁偏甜，可以減糖。", "照燒汁糖和鹽較多，蔬菜偏少。"][i];
+    r.country = d.country; r.dish = d.dish; r.description = d.description; r.totalMin = r.prepMin + r.marinateMin + r.cookMin;
+    d.prepMin = r.prepMin; d.marinateMin = r.marinateMin; d.cookMin = r.cookMin; d.totalMin = r.totalMin;
+  });
+  render();
+
+  /* ---- ask Claude ---- */
+  var sampleP = (window.claude && typeof window.claude.use === "function") ? window.claude.use("sample") : Promise.resolve(null);
+  sampleP.then(function (sample) {
+    if (!sample) { $("go").disabled = true; showError("菜式和食譜由 Claude 撰寫。請登入 Claude 後在 Claude 內打開這個頁面。"); return; }
+    return sample.limits().catch(function () { return null; }).then(function (caps) {
+      imageLimits = caps && caps.images ? caps.images : null;
+      if (!imageLimits) {
+        photosOk = false; clearFiles(); $("photo").disabled = true;
+        $("dropTitle").textContent = "這裡用不到相片";
+        $("dropHint").textContent = "請改為在下面的補充欄輸入食材";
+      }
+    });
+  });
+
+  var LANG = "Language: write every text value (ingredient names, dish names, descriptions, quantities, steps, notes) in Traditional Chinese as used in Hong Kong. Keep the JSON keys in English.";
+  function timeRules(L) {
+    var cookLine = L.cook === ANY ? "Active cooking time (heat on) has no separate limit; it only has to fit inside the total."
+      : "Active cooking time (heat on) must be at most " + L.cook + " minutes.";
+    var marLine = L.marinate === ANY ? "Marinating has no separate limit; use it only where the dish benefits and it fits inside the total, otherwise set marinateMin to 0."
+      : L.marinate === 0 ? "No marinating: marinateMin must be 0."
+      : "Marinating time must be at most " + L.marinate + " minutes. Use marinating only where the dish benefits from it; otherwise set marinateMin to 0.";
+    return ["Time rules:",
+      "- Total time (prep + marinating + cooking) must be at most " + L.total + " minutes. This is the most important limit.",
+      "- " + cookLine, "- " + marLine,
+      "Give honest times in whole minutes. If limits conflict, stay inside the total."].join("\n");
+  }
+  function mealRules(meal, n) {
+    return meal === "share"
+      ? "Meal style: Chinese family-style shared dishes (餸). Each dish is ONE dish shared at the table alongside other dishes and plain rice; it is not a full meal by itself. Do not build rice, noodles or another staple into it unless the dish inherently is one. Size it for " + n + " people sharing it as one of several dishes."
+      : "Meal style: a complete individual meal (一人一份), like a rice plate, donburi, noodle bowl or set meal. Each dish must be a full meal on its own: a staple (rice, noodles, bread, etc.), a protein and ideally vegetables. Make " + n + " individual portion(s).";
+  }
+  function sharePlan() {
+    var n = dishTotal(), m = st.meatN, v = st.vegN, extra = st.countries.length >= 3 ? 1 : 2;
+    function opt(need, dflt) { return need === null ? dflt : need <= 0 ? 0 : Math.min(need + extra, 5); }
+    var om = opt(m === ANY ? null : m, 3), ov = opt(v === ANY ? null : v, 3), oo = opt(m === ANY || v === ANY ? null : n - m - v, 2);
+    var kinds = 0; st.meats.forEach(function (k) { kinds += Math.max(1, (st.cuts[k] || []).length); });
+    if (om && kinds) om = Math.max(om, Math.min(kinds, 6));
+    if (!om && !ov && !oo) oo = 3;
+    var parts = [];
+    if (om) parts.push(om + " meat dish option(s) (type \"meat\": the main ingredient is meat, poultry, fish or seafood)");
+    if (ov) parts.push(ov + " vegetable dish option(s) (type \"veg\": the main ingredient is vegetables, with no meat or only a trace for flavour)");
+    if (oo) parts.push(oo + " other option(s) (type \"other\": egg, tofu, soup and the like)");
+    return "The cook is planning ONE shared meal of " + n + " dish(es) and wants to choose the dishes themselves from a menu of options. For each of these countries or regions, in this order, offer exactly " + parts.join(", ") + ": " + st.countries.join("、") +
+      ". Each must be a real home-style dish from that cuisine. Options of the same type must clearly differ from each other in main ingredient and cooking style. Set each dish's type to \"meat\", \"veg\" or \"other\"." +
+      (st.meats.length ? " The cook picked these meats as ALTERNATIVES, not as a combination: " + st.meats.join("、") + ". Each meat option uses just ONE of them as its main ingredient, never a meat outside the list, and the options must cover the list: at least one option for each listed meat (as far as the number of options allows), so the cook can choose between them. Use them even if they are not among the cook's ingredients; the cook will buy them." + cutsLine() : "");
+  }
+  function cutsLine() {
+    var parts = st.meats.filter(function (m) { return st.cuts[m] && st.cuts[m].length; }).map(function (m) { return m + "：" + st.cuts[m].join("、"); });
+    return parts.length ? " The cook chose specific cuts or kinds: " + parts.join("；") + ". These are alternatives too: a dish using one of those meats uses ONE of its listed cuts and names it in the description, and across the options every listed cut should appear at least once where the number of options allows." : "";
+  }
+  function planPrompt(ideas) {
+    var data = ideas.map(function (d) { var r = d.recipe; return { dish: r.dish, prepMin: r.prepMin, marinateMin: r.marinateMin, cookMin: r.cookMin, steps: r.steps }; });
+    return [
+      "You plan the cooking order for a home cook in Hong Kong who is making several dishes for one shared meal, alone, in a small home kitchen.",
+      LANG,
+      "Kitchen: 2 stove burners, 1 rice cooker, a kettle, and an oven or air fryer only if a recipe needs one. There is one cook, so only one hands-on task at a time, but waiting time (marinating, simmering, steaming, rice cooking, baking) can overlap with hands-on work on another dish.",
+      "Servings: " + S.servings + ". Plain rice is served with the meal: include starting the rice cooker at the right moment.",
+      "Dishes and their recipes (JSON): " + JSON.stringify(data),
+      "Write ONE merged timeline that gets every dish to the table hot at the same time in the shortest total time. Start whatever takes longest first (marinating, soup, braises, rice). Batch similar prep (wash and cut everything together). Use waiting time to work on other dishes. Never need more than 2 burners at once. Finish quick stir-fries and green vegetables last. Keep every recipe step: do not drop or change the cooking itself, only reorder and interleave it.",
+      "Each timeline entry is one hands-on task. startMin is minutes from the start, minutes is how long the task takes, dish is the dish name exactly as given above (or 全部 for shared tasks such as rice or washing and cutting everything), task is the instruction. Order entries by startMin. totalMin is when everything is on the table.",
+      S.limits ? "The cook hoped to spend about " + S.limits.total + " minutes. Get the whole meal as close to that as is realistic, and say honestly in summary if it takes longer." : "",
+      "summary: one or two sentences on the strategy. tips: up to 4 short practical tips for this particular menu (what can be done ahead, what can share a pot or pan, what to watch).",
+      "Reply with only JSON in this shape, no other text:",
+      '{"totalMin":0,"summary":"","timeline":[{"startMin":0,"minutes":0,"dish":"","task":""}],"tips":[""]}'
+    ].filter(Boolean).join("\n");
+  }
+  function cleanPlan(raw) {
+    if (!raw || typeof raw !== "object" || !Array.isArray(raw.timeline)) return null;
+    var tl = raw.timeline.filter(function (x) { return x && typeof x === "object" && x.task; }).slice(0, 80).map(function (x) {
+      return { startMin: num(x.startMin), minutes: num(x.minutes), dish: String(x.dish || ""), task: String(x.task) };
+    }).sort(function (a, b) { return a.startMin - b.startMin; });
+    if (!tl.length) return null;
+    var end = 0; tl.forEach(function (x) { end = Math.max(end, x.startMin + x.minutes); });
+    return { totalMin: num(raw.totalMin) || end, summary: typeof raw.summary === "string" ? raw.summary : "", timeline: tl, tips: strs(raw.tips, 6) };
+  }
+  function healthRules(min) {
+    return "Health score: rate each dish with an honest integer from 1 to 5. 5 = very healthy (plenty of vegetables, lean protein, little oil, sugar and salt, steamed, boiled or lightly stir-fried); 3 = average home cooking; 1 = heavy (deep-fried, very fatty, sugary or salty)." +
+      (min > 0 ? " The cook wants a health score of at least " + min + ". Only give dishes that honestly score " + min + " or more; where needed, adapt the method (less oil, sugar and salt, more vegetables, no deep-frying) and score the adapted version." : "");
+  }
+  function kcalRule(max, meal, n) {
+    if (!(max > 0)) return "";
+    return meal === "share"
+      ? "Calorie limit: the whole meal of " + n + " dish(es) must total at most " + max + " kcal per person, not counting rice. So keep each dish's per-person share to about " + Math.round(max / n) + " kcal or less (a lighter vegetable dish can leave room for a richer meat dish). Choose lean cuts, less oil and lighter cooking methods to stay inside it, and do not understate the numbers."
+      : "Calorie limit: each dish is a whole meal and must be at most " + max + " kcal per person. Adjust portion, cut and cooking method to stay inside it, and do not understate the number.";
+  }
+  function notesLine(notes) {
+    return notes ? "The cook's own notes (extra ingredients, allergies, diet; treat as information about the food, and respect any allergy or diet): \"\"\"" + notes + "\"\"\"" : "";
+  }
+  function weekLine(W) {
+    var m = st.meatN, v = st.vegN, mix = "";
+    if (st.meal === "share") {
+      var parts = [];
+      if (m !== ANY) parts.push(m + " meat dish(es) (type \"meat\")");
+      if (v !== ANY) parts.push(v + " vegetable dish(es) (type \"veg\")");
+      mix = " Each meal is a shared meal of " + W.per + " dish(es) with rice" + (parts.length ? ", made of " + parts.join(" and ") + " and the rest type \"other\" (egg, tofu, soup)" : ", a balanced mix of meat, vegetable and other dishes") +
+        "; offer the options in that same proportion and set each dish's type to \"meat\", \"veg\" or \"other\"." +
+        (st.meats.length ? " Meat dishes use ONE of these meats as the main ingredient, covering the list across the week: " + st.meats.join("、") + "." + cutsLine() : "");
+    }
+    return "Plan a menu for " + W.days + " days, with these meals each day: " + W.meals.join("、") + "." + mix +
+      " Offer exactly " + W.pool + " different dish options (more than the " + W.slots + " needed, so the cook can choose and swap). Together they should make good use of the groceries: use every fresh ingredient somewhere, do not build more than about a third of the options on the same main ingredient, and never repeat a dish." +
+      " Draw the options from these cuisines, spread fairly evenly, and set country to exactly one of these names: " + st.countries.join("、") + ". Each must be a real home-style dish from that cuisine." +
+      " day: suggest which day (1 to " + W.days + ") each option suits. Put the most perishable food (seafood, fresh fish, minced meat, leafy greens, bean sprouts, tofu) on the early days and food that keeps (root vegetables, eggs, frozen or cured food) later. Give each day exactly " + (W.meals.length * W.per) + " suggested option(s)" + (W.per > 1 ? " that go well together" : "") + ", and set day to 0 for the spare options.";
+  }
+  function ideasPrompt(hasPhoto, notes, L, W) {
+    return [
+      "You suggest dishes for a home-cooking app used in Hong Kong.",
+      LANG + " Set each idea's country to exactly the name given in the list below.",
+      hasPhoto ? (W ? "The cook has just done the grocery shopping for the week. The " + hasPhoto + " attached photo(s) together show everything they bought. Identify every ingredient you can see across all the photos."
+        : "The " + hasPhoto + " attached photo(s) show the food the cook has on hand. Identify the ingredients you can see.") : "The cook gave no photo. Any ingredients they have are in the notes below. If no ingredients are given at all, suggest popular, well-loved dishes made from ingredients that are easy to buy in a Hong Kong supermarket or wet market, and return empty ingredients and uses arrays.",
+      notesLine(notes),
+      W ? weekLine(W) : st.meal === "share" ? sharePlan()
+        : "For each of these countries or regions, in this order, suggest exactly 3 different dishes: " + st.countries.join("、") + ". Each must be a real home-style dish from that cuisine.",
+      "You do NOT have to use every ingredient. For each dish pick only the few ingredients that genuinely suit it, and leave the rest out. Common pantry staples may be added. Make the dishes for a country differ in main ingredient or cooking style where possible.",
+      "In uses, list only the cook's own ingredients that the dish uses.",
+      mealRules(st.meal, st.servings),
+      healthRules(st.health),
+      "Calories: set kcal to an honest estimate of the calories ONE person eats from this dish (for a shared dish, one person's share, not counting plain rice).",
+      kcalRule(kcalNow(), st.meal, dishTotal()) + (W && kcalNow() > 0 ? " This limit applies to each meal of the week." : ""),
+      goalRule(),
+      st.methods.length
+        ? "Cooking method: the main cooking method of every dish must be one of these: " + st.methods.join("、") + ". These are alternatives: each dish uses one of them, and across the dishes every listed method should appear at least once where the number of dishes allows. Set method to the one used, written exactly as in this list. If a method clashes with the health minimum, use a lighter version of the dish that still satisfies both."
+        : "Cooking method: any. Set method to the dish's main cooking method in one or two Chinese characters (for example 蒸, 炒, 煎, 炸, 焗, 炆, 水煮, 煲湯, 涼拌).",
+      timeRules(L),
+      "These are menu ideas only: do not write ingredients lists or steps.",
+      hasPhoto ? "If there is no recognisable food, reply with an empty ideas array and a short note saying so." : "",
+      "Reply with only JSON in this shape, no other text:",
+      '{"ingredients":["what you identified"],"note":"","ideas":[{"country":"","dish":"","description":"one short sentence","uses":["cook\'s ingredient"],"type":"","method":"","health":3,"kcal":0,"day":0,"prepMin":0,"marinateMin":0,"cookMin":0}]}'
+    ].filter(Boolean).join("\n");
+  }
+  function recipePrompt(idea) {
+    return [
+      "You write recipes for a home-cooking app used in Hong Kong.",
+      LANG,
+      idea.custom
+        ? "Write the full recipe for this dish, which is the cook's own idea: " + idea.dish + ". Read the name sensibly as a home-style dish and make the usual, well-known version of it. In description give one sentence about the dish."
+        : "Write the full recipe for this dish the cook chose from a menu: " + idea.dish + " (" + idea.country + "). " + idea.description,
+      S.ingredients.length || S.notes ? "The cook has these ingredients on hand: " + (S.ingredients.join("、") || "(see notes)") + "."
+        : "The cook has not said what they have on hand. Write a general recipe using ingredients that are easy to buy in Hong Kong, and set have to false for every ingredient.",
+      notesLine(S.notes),
+      "You do NOT have to use every ingredient on hand. Use the ones that suit this dish" + (idea.uses.length ? " (the menu promised: " + idea.uses.join("、") + ")" : "") + ", plus common pantry staples, and keep extra ingredients to a minimum.",
+      mealRules(S.meal, S.servings),
+      healthRules(S.minHealth) + (idea.health ? " The menu rated this dish " + idea.health + "/5; write the recipe so it honestly earns that score or better." : "") + " In healthNote give one short sentence explaining the score.",
+      S.kcalMax > 0 ? (S.meal === "share"
+        ? "Calorie limit: this dish is one of " + S.target.n + " in a meal capped at " + S.kcalMax + " kcal per person (not counting rice)" + (idea.kcal ? "; the menu promised about " + idea.kcal + " kcal per person for it, so keep to that or less." : ".")
+        : "Calorie limit: at most " + S.kcalMax + " kcal per person. Adjust quantities and oil to stay inside it.") : "",
+      S.goalLine || "",
+      "Nutrition: estimate from the actual ingredient quantities, per person (total divided by servings" + (S.meal === "share" ? ", not counting plain rice served alongside" : "") + "): kcal, proteinG, carbsG and fatG as whole numbers. Count cooking oil, sugar and sauces.",
+      idea.method ? "Main cooking method: " + idea.method + ". The menu promised this method, so the recipe must use it." : "",
+      timeRules(S.limits),
+      "Servings: " + S.servings + ". Use metric quantities. Cook meat, poultry, fish and eggs to safe doneness.",
+      "For each ingredient set have to true only if it is in the cook's on-hand list or notes, otherwise false.",
+      "Reply with only JSON in this shape, no other text:",
+      '{"dish":"","description":"one sentence","health":3,"healthNote":"","kcal":0,"proteinG":0,"carbsG":0,"fatG":0,"prepMin":0,"marinateMin":0,"cookMin":0,"servings":' + S.servings + ',"ingredients":[{"item":"","qty":"","have":true}],"steps":["one instruction per step"]}'
+    ].filter(Boolean).join("\n");
+  }
+
+  var ctl = null;
+  $("stop").onclick = function () { if (ctl) ctl.abort(); };
+  function busy(on, text) {
+    working = on; $("go").disabled = on; $("status").hidden = !on || !text;
+    if (text) $("statusText").textContent = text;
+  }
+  function failCode(e) {
+    var code = e && e.code;
+    if (code === "no_key") return "";
+    return code === "cancelled" ? "" : (COPY[code] || COPY.upstream_error);
+  }
+
+  // Step 1: a menu of dish ideas.
+  $("go").onclick = function () {
+    clearError();
+    var notes = $("extra").value.trim().slice(0, 1500);
+    var hasPhoto = files.length > 0 && photosOk, W = st.plan === "week" ? weekShape() : null;
+    if (!st.countries.length) { showError("請最少揀一個國家。"); return; }
+    sampleP.then(function (sample) {
+      if (!sample || working) return;
+      ctl = new AbortController();
+      var L = { cook: st.cook, marinate: st.marinate, total: st.total }, servings = st.servings, meal = st.meal, minHealth = st.health, kcalMax = kcalNow();
+      busy(true, (hasPhoto ? "正在看你的 " + files.length + " 張相片，" : "正在") + (W ? "計劃一個禮拜嘅餐單。可能要一兩分鐘。" : "構思菜式。可能需要一分鐘。"));
+      render();
+      var opts = { signal: ctl.signal, cache: false,
+        onText: function (u) { var m = u.text.match(/"dish"\s*:/g); if (m) $("statusText").textContent = "已想到 " + m.length + " 個菜式…"; } };
+      if (hasPhoto) opts.images = files.slice();
+      sample.json(ideasPrompt(hasPhoto ? files.length : 0, notes, L, W), opts).then(function (raw) {
+        var d = cleanIdeas(raw);
+        busy(false);
+        if (!d.ideas.length) { showError(d.note || "認不到食物。請試一張更清楚、更光的相片。"); render(); return; }
+        S = { isExample: false, limits: L, servings: servings, notes: notes, meal: meal, minHealth: minHealth, kcalMax: kcalMax, goalLine: goalRule(), general: !d.ingredients.length, picks: [], plan: null, planMsg: "", target: { n: dishTotal(), m: st.meatN, v: st.vegN }, ingredients: d.ingredients, ideas: d.ideas,
+          photoUrl: hasPhoto ? URL.createObjectURL(opts.images[0]) : null, week: null };
+        if (W) {
+          var t0 = new Date(), slots = {};
+          for (var dd = 1; dd <= W.days; dd++) {
+            var mine = []; d.ideas.forEach(function (x, i) { if (x.day === dd) mine.push(i); });
+            W.meals.forEach(function (mm, mi) { for (var k = 0; k < W.per; k++) { var pick = mine.shift(); slots[dd + "-" + mi + "-" + k] = pick === undefined ? -1 : pick; } });
+          }
+          S.week = { days: W.days, meals: W.meals, per: W.per, start: [t0.getFullYear(), t0.getMonth(), t0.getDate()], slots: slots };
+        }
+        view = "ideas"; ticketErr = ""; render();
+        if (window.matchMedia("(max-width: 820px)").matches) $("ticket").scrollIntoView({ behavior: "smooth", block: "start" });
+      }, function (e) {
+        busy(false); var msg = failCode(e); if (msg) showError(msg); render();
+      });
+    });
+  };
+
+  // Step 2: the full recipe for the dish the cook picked.
+  function openIdea(i) {
+    var idea = S.ideas[i];
+    if (working) return;
+    ticketErr = "";
+    if (idea.recipe) { view = i; render(); $("ticket").scrollIntoView({ block: "start" }); return; }
+    sampleP.then(function (sample) {
+      if (!sample || working) return;
+      var round = S;
+      ctl = new AbortController();
+      busy(true); view = i; render(); $("ticket").scrollIntoView({ block: "start" });
+      sample.json(recipePrompt(idea), { signal: ctl.signal, cache: false }).then(function (raw) {
+        busy(false);
+        if (S !== round) return;
+        var r = cleanRecipe(raw, idea);
+        if (!r) { view = "ideas"; ticketErr = "這份食譜寫不出來。請再點一次，或者揀另一個菜式。"; render(); return; }
+        setRecipe(idea, r); render();
+      }, function (e) {
+        busy(false);
+        if (S !== round) return;
+        view = "ideas"; ticketErr = failCode(e); render();
+      });
+    });
+  }
+
+  /* ---- meal calendar: one document per month in the viewer's private data/users/<id> collection ---- */
+  var SLOTS = ["早餐","午餐","晚餐","小食"], WD = ["日","一","二","三","四","五","六"];
+  var now0 = new Date();
+  var cal = { y: now0.getFullYear(), m: now0.getMonth(), sel: now0.getDate(), days: {}, loaded: false, note: "", slot: defaultSlot(), started: false };
+  var calUnsub = null, calTimer = null, calToken = 0, writeQ = Promise.resolve();
+  function pad(n) { return (n < 10 ? "0" : "") + n; }
+  function mKey(y, m) { return "meals-" + y + "-" + pad(m + 1); }
+  function defaultSlot() { var h = new Date().getHours(); return h < 11 ? "早餐" : h < 15 ? "午餐" : h < 21 ? "晚餐" : "小食"; }
+  function newId() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
+  var dbReady = (window.claude && typeof window.claude.use === "function")
+    ? Promise.all([window.claude.use("db"), window.claude.use("user")]).then(function (a) {
+        if (!a[0] || !a[1]) return null;
+        return a[1].id().then(function (id) { return id ? a[0].collection("data/users/" + id) : null; });
+      }).catch(function () { return null; })
+    : Promise.resolve(null);
+  function localGet(y, m) { try { var v = JSON.parse(localStorage.getItem("recipe-maker-" + mKey(y, m)) || "null"); return v && typeof v === "object" ? v : {}; } catch (e) { return {}; } }
+  function localSet(y, m, d) { try { localStorage.setItem("recipe-maker-" + mKey(y, m), JSON.stringify(d)); } catch (e) {} }
+  function cleanDays(d) {
+    var out = {};
+    if (!d || typeof d !== "object") return out;
+    Object.keys(d).forEach(function (k) { if (Array.isArray(d[k]) && d[k].length) out[k] = JSON.parse(JSON.stringify(d[k])); });
+    return out;
+  }
+  function watchMonth() {
+    var token = ++calToken, y = cal.y, m = cal.m;
+    if (calUnsub) { calUnsub(); calUnsub = null; }
+    clearTimeout(calTimer);
+    cal.days = {}; cal.loaded = false; cal.note = ""; drawCal();
+    dbReady.then(function (col) {
+      if (token !== calToken) return;
+      if (!col) { cal.days = cleanDays(localGet(y, m)); cal.loaded = true; cal.note = "獨立版嘅記錄只存喺呢部裝置嘅瀏覽器，唔會同步去其他裝置；清除瀏覽器資料會一齊清走。"; drawCal(); return; }
+      calTimer = setTimeout(function () { if (token === calToken) { cal.note = "暫時連唔到記錄，見到嘅可能唔係最新。"; drawCal(); } }, 10000);
+      calUnsub = col.doc(mKey(y, m)).onSnapshot(function (snap) {
+        if (token !== calToken) return;
+        var d = snap.exists ? snap.data() : null;
+        cal.days = cleanDays(d && d.days); cal.loaded = true;
+        if (!snap.metadata || !snap.metadata.fromCache) { clearTimeout(calTimer); cal.note = ""; }
+        drawCal();
+      }, function () {
+        if (token !== calToken) return;
+        clearTimeout(calTimer); cal.loaded = true; cal.note = "讀唔到記錄。請重新載入頁面再試。"; drawCal();
+      });
+    });
+  }
+  function mutate(y, m, fn) {
+    var p = writeQ.then(function () { return dbReady; }).then(function (col) {
+      if (!col) {
+        var d = cleanDays(localGet(y, m)); fn(d); localSet(y, m, d);
+        if (cal.started && cal.y === y && cal.m === m) { cal.days = cleanDays(d); drawCal(); }
+        return;
+      }
+      var ref = col.doc(mKey(y, m));
+      return ref.get().then(function (snap) {
+        var body = snap.exists ? snap.data() : null, d2 = cleanDays(body && body.days);
+        fn(d2);
+        return ref.set({ days: d2, updatedAt: Date.now() });
+      });
+    });
+    writeQ = p.catch(function () {});
+    return p;
+  }
+  function addMeal(y, m, day, entry) {
+    return mutate(y, m, function (d) { var k = String(day); (d[k] = d[k] || []).push(entry); if (JSON.stringify(d).length > 180000) delete entry.recipe; });
+  }
+  function removeMeal(y, m, day, id) {
+    return mutate(y, m, function (d) { var k = String(day); d[k] = (d[k] || []).filter(function (e) { return e.id !== id; }); if (!d[k].length) delete d[k]; });
+  }
+  function saveFailed() { cal.note = "儲存唔到，請再試一次。"; drawCal(); }
+  function drawCal() {
+    if (!cal.started) return;
+    $("calTitle").textContent = cal.y + " 年 " + (cal.m + 1) + " 月";
+    $("calNote").hidden = !cal.note; $("calNote").textContent = cal.note;
+    var g = $("calGrid"); g.textContent = "";
+    WD.forEach(function (w) { g.appendChild(el("div", "wd", w)); });
+    var first = new Date(cal.y, cal.m, 1).getDay(), n = new Date(cal.y, cal.m + 1, 0).getDate(), t = new Date();
+    for (var i = 0; i < first; i++) g.appendChild(el("div"));
+    for (var d = 1; d <= n; d++) (function (d) {
+      var list = cal.days[d] || [];
+      var b = el("button", "day" + (t.getFullYear() === cal.y && t.getMonth() === cal.m && t.getDate() === d ? " today" : "")); b.type = "button";
+      b.setAttribute("aria-pressed", cal.sel === d ? "true" : "false");
+      b.setAttribute("aria-label", (cal.m + 1) + " 月 " + d + " 日" + (list.length ? "，記低咗 " + list.length + " 樣" : ""));
+      b.appendChild(el("span", "n", d));
+      if (list.length) {
+        b.appendChild(doodle(list[0].method ? methodDoodle(String(list[0].method)) : "rice"));
+        if (list.length > 1) b.appendChild(el("span", "c", "×" + list.length));
+      }
+      b.onclick = function () { cal.sel = d; drawCal(); if (window.matchMedia("(max-width: 820px)").matches) $("dayCard").scrollIntoView({ behavior: "smooth", block: "nearest" }); };
+      g.appendChild(b);
+    })(d);
+    drawDay();
+  }
+  function drawDay() {
+    var c = $("dayCard"); c.textContent = "";
+    var y = cal.y, m = cal.m, day = cal.sel;
+    c.appendChild(el("h2", null, (m + 1) + " 月 " + day + " 日（星期" + WD[new Date(y, m, day).getDay()] + "）"));
+    var list = (cal.days[day] || []).slice().sort(function (a, b) { return SLOTS.indexOf(a.slot) - SLOTS.indexOf(b.slot); });
+    var kc = 0, kn = 0; list.forEach(function (e) { if (Number(e.kcal) > 0) { kc += Number(e.kcal); kn++; } });
+    if (kn) c.appendChild(el("p", "hint", (kn < list.length ? "有卡路里嘅 " + kn + " 樣合共約 " : "全日合共約 ") + Math.round(kc) + " kcal（估算）"));
+    if (!cal.loaded) c.appendChild(el("p", "desc", "載入緊…"));
+    else if (!list.length) c.appendChild(el("p", "desc", "呢日未有記錄。"));
+    list.forEach(function (e) {
+      var row = el("div", "meal"), top = el("div", "mtop");
+      top.appendChild(el("span", "slot", String(e.slot || "")));
+      top.appendChild(el("strong", null, String(e.dish || "")));
+      var del = el("button", "linkbtn", "刪除"); del.type = "button";
+      del.onclick = function () { del.disabled = true; removeMeal(y, m, day, e.id).catch(saveFailed); };
+      top.appendChild(del); row.appendChild(top);
+      var sub = [e.country, e.method, e.health ? "健康 " + e.health + "/5" : "", e.kcal ? e.kcal + " kcal" : ""].filter(Boolean).map(String).join(" · ");
+      if (sub) row.appendChild(el("span", "sub", sub));
+      var rc = e.recipe;
+      if (rc && Array.isArray(rc.steps) && Array.isArray(rc.ingredients)) {
+        var det = el("details"); det.appendChild(el("summary", null, "睇返食譜"));
+        var ul = el("ul"); rc.ingredients.forEach(function (i) { ul.appendChild(el("li", null, String(i.item || "") + (i.qty ? "　" + i.qty : ""))); });
+        var ol = el("ol"); rc.steps.forEach(function (x) { ol.appendChild(el("li", null, String(x))); });
+        det.appendChild(ul); det.appendChild(ol); row.appendChild(det);
+      }
+      c.appendChild(row);
+    });
+    var f = el("div", "field"), lab = el("div", "label"); lab.appendChild(el("span", null, "加一樣"));
+    f.appendChild(lab);
+    var chips = el("div", "chips seg"); chips.setAttribute("role", "radiogroup"); chips.setAttribute("aria-label", "邊一餐");
+    SLOTS.forEach(function (sl) {
+      var b = el("button", "chip", sl); b.type = "button"; b.setAttribute("role", "radio"); b.setAttribute("aria-checked", cal.slot === sl ? "true" : "false");
+      b.onclick = function () { cal.slot = sl; Array.prototype.forEach.call(chips.children, function (x) { x.setAttribute("aria-checked", x === b ? "true" : "false"); }); };
+      chips.appendChild(b);
+    });
+    f.appendChild(chips);
+    var row2 = el("div", "addrow"), inp = el("input"); inp.type = "text"; inp.maxLength = 60; inp.placeholder = "食咗乜？例如：雲吞麵"; inp.setAttribute("aria-label", "食咗乜");
+    var add = el("button", "btn2", "記低"); add.type = "button";
+    function go() {
+      var v = inp.value.trim(); if (!v) return;
+      add.disabled = true;
+      addMeal(y, m, day, { id: newId(), slot: cal.slot, dish: v }).then(function () { inp.value = ""; add.disabled = false; }, saveFailed);
+    }
+    add.onclick = go;
+    inp.addEventListener("keydown", function (ev) { if (ev.key === "Enter" && !ev.isComposing) { ev.preventDefault(); go(); } });
+    row2.appendChild(inp); row2.appendChild(add); f.appendChild(row2); c.appendChild(f);
+  }
+  function shiftMonth(by) {
+    var d = new Date(cal.y, cal.m + by, 1), t = new Date();
+    cal.y = d.getFullYear(); cal.m = d.getMonth();
+    cal.sel = (t.getFullYear() === cal.y && t.getMonth() === cal.m) ? t.getDate() : 1;
+    watchMonth();
+  }
+  $("calPrev").onclick = function () { shiftMonth(-1); };
+  $("calNext").onclick = function () { shiftMonth(1); };
+  $("calToday").onclick = function () { var t = new Date(); cal.y = t.getFullYear(); cal.m = t.getMonth(); cal.sel = t.getDate(); watchMonth(); };
+  function showTab(t) {
+    $("cookView").hidden = t !== "cook"; $("calView").hidden = t !== "cal"; $("meView").hidden = t !== "me";
+    $("tabMe").setAttribute("aria-pressed", t === "me" ? "true" : "false");
+    if (t === "me") drawMe();
+    if (t === "cook") timeNote();
+    $("tabCook").setAttribute("aria-pressed", t === "cook" ? "true" : "false");
+    $("tabCal").setAttribute("aria-pressed", t === "cal" ? "true" : "false");
+    if (t === "cal" && !cal.started) { cal.started = true; watchMonth(); }
+  }
+  $("tabCook").onclick = function () { showTab("cook"); };
+  $("tabCal").onclick = function () { showTab("cal"); };
+  $("tabMe").onclick = function () { showTab("me"); };
+
+  /* ---- "my goal" tab ---- */
+  var meTimer = null;
+  function meSave() {
+    me.t = Date.now();
+    try { localStorage.setItem("recipe-maker-me", JSON.stringify(me)); } catch (e) {}
+    clearTimeout(meTimer);
+    meTimer = setTimeout(function () {
+      var body = JSON.parse(JSON.stringify(me));
+      writeQ = writeQ.then(function () { return dbReady; }).then(function (col) { if (col) return col.doc("profile").set(body); }).catch(function () {});
+    }, 1200);
+    drawMeOut();
+  }
+  function radio(boxId, opts, key) {
+    var box = $(boxId); box.textContent = "";
+    opts.forEach(function (o) {
+      var b = el("button", "chip", o[1]); b.type = "button"; b.setAttribute("role", "radio"); b.setAttribute("aria-checked", me[key] === o[0] ? "true" : "false");
+      b.onclick = function () { me[key] = me[key] === o[0] && key === "sex" ? "" : o[0]; radio(boxId, opts, key); meSave(); };
+      box.appendChild(b);
+    });
+  }
+  function drawMe() {
+    radio("goalSeg", [["cut", "減脂"], ["bulk", "增肌"], ["none", "冇特別"]], "goal");
+    radio("sexSeg", [["f", "女"], ["m", "男"]], "sex");
+    radio("actSeg", [[0, "少郁（多數坐）"], [1, "輕度（每週運動 1–3 日）"], [2, "中度（每週 3–5 日）"], [3, "高（每週 6–7 日）"]], "act");
+    $("meH").value = me.h || ""; $("meW").value = me.w || ""; $("meAge").value = me.age || "";
+    drawMeOut();
+  }
+  [["meH", "h"], ["meW", "w"], ["meAge", "age"]].forEach(function (f) {
+    $(f[0]).addEventListener("input", function () { me[f[1]] = Number($(f[0]).value) || 0; meSave(); });
+  });
+  function drawMeOut() {
+    var c = $("meOut"); c.textContent = "";
+    var mp = mePlan();
+    c.appendChild(el("h2", null, "你嘅每日目標"));
+    if (!mp) { c.appendChild(el("p", "desc", "填咗身高（120–220 cm）同體重（30–250 kg）就會計到。")); c.appendChild(doodle("rice")); return; }
+    c.appendChild(el("div", "big", mp.target + " kcal／日"));
+    var gl = me.goal === "cut" ? "減脂：比你每日消耗少食約 " + (mp.tdee - mp.target) + " kcal" + (mp.perWeek ? "，大約每星期減 " + mp.perWeek.toFixed(1) + " kg" : "")
+      : me.goal === "bulk" ? "增肌：比你每日消耗多食約 300 kcal，配合重量訓練" : "冇特別目標：食返你每日消耗嘅份量，維持體重";
+    c.appendChild(el("p", "desc", gl + "。"));
+    if (mp.warn) c.appendChild(el("p", "note", mp.warn));
+    var dl = el("dl", "rows");
+    var bc = mp.bmi < 18.5 ? "過輕" : mp.bmi < 23 ? "正常" : mp.bmi < 25 ? "過重" : "肥胖";
+    [["BMI", mp.bmi.toFixed(1) + "（" + bc + "）"], ["基礎代謝", mp.bmr + " kcal"], ["每日消耗", mp.tdee + " kcal"], ["每餐大約", mp.perMeal + " kcal"], ["每日蛋白質", "約 " + mp.protein + " 克"]].forEach(function (r) {
+      var d = el("div"); d.appendChild(el("dt", null, r[0])); d.appendChild(el("dd", null, r[1])); dl.appendChild(d);
+    });
+    c.appendChild(dl);
+    var use = el("button", "primary", st.kcalMax === GOAL ? "已經用緊做卡路里上限 ✓" : "用嚟揀餸"); use.type = "button";
+    use.onclick = function () { st.kcalMax = GOAL; save(); showTab("cook"); $("kcalSeg").scrollIntoView({ block: "center" }); };
+    c.appendChild(use);
+    c.appendChild(el("p", "hint", "㩒咗之後，「卡路里上限」會跟住每餐 " + mp.perMeal + " kcal（分享模式會扣起一碗白飯約 230 kcal），建議嘅餸亦會配合你嘅目標。"));
+    c.appendChild(el("p", "hint", (mp.rough ? "未填年齡同性別，所以當 30 歲、男女平均嚟計，會粗略啲。" : "用 Mifflin-St Jeor 公式計。") + "BMI 分類用亞洲成人標準。呢啲都係估算，唔係醫療建議；未成年、懷孕、餵哺母乳或者有長期病患，請先問醫生或營養師。"));
+  }
+  dbReady.then(function (col) {
+    if (!col) return;
+    return col.doc("profile").get().then(function (snap) {
+      var d = snap.exists ? snap.data() : null;
+      if (d && Number(d.t) > me.t) { meClean(d); try { localStorage.setItem("recipe-maker-me", JSON.stringify(me)); } catch (e) {} if (!$("meView").hidden) drawMe(); timeNote(); }
+    });
+  }).catch(function () {});
+
+  drawCountries();
+})();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,15 @@
+{
+  "name": "食譜製造器",
+  "short_name": "食譜製造器",
+  "description": "影低食材，揀菜式、排時間、計卡路里，記低每日食咗乜。",
+  "lang": "zh-Hant-HK",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#fffdf7",
+  "theme_color": "#fffdf7",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

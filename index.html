@@ -905,6 +905,12 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
       });
       g.appendChild(grid); box.appendChild(g);
     });
+    if (!S.isExample) {
+      var mo = el("div", "acts2"), mb = el("button", "btn2", working ? "搵緊…" : "再俾多啲選擇"); mb.type = "button"; mb.disabled = working;
+      mb.onclick = function () { generate(true); };
+      mo.appendChild(mb); mo.appendChild(el("span", "hint", "會加喺下面，唔會重複已經有嘅。"));
+      box.appendChild(mo);
+    }
   }
   function setRecipe(idea, r) {
     idea.recipe = r;
@@ -1311,7 +1317,7 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
       " Draw the options from these cuisines, spread fairly evenly, and set country to exactly one of these names: " + st.countries.join("、") + ". Each must be a real home-style dish from that cuisine." +
       " day: suggest which day (1 to " + W.days + ") each option suits. Put the most perishable food (seafood, fresh fish, minced meat, leafy greens, bean sprouts, tofu) on the early days and food that keeps (root vegetables, eggs, frozen or cured food) later. Give each day exactly the number of suggested options per meal listed above" + (shared.length ? ", choosing dishes that go well together" : "") + ", and set day to 0 for the spare options.";
   }
-  function ideasPrompt(hasPhoto, notes, L, W) {
+  function ideasPrompt(hasPhoto, notes, L, W, avoid) {
     return [
       "You suggest dishes for a home-cooking app used in Hong Kong.",
       LANG + " Set each idea's country to exactly the name given in the list below.",
@@ -1334,7 +1340,8 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
         ? "Cooking method: the main cooking method of every dish must be one of these: " + st.methods.join("、") + ". These are alternatives: each dish uses one of them, and across the dishes every listed method should appear at least once where the number of dishes allows. Set method to the one used, written exactly as in this list. If a method clashes with the health minimum, use a lighter version of the dish that still satisfies both."
         : "Cooking method: any. Set method to the dish's main cooking method in one or two Chinese characters (for example 蒸, 炒, 煎, 炸, 焗, 炆, 水煮, 煲湯, 涼拌).",
       timeRules(L),
-      "These are menu ideas only: do not write ingredients lists or steps.",
+      "These are menu ideas only: keep every entry brief. description is one short phrase of at most 15 Chinese characters. Do not write quantities or steps.",
+      avoid && avoid.length ? "This is a request for MORE options on top of a menu the cook already has. Offer only new dishes" + (W ? ", exactly " + W.pool + " of them, with day set to 0 for all" : "") + ". Do not repeat or lightly vary any of these: " + avoid.join("、") + "." : "",
       hasPhoto ? "If there is no recognisable food, reply with an empty ideas array and a short note saying so." : "",
       "Reply with only JSON in this shape, no other text:",
       '{"ingredients":["what you identified"],"note":"","ideas":[{"country":"","dish":"","description":"one short sentence","uses":["cook\'s ingredient"],"extra":["every other ingredient needed"],"type":"","method":"","health":3,"kcal":0,"day":0,"meal":"","prepMin":0,"marinateMin":0,"cookMin":0}]}'
@@ -1382,24 +1389,36 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
   }
 
   // Step 1: a menu of dish ideas.
-  $("go").onclick = function () {
-    clearError();
+  function generate(more) {
+    clearError(); ticketErr = "";
+    if (more && (S.isExample || (st.plan === "week") !== !!S.week || st.meal !== S.meal)) { showError("設定改咗，請㩒上面個掣重新出過。"); return; }
     var notes = $("extra").value.trim().slice(0, 1500);
     var hasPhoto = files.length > 0 && photosOk, W = st.plan === "week" ? weekShape() : null;
+    if (W && more) W.pool = Math.min(8, W.pool);
+    var avoid = more ? S.ideas.map(function (x) { return x.dish; }) : null, round = S;
     if (!st.countries.length) { showError("請最少揀一個國家。"); return; }
     sampleP.then(function (sample) {
       if (!sample || working) return;
       ctl = new AbortController();
       var L = { cook: st.cook, marinate: st.marinate, total: st.total }, servings = st.servings, meal = st.meal, minHealth = st.health, kcalMax = kcalNow();
-      busy(true, (hasPhoto ? "正在看你的 " + files.length + " 張相片，" : "正在") + (W ? "計劃一個禮拜嘅餐單。可能要一兩分鐘。" : "構思菜式。可能需要一分鐘。"));
+      busy(true, more ? "搵緊多啲選擇…" : (hasPhoto ? "正在看你的 " + files.length + " 張相片，" : "正在") + (W ? "計劃一個禮拜嘅餐單。可能要一兩分鐘。" : "構思菜式。可能需要一分鐘。"));
       render();
       var opts = { signal: ctl.signal, cache: false,
         onText: function (u) { var m = u.text.match(/"dish"\s*:/g); if (m) $("statusText").textContent = "已想到 " + m.length + " 個菜式…"; } };
       if (hasPhoto) opts.images = files.slice();
-      sample.json(ideasPrompt(hasPhoto ? files.length : 0, notes, L, W), opts).then(function (raw) {
+      sample.json(ideasPrompt(hasPhoto ? files.length : 0, notes, L, W, avoid), opts).then(function (raw) {
         var d = cleanIdeas(raw);
         busy(false);
         if (!d.ideas.length) { showError(d.note || "認不到食物。請試一張更清楚、更光的相片。"); render(); return; }
+        if (more) {
+          if (S !== round) return;
+          var have = {}; S.ideas.forEach(function (x) { have[x.dish] = true; });
+          var fresh = d.ideas.filter(function (x) { if (have[x.dish]) return false; have[x.dish] = true; x.day = 0; return true; });
+          if (!fresh.length) ticketErr = "今次冇新嘅選擇，可以再試一次，或者改下設定。";
+          S.ideas = S.ideas.concat(fresh);
+          d.ingredients.forEach(function (g) { if (S.ingredients.indexOf(g) < 0) S.ingredients.push(g); });
+          render(); return;
+        }
         S = { isExample: false, limits: L, servings: servings, notes: notes, meal: meal, minHealth: minHealth, kcalMax: kcalMax, goalLine: goalRule(), diet: st.diet, when: W ? "" : st.when, general: !d.ingredients.length, picks: [], plan: null, planMsg: "", target: { n: dishTotal(), m: st.meatN, v: st.vegN }, ingredients: d.ingredients, ideas: d.ideas,
           photoUrl: hasPhoto ? URL.createObjectURL(opts.images[0]) : null, week: null };
         if (W) {
@@ -1420,7 +1439,8 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
         busy(false); var msg = failCode(e); if (msg) showError(msg); render();
       });
     });
-  };
+  }
+  $("go").onclick = function () { generate(false); };
 
   // Step 2: the full recipe for the dish the cook picked.
   function openIdea(i) {

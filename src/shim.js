@@ -36,7 +36,8 @@ async function ask(input, opts = {}) {
     const stream = client.beta.messages.stream({
       model: MODEL,
       max_tokens: 32000,
-      output_config: { effort: "medium" },
+      // The first-pass menu is a short list, so it runs at low effort; full recipes and plans get more.
+      output_config: { effort: /menu ideas only/.test(String(input)) ? "low" : "medium" },
       betas: ["server-side-fallback-2026-07-01"],
       fallbacks: "default",
       messages: [{ role: "user", content }],

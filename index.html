@@ -559,9 +559,9 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
   var COUNTRIES = ["意大利","日本","泰國","法國","中國","韓國","越南","西班牙","香港","英國","美國"];
   var MAX_COUNTRIES = 4;
   var ANY = -1;
-  var COOK = [ANY,10,20,30,45,60,90,120];
+  var COOK = [ANY,5,10,15,20,30,45,60,90,120];
   var MAR = [ANY,0,15,30,60,120,240,720];
-  var TOT = [30,45,60,90,120,180,300,840];
+  var TOT = [5,10,15,20,30,45,60,90,120,180,300,840];
   var SERV = [1,2,3,4,6];
   var MEAL = ["set","share"];
   var HEALTH = [ANY,3,4,5];
@@ -976,7 +976,7 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
 
   /* ---- render ---- */
   function render() {
-    $("egTag").hidden = !S.isExample;
+    $("egTag").hidden = true; roundSave();
     $("found").textContent = "";
     if (S.ingredients.length) {
       $("found").appendChild(document.createTextNode("認到的食材："));
@@ -988,6 +988,13 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
     if (view === "ideas") renderIdeas(box); else if (view === "plan") renderPlan(box); else renderRecipe(box, S.ideas[view]);
   }
   function renderIdeas(box) {
+    if (S.empty) {
+      var eh = el("div", "menu-head"); eh.appendChild(el("h2", null, "未有菜式"));
+      eh.appendChild(el("p", "desc", "揀好設定，㩒「" + $("go").textContent + "」，建議就會喺呢度出現。唔加相、乜都唔揀都得。"));
+      box.appendChild(eh);
+      var ed = el("div", "rdeco"); ["wok", "tomato", "steamer", "fish", "pot", "bokchoy", "pan", "rice"].forEach(function (k) { ed.appendChild(doodle(k)); });
+      box.appendChild(ed); return;
+    }
     var head = el("div", "menu-head");
     head.appendChild(el("h2", null, "揀一個你想煮的菜式"));
     head.appendChild(el("p", "desc", S.meal === "share"
@@ -1319,43 +1326,37 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
   }
   $("back").onclick = function () { if (working && ctl) ctl.abort(); view = "ideas"; ticketErr = ""; render(); };
 
-  /* ---- example round ---- */
-  function I(item, qty, have) { return { item: item, qty: qty, have: have }; }
-  S = { isExample: true, currency: "HK$", place: "香港", picks: [], plan: null, limits: null, servings: 2, notes: "", meal: "set", minHealth: ANY, kcalMax: ANY,
-    ingredients: ["雞髀肉", "洋蔥", "番茄", "蒜頭", "雞蛋", "白飯"],
-    ideas: [
-      { country: "香港", dish: "茄汁雞扒飯", description: "茶餐廳風味：香煎雞扒配鮮番茄汁，淋在白飯上。", uses: ["雞髀肉", "番茄", "洋蔥", "蒜頭", "白飯"],
-        recipe: { prepMin: 10, marinateMin: 20, cookMin: 20, servings: 2,
-          ingredients: [I("去骨雞髀扒","2 塊",true), I("番茄","3 個",true), I("洋蔥","半個",true), I("蒜頭","2 瓣",true), I("白飯","2 碗",true),
-            I("生抽","1 湯匙",false), I("粟粉","1 茶匙",false), I("茄汁","2 湯匙",false), I("糖","1 茶匙",false), I("油、鹽、胡椒粉","適量",false)],
-          steps: ["雞扒用生抽、粟粉和少許胡椒粉拌勻，放雪櫃醃 20 分鐘。", "番茄切塊，洋蔥切絲，蒜頭剁碎。",
-            "熱鑊落油，雞扒皮向下，煎至兩面金黃、全熟，約 10 分鐘，盛起切件。",
-            "原鑊爆香蒜頭和洋蔥，加入番茄炒至出汁，再加茄汁、糖和約 100 毫升水，煮 5 分鐘至濃稠，用鹽調味。", "雞扒鋪在白飯上，淋上番茄汁即成。"] } },
-      { country: "香港", dish: "番茄炒蛋飯", description: "酸酸甜甜的家常餸，十五分鐘有飯食。只用番茄、雞蛋和飯。", uses: ["番茄", "雞蛋", "蒜頭", "白飯"],
-        recipe: { prepMin: 5, marinateMin: 0, cookMin: 10, servings: 2,
-          ingredients: [I("番茄","3 個",true), I("雞蛋","4 隻",true), I("蒜頭","1 瓣",true), I("白飯","2 碗",true),
-            I("糖","1 茶匙",false), I("茄汁","1 湯匙",false), I("油、鹽","適量",false)],
-          steps: ["番茄切塊，蒜頭剁碎，雞蛋加少許鹽打散。", "熱鑊落油，倒入蛋液炒至七成熟，盛起。",
-            "原鑊爆香蒜蓉，落番茄炒至軟身出汁，加糖、茄汁和少許水煮 2 分鐘。", "雞蛋回鑊兜勻至全熟，用鹽調味，淋在白飯上。"] } },
-      { country: "日本", dish: "親子丼", description: "雞肉和滑蛋用甜豉油汁煮好，蓋在白飯上。一個鑊完成，不用醃。", uses: ["雞髀肉", "洋蔥", "雞蛋", "白飯"],
-        recipe: { prepMin: 10, marinateMin: 0, cookMin: 15, servings: 2,
-          ingredients: [I("去骨雞髀肉","300 克",true), I("洋蔥","1 個",true), I("雞蛋","4 隻",true), I("白飯","2 碗",true),
-            I("鰹魚高湯或清雞湯","200 毫升",false), I("日式豉油","2 湯匙",false), I("味醂","2 湯匙",false), I("糖","1 茶匙",false)],
-          steps: ["洋蔥切幼絲，雞肉切成一口大小。", "高湯、豉油、味醂和糖放入小平底鑊，煮至微滾。",
-            "加入洋蔥和雞肉，煮 8 至 10 分鐘，中途翻一次，直至雞肉全熟。", "雞蛋輕輕打散，慢慢打圈淋入，冚蓋煮約 1 分鐘至剛剛凝固。", "連汁鋪在熱飯上即成。"] } },
-      { country: "日本", dish: "照燒雞扒丼", description: "雞扒煎香後掛上甜甜鹹鹹的照燒汁，配洋蔥和白飯。", uses: ["雞髀肉", "洋蔥", "白飯"],
-        recipe: { prepMin: 5, marinateMin: 15, cookMin: 15, servings: 2,
-          ingredients: [I("去骨雞髀扒","2 塊",true), I("洋蔥","半個",true), I("白飯","2 碗",true),
-            I("日式豉油","2 湯匙",false), I("味醂","2 湯匙",false), I("糖","1 湯匙",false), I("油","適量",false)],
-          steps: ["豉油、味醂和糖拌勻成照燒汁，取一半醃雞扒 15 分鐘。", "洋蔥切絲。熱鑊落少許油，雞扒皮向下，中火煎約 6 分鐘至金黃，反轉再煎 4 分鐘。",
-            "加入洋蔥和餘下的照燒汁，煮至汁濃稠、雞肉全熟。", "雞扒切件，連洋蔥和汁鋪在白飯上。"] } }
-    ] };
-  S.ideas.forEach(function (d, i) {
-    d.health = [3, 4, 4, 3][i]; d.kcal = [680, 520, 640, 700][i]; d.cost = [32, 18, 30, 28][i]; d.method = ["煎", "炒", "水煮", "煎"][i];
-    var r = d.recipe; r.cost = d.cost; d.extra = []; r.health = d.health; r.kcal = d.kcal; r.proteinG = [38, 22, 40, 36][i]; r.carbsG = [78, 70, 72, 80][i]; r.fatG = [22, 16, 18, 24][i]; r.healthNote = ["雞扒用煎的，茄汁有糖，但有新鮮番茄和洋蔥。", "少油快炒，番茄多，蛋白質足夠。", "用煮的不用煎炸，油份少；汁偏甜，可以減糖。", "照燒汁糖和鹽較多，蔬菜偏少。"][i];
-    r.country = d.country; r.dish = d.dish; r.description = d.description; r.totalMin = r.prepMin + r.marinateMin + r.cookMin;
-    d.prepMin = r.prepMin; d.marinateMin = r.marinateMin; d.cookMin = r.cookMin; d.totalMin = r.totalMin;
-  });
+  /* ---- the current menu: starts empty, is kept across reloads, and follows the account across devices ---- */
+  var roundJson = "", roundT = 0, roundTimer = null;
+  function emptyRound() { return { isExample: true, empty: true, currency: "", picks: [], plan: null, limits: null, servings: 2, notes: "", meal: "set", minHealth: ANY, kcalMax: ANY, ingredients: [], ideas: [] }; }
+  function roundPack() { var c = {}; Object.keys(S).forEach(function (k) { if (k !== "photoUrl") c[k] = S[k]; }); return JSON.stringify(c); }
+  function roundApply(o) {
+    try {
+      var v = JSON.parse(o.s);
+      if (!v || !Array.isArray(v.ideas) || !v.ideas.length) return false;
+      v.photoUrl = null; v.isExample = false; v.empty = false;
+      if (!Array.isArray(v.picks)) v.picks = [];
+      if (!Array.isArray(v.ingredients)) v.ingredients = [];
+      S = v; roundJson = o.s; roundT = Number(o.t) || 0;
+      return true;
+    } catch (e) { return false; }
+  }
+  function roundSave() {
+    if (!S || S.isExample || working) return;
+    clearTimeout(roundTimer);
+    roundTimer = setTimeout(function () {
+      if (S.isExample || working) return;
+      var j; try { j = roundPack(); } catch (e) { return; }
+      if (j === roundJson) return;
+      roundJson = j; roundT = Date.now();
+      try { localStorage.setItem("recipe-maker-round", JSON.stringify({ s: j, t: roundT })); } catch (e) {}
+      if (j.length > 200000) return;   // too big for one stored document; stays on this device
+      var body = { s: j, t: roundT };
+      writeQ = writeQ.then(function () { return dbReady; }).then(function (col) { if (col) return col.doc("round").set(body); }).catch(function () {});
+    }, 1500);
+  }
+  S = emptyRound();
+  try { var lastRound = JSON.parse(localStorage.getItem("recipe-maker-round") || "null"); if (lastRound && typeof lastRound.s === "string") roundApply(lastRound); } catch (e) {}
   render();
 
   /* ---- ask Claude ---- */
@@ -1926,9 +1927,36 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
     col.doc("pantry").onSnapshot(function (snap) {
       var d = snap.exists ? snap.data() : null;
       // Skip while this device has an edit that is not saved yet, so it is not overwritten by an older copy.
-      if (!d || pantryDirty || Number(d.t) === pantry.t) return;
+      if (!d) { if (!(snap.metadata && snap.metadata.fromCache) && !pantryDirty && (pantry.items.length || pantry.cooked.length)) pantrySave(); return; }
+      if (pantryDirty || Number(d.t) === pantry.t) return;
       pantryClean(d); try { localStorage.setItem("recipe-maker-pantry", JSON.stringify(pantry)); } catch (e) {} drawPantry();
     }, function () {});
+  }).catch(function () {});
+
+  /* ---- sync of the current menu, and one-time upload of data saved on this device before an account was available ---- */
+  dbReady.then(function (col) {
+    if (!col) return;
+    var first = true;
+    col.doc("round").onSnapshot(function (snap) {
+      var d = snap.exists ? snap.data() : null, cached = snap.metadata && snap.metadata.fromCache;
+      if (!d) { if (!cached && first && roundJson && roundJson.length <= 200000) { var body = { s: roundJson, t: roundT || Date.now() }; writeQ = writeQ.then(function () { return col.doc("round").set(body); }).catch(function () {}); } if (!cached) first = false; return; }
+      first = false;
+      if (typeof d.s !== "string" || working || d.s === roundJson || Number(d.t) <= roundT) return;
+      if (roundApply(d)) { try { localStorage.setItem("recipe-maker-round", JSON.stringify({ s: d.s, t: d.t })); } catch (e) {} view = "ideas"; ticketErr = ""; render(); }
+    }, function () {});
+    // Calendar months that only exist in this browser: merge them into the account, then drop the local copy.
+    var keys = [];
+    try { for (var i = 0; i < localStorage.length; i++) { var k = localStorage.key(i); if (/^recipe-maker-meals-\d{4}-\d{2}$/.test(k)) keys.push(k); } } catch (e) {}
+    keys.forEach(function (k) {
+      var local; try { local = cleanDays(JSON.parse(localStorage.getItem(k))); } catch (e) { return; }
+      if (!Object.keys(local).length) { try { localStorage.removeItem(k); } catch (e) {} return; }
+      mutate(+k.slice(-7, -3), +k.slice(-2) - 1, function (d) {
+        Object.keys(local).forEach(function (day) {
+          var have = {}; (d[day] = d[day] || []).forEach(function (e) { have[e.id] = true; });
+          local[day].forEach(function (e) { if (!have[e.id]) d[day].push(e); });
+        });
+      }).then(function () { try { localStorage.removeItem(k); } catch (e) {} }, function () {});
+    });
   }).catch(function () {});
 
   /* ---- "my goal" tab ---- */
@@ -2007,6 +2035,7 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
     if (!col) return;
     col.doc("profile").onSnapshot(function (snap) {
       var d = snap.exists ? snap.data() : null;
+      if (!d && !(snap.metadata && snap.metadata.fromCache) && !meDirty && me.h && me.w) { meSave(); return; }
       if (d && !meDirty && Number(d.t) !== me.t) { meClean(d); try { localStorage.setItem("recipe-maker-me", JSON.stringify(me)); } catch (e) {} if (!$("meView").hidden) drawMe(); timeNote(); }
     }, function () {});
   }).catch(function () {});

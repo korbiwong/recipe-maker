@@ -69,7 +69,7 @@ sample.limits = async () => ({ images: { maxCount: 8, maxInputBytes: 40 * 1024 *
 /* ---- optional accounts and sync, through the site owner's Firebase project ----
    Signed in: calendar, pantry and goal are stored per account under recipeMaker/<uid>/docs/* and follow the
    account across devices. Signed out, or Firebase unreachable: everything stays in this browser only. */
-let fb = null, firstUser = null, acctBtn = null, acctDlg = null;
+let fb = null, firstUser = null, acctBtn = null, acctDlg = null, syncErr = "";
 function fbInit() {
   if (fb !== null) return fb;
   try {
@@ -96,7 +96,15 @@ const dbNs = {
   collection(path) {
     const uid = String(path).split("/").pop();
     const col = fbInit().db.collection("recipeMaker").doc(uid).collection("docs");
-    return { doc: (k) => col.doc(k) };
+    // Remember the last sync failure so the account dialog can show it.
+    return { doc: (k) => {
+      const r = col.doc(k);
+      return {
+        get: () => r.get().catch((e) => { syncErr = (e && e.code) || "error"; throw e; }),
+        set: (d) => r.set(d).then((v) => { syncErr = ""; return v; }, (e) => { syncErr = (e && e.code) || "error"; throw e; }),
+        onSnapshot: (next, fail2) => r.onSnapshot(next, (e) => { syncErr = (e && e.code) || "error"; if (fail2) fail2(e); }),
+      };
+    } };
   },
 };
 function acctLabel(u) { if (acctBtn) acctBtn.textContent = u ? "已登入：" + (u.email || "").split("@")[0] : "登入同步"; }
@@ -156,7 +164,7 @@ document.addEventListener("DOMContentLoaded", () => {
     acctBtn.onclick = () => {
       const u = f.auth.currentUser;
       em.hidden = pw.hidden = inBtn.hidden = upBtn.hidden = !!u; outBtn.hidden = !u;
-      msg.textContent = u ? "而家登入緊：" + (u.email || "") : "";
+      msg.textContent = u ? "而家登入緊：" + (u.email || "") + "。" + (syncErr ? "同步出錯（" + syncErr + "）" + (syncErr === "permission-denied" ? "：Firebase 規則未容許，請檢查 Rules。" : "，請檢查網絡再重新載入。") : "同步正常。") : "";
       acctDlg.showModal();
     };
     tabs.appendChild(acctBtn);

@@ -346,6 +346,8 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
 
       <div class="field">
         <div class="label"><span>食材庫</span> <b id="pantryMini"></b></div>
+        <div class="chips seg" id="pantryUseSeg" role="radiogroup" aria-label="用唔用食材庫"></div>
+        <b id="pantryUseOut" hidden></b>
         <p class="hint" id="pantryMiniHint"></p>
         <button type="button" class="linkbtn" id="pantryGo">去「食材庫」加減食材 →</button>
       </div>
@@ -424,6 +426,9 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
       <div class="field">
         <div class="label"><span>卡路里上限 <small>選填</small></span> <b id="kcalOut"></b></div>
         <div class="chips seg" id="kcalSeg" role="radiogroup" aria-label="每人卡路里上限"></div>
+        <div class="addrow">
+          <label class="numf">或者自己輸入 <input type="number" id="kcalIn" inputmode="numeric" min="50" max="3000" step="10" placeholder="例如 250"> kcal</label>
+        </div>
         <p class="hint" id="kcalHint"></p>
       </div>
 
@@ -565,7 +570,7 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
   var SERV = [1,2,3,4,6];
   var MEAL = ["set","share"];
   var HEALTH = [ANY,3,4,5];
-  var KCAL = [ANY,-2,300,400,500,600,800,1000];
+  var KCAL = [ANY,-2,200,300,400,500,600,800];
   var DIETS = {
     none: ["冇特別", "", ""],
     keto: ["生酮", "極低碳水、高脂肪、適量蛋白質；唔用飯、麵、麵包、糖同粟粉。",
@@ -598,7 +603,7 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
   };
   var METHODS = ["蒸","炒","煎","炸","焗","炆燉","水煮","煲湯","氣炸","涼拌"];
 
-  var st = { countries: ["香港","日本"], cook: ANY, marinate: ANY, total: 60, servings: 2, meal: "set", health: ANY, methods: [], dishes: 3, meatN: ANY, vegN: ANY, meats: [], cuts: {}, kcalMax: ANY, plan: "meal", wDays: 7, wMeals: ["晚餐"], when: "晚餐", diet: "none", wStyle: "fresh", place: "香港", budget: 0, budgetScope: "pp" };
+  var st = { countries: ["香港","日本"], cook: ANY, marinate: ANY, total: 60, servings: 2, meal: "set", health: ANY, methods: [], dishes: 3, meatN: ANY, vegN: ANY, meats: [], cuts: {}, kcalMax: ANY, plan: "meal", wDays: 7, wMeals: ["晚餐"], when: "晚餐", diet: "none", wStyle: "fresh", place: "香港", budget: 0, budgetScope: "pp", usePantry: true };
   try {
     var saved = JSON.parse(localStorage.getItem("recipe-maker-zh") || "null");
     if (saved && Array.isArray(saved.countries)) {
@@ -609,12 +614,13 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
       if (SERV.indexOf(saved.servings) >= 0) st.servings = saved.servings;
       if (MEAL.indexOf(saved.meal) >= 0) st.meal = saved.meal;
       if (HEALTH.indexOf(saved.health) >= 0) st.health = saved.health;
-      if (KCAL.indexOf(saved.kcalMax) >= 0) st.kcalMax = saved.kcalMax;
+      if (KCAL.indexOf(saved.kcalMax) >= 0 || (saved.kcalMax >= 50 && saved.kcalMax <= 3000)) st.kcalMax = saved.kcalMax;
       if (saved.plan === "week") st.plan = "week";
       if (saved.wStyle === "prep") st.wStyle = "prep";
       if (typeof saved.place === "string" && saved.place.trim()) st.place = saved.place.trim().slice(0, 30);
       if (Number(saved.budget) > 0) st.budget = Number(saved.budget);
       if (saved.budgetScope === "all") st.budgetScope = "all";
+      if (saved.usePantry === false) st.usePantry = false;
       if (typeof saved.diet === "string" && saved.diet in DIETS) st.diet = saved.diet;
       if (["早餐", "午餐", "晚餐"].indexOf(saved.when) >= 0) st.when = saved.when;
       if ([3, 5, 7].indexOf(saved.wDays) >= 0) st.wDays = saved.wDays;
@@ -672,6 +678,11 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
     return { bmi: bmi, bmr: Math.round(bmr), tdee: tdee, target: target, perMeal: Math.round(target * 0.35 / 10) * 10,
       protein: Math.round(me.w * (dir === "cut" ? 1.6 : dir === "bulk" ? 1.8 : 1.0)), warn: warn.join(""), rough: !(age && me.sex),
       dir: dir, perWeek: rate, tw: tw, weeks: tw && rate > 0 ? Math.ceil(Math.abs(diff) / rate) : 0 };
+  }
+  function kcalTyped() {
+    var raw = $("kcalIn").value.trim(), v = Math.round(Number(raw));
+    if (!raw) st.kcalMax = ANY; else if (v >= 50 && v <= 3000) st.kcalMax = v; else return;
+    save(); drawKcal();
   }
   function kcalNow() {
     if (st.kcalMax !== GOAL) return st.kcalMax;
@@ -854,11 +865,15 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
       : " Budget: each meal must cost at most " + b + " in that currency per person (for a shared meal, all its dishes together). Use cheaper cuts, seasonal vegetables and few speciality ingredients to stay within it.";
     return line;
   }
+  seg("pantryUseSeg", "pantryUseOut", [true, false], "usePantry", function (v) { return v ? "用食材庫" : "唔用，自由揀"; });
+  $("kcalIn").addEventListener("input", kcalTyped);
   function hearts(h) { var o = ""; for (var k = 1; k <= 5; k++) o += k <= h ? "●" : "○"; return o; }
   function timeNote() {
     $("mealHint").textContent = st.meal === "set"
       ? "每個菜式都是完整一餐，例如碟頭飯、丼、麵或套餐，每人一份。"
       : "每個菜式是一碟餸，幾個人一齊分，另外配白飯。下面可以揀幾多個餸、幾多肉幾多菜。";
+    if (typeof pantry !== "undefined" && pantry) drawPantry();
+    if (document.activeElement !== $("kcalIn")) $("kcalIn").value = st.kcalMax > 0 ? st.kcalMax : "";
     $("shareOpts").hidden = st.meal !== "share";
     $("dietHint").textContent = st.diet === "none" ? "例如生酮、地中海、素食。揀咗之後，所有建議同食譜都會跟足。" : DIETS[st.diet][1] + "如有長期病患、懷孕或者食緊藥，轉飲食方式之前請先問醫生或營養師。";
     var wk = st.plan === "week";
@@ -1558,7 +1573,7 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
     var hasPhoto = files.length > 0 && photosOk, W = st.plan === "week" ? weekShape() : null;
     if (W && more) W.pool = Math.min(8, W.pool);
     var avoid = more ? S.ideas.map(function (x) { return x.dish; }) : null, round = S;
-    var stock = hasPhoto ? [] : pantryStock();
+    var stock = hasPhoto || !st.usePantry ? [] : pantryStock();
     sampleP.then(function (sample) {
       if (!sample || working) return;
       ctl = new AbortController();
@@ -1867,7 +1882,7 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
     });
     $("pantryOut").textContent = pantry.items.length ? "仲有 " + stock.length + " 樣" : "";
     $("pantryMini").textContent = pantry.items.length ? "仲有 " + stock.length + " 樣" : "未有食材";
-    $("pantryMiniHint").textContent = !stock.length ? "喺「食材庫」影相或者打字加食材，之後唔使再影相都可以諗餸。"
+    $("pantryMiniHint").textContent = !st.usePantry ? "今次唔用食材庫：唔加相嘅話，會自由建議材料易買嘅菜式。" : !stock.length ? "喺「食材庫」影相或者打字加食材，之後唔使再影相都可以諗餸。"
       : (soon.length ? "就嚟到期：" + soon.join("、") + "。" : "") + "唔加相嘅話，會用食材庫入面仲有嘅 " + stock.length + " 樣食材去諗餸。";
     $("pantrySoon").hidden = !soon.length; $("pantrySoon").textContent = "就嚟到期，會優先用：" + soon.join("、");
     $("pantryDates").hidden = !pantry.items.some(function (g) { return g.s < 2; });

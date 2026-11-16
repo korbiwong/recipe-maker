@@ -516,6 +516,7 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
           <input type="text" id="pantryAdd" placeholder="自己加一樣食材" maxlength="20" aria-label="加一樣食材入食材庫">
           <button type="button" class="btn2" id="pantryAddBtn">加入</button>
         </div>
+        <p class="hint" id="pantryAddMsg" hidden></p>
         <p class="hint" id="pantryHint"></p>
         <p class="hint" id="pantryCooked" hidden></p>
         <button type="button" class="linkbtn" id="pantryClear" hidden>清空食材庫</button>
@@ -1872,15 +1873,22 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
     pantry.items.forEach(function (g) { if (!hit && (g.n === name || g.n.indexOf(name) >= 0 || name.indexOf(g.n) >= 0)) hit = g; });
     return hit;
   }
+  function pantryExact(name) {
+    name = String(name || "").trim(); var hit = null;
+    pantry.items.forEach(function (g) { if (!hit && g.n === name) hit = g; });
+    return hit;
+  }
+  // Returns how many names were added or brought back.
   function pantryAdd(names) {
-    var changed = false;
+    var changed = 0;
     (names || []).forEach(function (n) {
       n = String(n || "").trim().slice(0, 30); if (!n) return;
-      var g = pantryFind(n);
-      if (g) { if (g.s === 2) { g.s = 0; changed = true; } }
-      else if (pantry.items.length < 150) { pantry.items.push({ n: n, s: 0, e: "" }); changed = true; }
+      var g = pantryExact(n);
+      if (g) { if (g.s === 2) { g.s = 0; changed++; } }
+      else if (pantry.items.length < 150) { pantry.items.push({ n: n, s: 0, e: "" }); changed++; }
     });
     if (changed) pantrySave();
+    return changed;
   }
   // Ingredients recognised from a photo wait here until the person confirms them.
   var pending = [];
@@ -1888,7 +1896,7 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
     var seen = {}; pending.forEach(function (n) { seen[n] = true; });
     (names || []).forEach(function (n) {
       n = String(n || "").trim().slice(0, 30); if (!n || seen[n]) return;
-      var g = pantryFind(n); if (g && g.s < 2) return;   // already in stock
+      var g = pantryExact(n); if (g && g.s < 2) return;   // already in stock
       seen[n] = true; pending.push(n);
     });
     drawReview();
@@ -1954,7 +1962,13 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
     ck.textContent = "煮過：" + pantry.cooked.slice(0, 8).map(function (c) { var d = new Date(c.t); return c.d + "（" + (d.getMonth() + 1) + "/" + d.getDate() + "）"; }).join("、");
     $("pantryClear").hidden = !pantry.items.length && !pantry.cooked.length;
   }
-  function pantryAddInput() { var v = $("pantryAdd").value.trim(); if (!v) return; $("pantryAdd").value = ""; pantryAdd([v]); }
+  function pantryAddInput() {
+    var v = $("pantryAdd").value.trim(), m = $("pantryAddMsg"); if (!v) return;
+    $("pantryAdd").value = "";
+    var added = pantryAdd([v]);
+    m.hidden = false;
+    m.textContent = added ? "加咗「" + v.slice(0, 30) + "」。" : pantry.items.length >= 150 ? "食材庫已經有 150 樣，要先刪走啲先加到。" : "「" + v.slice(0, 30) + "」已經喺食材庫。";
+  }
   $("pantryAddBtn").onclick = pantryAddInput;
   $("pantryAdd").addEventListener("keydown", function (e) { if (e.key === "Enter" && !e.isComposing) { e.preventDefault(); pantryAddInput(); } });
   $("pantryClear").onclick = function () {

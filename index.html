@@ -160,6 +160,17 @@ input[type="date"] { font: inherit; font-size: 0.9rem; color: var(--ink); backgr
 .day[aria-pressed="true"] { background: var(--yellow); color: var(--on-yellow); box-shadow: 3px 3px 0 var(--ink) }
 @media (max-width: 520px) { .calgrid { gap: 4px } .day { min-height: 54px; padding: 2px 4px; border-radius: 9px } .day .dz { width: 24px; height: 24px } .day .dzs.n2 .dz { width: 19px; height: 19px } .day .dzs.n3 .dz { width: 14px; height: 14px } }
 .daycard h2 { font-size: 1.3rem }
+.today { padding: 16px 18px; display: grid; gap: 12px }
+.today h2 { font-size: 1.3rem }
+.meters { display: grid; gap: 12px 18px; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)) }
+.meter { display: grid; gap: 3px; min-width: 0 }
+.meter b { font: 400 1rem var(--display) }
+.meter small { color: var(--muted); font-size: 0.85rem }
+.meter .gap { color: var(--accent) }
+.mbar { height: 14px; border: 2px solid var(--ink); border-radius: 99px; overflow: hidden; background: var(--surface) }
+.mbar i { display: block; height: 100%; background: var(--prep) }
+.mbar.over i { background: var(--cook) }
+.today .primary { font-size: 1.05rem; padding: 8px 16px; letter-spacing: 0.08em }
 .rrow { display: grid; grid-template-columns: minmax(0, 1fr) 96px auto; gap: 6px; align-items: center }
 .rrow input { padding: 6px 8px; min-width: 0 }
 .rrow .px { border-left-width: 2px; border-radius: 12px; padding: 6px 10px }
@@ -316,6 +327,8 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
     <button type="button" class="chip" id="tabCal" aria-pressed="false">飲食日曆</button>
     <button type="button" class="chip" id="tabMe" aria-pressed="false">我嘅目標</button>
   </nav>
+
+  <section class="ticket today" id="todayBox" aria-label="今日營養"></section>
 
   <div class="cols" id="cookView">
     <section class="order" aria-label="你的要求">
@@ -934,6 +947,7 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
       ? "每個菜式都是完整一餐，例如碟頭飯、丼、麵或套餐，每人一份。"
       : "每個菜式是一碟餸，幾個人一齊分，另外配白飯。下面可以揀幾多個餸、幾多肉幾多菜。";
     if (typeof pantry !== "undefined" && pantry) drawPantry();
+    if (typeof writeQ !== "undefined" && writeQ) drawToday();
     if (document.activeElement !== $("kcalIn")) $("kcalIn").value = st.kcalMax > 0 ? st.kcalMax : "";
     $("shareOpts").hidden = st.meal !== "share";
     $("dietHint").textContent = st.diet === "none" ? "例如生酮、地中海、素食。揀咗之後，所有建議同食譜都會跟足。" : DIETS[st.diet][1] + "如有長期病患、懷孕或者食緊藥，轉飲食方式之前請先問醫生或營養師。";
@@ -1575,6 +1589,7 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
       "Calories: set kcal to an honest estimate of the calories ONE person eats from this dish (for a shared dish, one person's share, not counting plain rice).",
       kcalRule(kcalNow(), st.meal, dishTotal()) + (W && kcalNow() > 0 ? " This limit applies to each meal of the week." : ""),
       goalRule(),
+      W ? "" : gapRule(),
       dietRule(st.diet),
       priceRule(W),
       (W || st.meal !== "share") && st.meats.length ? "Meat choice: the cook picked these meats as ALTERNATIVES, not a combination: " + st.meats.join("、") + ". Every dish whose main ingredient is meat, poultry, fish or seafood must use ONE of them and no other meat, and the dishes should cover the list as far as their number allows. Use them even if they are not among the cook's ingredients; the cook will buy them." + cutsLine() : "",
@@ -1606,6 +1621,7 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
         ? "Calorie limit: this dish is one of " + S.target.n + " in a meal capped at " + S.kcalMax + " kcal per person (not counting rice)" + (idea.kcal ? "; the menu promised about " + idea.kcal + " kcal per person for it, so keep to that or less." : ".")
         : "Calorie limit: at most " + S.kcalMax + " kcal per person. Adjust quantities and oil to stay inside it.") : "",
       S.goalLine || "",
+      S.gapLine || "",
       dietRule(S.diet),
       "Prices and shopping: the cook shops in " + (S.place || "香港") + ". Use ingredients that are easy to buy there. cost is the estimated cost PER PERSON of this recipe's ingredients at typical shop prices there, as a plain number in " + (S.currency || "the local currency") + (idea.cost ? "; the menu estimated about " + idea.cost + ", so keep close to that or cheaper." : "."),
       mealTimeRule(idea.meal || S.when || ""),
@@ -1664,7 +1680,7 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
           d.ingredients.forEach(function (g) { if (S.ingredients.indexOf(g) < 0) S.ingredients.push(g); });
           render(); return;
         }
-        S = { isExample: false, limits: L, servings: servings, notes: notes, meal: meal, minHealth: minHealth, kcalMax: kcalMax, goalLine: goalRule(), diet: st.diet, currency: d.currency, place: st.place, budget: st.budget, budgetScope: st.budgetScope, when: W ? "" : st.when, general: !d.ingredients.length, picks: [], plan: null, planMsg: "", target: { n: dishTotal(), m: st.meatN, v: st.vegN }, ingredients: d.ingredients, ideas: d.ideas,
+        S = { isExample: false, limits: L, servings: servings, notes: notes, meal: meal, minHealth: minHealth, kcalMax: kcalMax, goalLine: goalRule(), gapLine: W ? "" : gapRule(), diet: st.diet, currency: d.currency, place: st.place, budget: st.budget, budgetScope: st.budgetScope, when: W ? "" : st.when, general: !d.ingredients.length, picks: [], plan: null, planMsg: "", target: { n: dishTotal(), m: st.meatN, v: st.vegN }, ingredients: d.ingredients, ideas: d.ideas,
           photoUrl: hasPhoto ? URL.createObjectURL(opts.images[0]) : null, week: null, pantryOffer: offer };
         if (W) {
           var t0 = new Date(), slots = {}, used = {};
@@ -1767,6 +1783,7 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
       if (!col) {
         var d = cleanDays(localGet(y, m)); fn(d); localSet(y, m, d);
         if (cal.started && cal.y === y && cal.m === m) { cal.days = cleanDays(d); drawCal(); }
+        drawToday();
         return;
       }
       var ref = col.doc(mKey(y, m));
@@ -1953,7 +1970,7 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
   $("calNext").onclick = function () { shiftMonth(1); };
   $("calToday").onclick = function () { var t = new Date(); cal.y = t.getFullYear(); cal.m = t.getMonth(); cal.sel = t.getDate(); watchMonth(); };
   function showTab(t) {
-    $("cookView").hidden = t !== "cook"; $("calView").hidden = t !== "cal"; $("meView").hidden = t !== "me"; $("pantryView").hidden = t !== "pantry";
+    $("cookView").hidden = t !== "cook"; $("todayBox").hidden = t !== "cook"; if (t === "cook") drawToday(); $("calView").hidden = t !== "cal"; $("meView").hidden = t !== "me"; $("pantryView").hidden = t !== "pantry";
     $("tabPantry").setAttribute("aria-pressed", t === "pantry" ? "true" : "false");
     $("tabMe").setAttribute("aria-pressed", t === "me" ? "true" : "false");
     if (t === "me") drawMe();
@@ -2169,12 +2186,93 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
     });
   }).catch(function () {});
 
+  /* ---- today so far: what has been eaten against the daily targets, shown on the first tab ---- */
+  var todayCloud = null, cloudMode = null;
+  function todayEntries() {
+    var t = new Date(), days = cloudMode ? (todayCloud || {}) : cleanDays(localGet(t.getFullYear(), t.getMonth()));
+    return days[String(t.getDate())] || [];
+  }
+  // Daily macro targets from the calorie target, the protein target and the chosen way of eating.
+  function macroTargets(mp) {
+    var k = mp.target, pr = mp.protein, carbs, fat;
+    if (st.diet === "keto") { carbs = 25; fat = Math.max(0, (k - pr * 4 - carbs * 4) / 9); }
+    else if (st.diet === "lowcarb") { carbs = k * 0.2 / 4; fat = Math.max(0, (k - pr * 4 - carbs * 4) / 9); }
+    else { fat = k * 0.3 / 9; carbs = Math.max(0, (k - pr * 4 - fat * 9) / 4); }
+    return { k: k, p: pr, c: Math.round(carbs), f: Math.round(fat) };
+  }
+  function dayNeeds() {
+    var list = todayEntries(), eaten = { k: 0, p: 0, c: 0, f: 0 }, unknown = 0, logged = {};
+    list.forEach(function (e) {
+      logged[e.slot] = true;
+      if (Number(e.kcal) > 0) { eaten.k += Number(e.kcal); eaten.p += Number(e.proteinG) || 0; eaten.c += Number(e.carbsG) || 0; eaten.f += Number(e.fatG) || 0; } else unknown++;
+    });
+    var h = new Date().getHours();
+    var left = ["早餐", "午餐", "晚餐"].filter(function (m) { return !logged[m] && (m === "早餐" ? h < 11 : m === "午餐" ? h < 15 : true); }).length || 1;
+    var mp = mePlan(), target = mp ? macroTargets(mp) : null, gap = null;
+    if (target) gap = { k: Math.round(target.k - eaten.k), p: Math.round(target.p - eaten.p), c: Math.round(target.c - eaten.c), f: Math.round(target.f - eaten.f) };
+    return { count: list.length, eaten: eaten, unknown: unknown, target: target, gap: gap, mealsLeft: left };
+  }
+  function gapRule() {
+    var n = dayNeeds();
+    if (!n.target || !(n.eaten.k > 0)) return "";
+    var g = n.gap, per = function (v) { return Math.max(0, Math.round(v / n.mealsLeft)); };
+    var short = [["protein", g.p / n.target.p], ["carbohydrate", n.target.c ? g.c / n.target.c : 0], ["fat", n.target.f ? g.f / n.target.f : 0]].sort(function (a, b) { return b[1] - a[1]; });
+    return "Today so far the cook has eaten about " + Math.round(n.eaten.k) + " kcal (protein " + Math.round(n.eaten.p) + " g, carbohydrate " + Math.round(n.eaten.c) + " g, fat " + Math.round(n.eaten.f) + " g). Against their daily targets they still need about " +
+      Math.max(0, g.k) + " kcal, " + Math.max(0, g.p) + " g protein, " + Math.max(0, g.c) + " g carbohydrate and " + Math.max(0, g.f) + " g fat, over " + n.mealsLeft + " more meal(s) today. " +
+      "So this meal should supply roughly " + per(g.k) + " kcal, " + per(g.p) + " g protein, " + per(g.c) + " g carbohydrate and " + per(g.f) + " g fat per person, and make up what is short: " +
+      (short[0][1] > 0.15 ? short[0][0] + " is furthest behind, so build the dishes around it" : "the day is close to balanced, so keep the meal light") +
+      (g.f < 0 ? "; fat is already over the day's target, so keep added fat low" : "") + (g.c < 0 ? "; carbohydrate is already over, so keep starch and sugar low" : "") + ". In each dish's description, say briefly what it tops up.";
+  }
+  function drawToday() {
+    var box = $("todayBox"); if (!box || box.hidden) return;
+    box.textContent = "";
+    var n = dayNeeds(), t = new Date();
+    box.appendChild(el("h2", null, "今日仲差幾多（" + (t.getMonth() + 1) + " 月 " + t.getDate() + " 日）"));
+    if (!n.target) {
+      box.appendChild(el("p", "desc", (n.eaten.k > 0 ? "今日已經食咗約 " + Math.round(n.eaten.k) + " kcal。" : "") + "去「我嘅目標」填身高同體重，呢度就會計到你今日仲差幾多卡路里、蛋白質、碳水同脂肪。"));
+      var gm = el("button", "btn2", "去填我嘅目標"); gm.type = "button"; gm.onclick = function () { showTab("me"); window.scrollTo(0, 0); };
+      var ga = el("div", "acts2"); ga.appendChild(gm); box.appendChild(ga); return;
+    }
+    var ms = el("div", "meters");
+    [["卡路里", "k", "kcal"], ["蛋白質", "p", "克"], ["碳水", "c", "克"], ["脂肪", "f", "克"]].forEach(function (r) {
+      var e = Math.round(n.eaten[r[1]]), tg = n.target[r[1]], g = n.gap[r[1]], m = el("div", "meter");
+      m.appendChild(el("b", null, r[0]));
+      var bar = el("div", "mbar" + (g < 0 ? " over" : "")), fill = el("i"); fill.style.width = Math.max(0, Math.min(100, tg ? e / tg * 100 : 0)) + "%"; bar.appendChild(fill);
+      bar.setAttribute("role", "img"); bar.setAttribute("aria-label", r[0] + "：食咗 " + e + "，目標 " + tg + " " + r[2]);
+      m.appendChild(bar);
+      m.appendChild(el("small", null, "食咗 " + e + "／" + tg + " " + r[2]));
+      m.appendChild(el("small", "gap", g >= 0 ? "仲差 " + g + " " + r[2] : "超出 " + (-g) + " " + r[2]));
+      ms.appendChild(m);
+    });
+    box.appendChild(ms);
+    if (!n.count) box.appendChild(el("p", "desc", "今日未有記錄。喺「飲食日曆」影相或者打字記低食咗乜，呢度就會即時扣數。"));
+    else {
+      var per = function (v) { return Math.max(0, Math.round(v / n.mealsLeft)); }, g = n.gap;
+      var lack = [["蛋白質", g.p / n.target.p], ["碳水", n.target.c ? g.c / n.target.c : 0], ["脂肪", n.target.f ? g.f / n.target.f : 0]].sort(function (a, b) { return b[1] - a[1]; });
+      box.appendChild(el("p", "desc", g.k <= 0 ? "今日卡路里已經夠數。再食嘅話揀清啲。"
+        : "今日仲有約 " + n.mealsLeft + " 餐。下一餐建議每人大約 " + per(g.k) + " kcal、蛋白質 " + per(g.p) + " 克、碳水 " + per(g.c) + " 克、脂肪 " + per(g.f) + " 克。" + (lack[0][1] > 0.15 ? "而家最唔夠嘅係" + lack[0][0] + "。" : "")));
+      if (n.unknown) box.appendChild(el("p", "hint", "今日有 " + n.unknown + " 樣未有卡路里，未計入。去「飲食日曆」㩒嗰樣嘢嘅「估卡路里」就會計埋。"));
+      if (g.k > 0) {
+        var use = el("button", "primary", "照今日仲差嘅份量揀餸"); use.type = "button";
+        use.onclick = function () { st.kcalMax = Math.max(50, Math.min(3000, per(g.k) - (st.meal === "share" && st.diet !== "keto" && st.diet !== "lowcarb" ? 230 : 0))); save(); timeNote(); $("kcalSeg").scrollIntoView({ block: "center" }); };
+        var ua = el("div", "acts2"); ua.appendChild(use); box.appendChild(ua);
+        box.appendChild(el("p", "hint", "㩒咗會將卡路里上限設成下一餐嘅份量。之後建議嘅菜式亦會針對你今日唔夠嘅營養。"));
+      }
+    }
+  }
+  dbReady.then(function (col) {
+    cloudMode = !!col;
+    if (!col) { drawToday(); return; }
+    var t = new Date();
+    col.doc(mKey(t.getFullYear(), t.getMonth())).onSnapshot(function (snap) { var d = snap.exists ? snap.data() : null; todayCloud = cleanDays(d && d.days); drawToday(); }, function () {});
+  }).catch(function () {});
+
   /* ---- "my goal" tab ---- */
   var meTimer = null, meDirty = false;
   function meSave() {
     me.t = Date.now();
     try { localStorage.setItem("recipe-maker-me", JSON.stringify(me)); } catch (e) {}
-    clearTimeout(meTimer); meDirty = true;
+    clearTimeout(meTimer); meDirty = true; drawToday();
     meTimer = setTimeout(function () {
       var body = JSON.parse(JSON.stringify(me));
       function settle() { if (me.t === body.t) meDirty = false; }

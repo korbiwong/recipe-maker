@@ -124,6 +124,12 @@ p { margin: 0 }
 select { font: inherit; color: var(--ink); background: var(--surface); border: 2px solid var(--ink); border-radius: 12px; padding: 8px 10px; width: 100%; min-width: 0 }
 select:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px }
 .chip.gone { text-decoration: line-through; color: var(--muted); border-style: dashed }
+.pgrp { display: inline-flex; align-items: stretch; max-width: 100% }
+.pgrp .chip { border-radius: 12px 0 0 12px; border-right-width: 1px; min-width: 0 }
+.pgrp span.chip { cursor: default }
+.px { font: inherit; line-height: 1; border: 2px solid var(--ink); border-left-width: 1px; border-radius: 0 12px 12px 0; background: var(--surface); color: var(--accent); padding: 0 10px; min-width: 34px; cursor: pointer }
+.px:hover { background: var(--warn-bg) }
+.px:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px }
 .chip.part { background: var(--sunk) }
 .chip.soon { background: var(--warn-bg); color: var(--warn-ink) }
 .chip.exp { color: var(--accent); border-color: var(--accent); border-style: dashed }
@@ -483,7 +489,20 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
           <button type="button" class="primary" id="pantryPhotoBtn">影相／揀相加入</button>
           <input type="file" id="pantryPhoto" accept="image/jpeg,image/png,image/webp,image/gif" multiple hidden>
         </div>
-        <p class="hint" id="pantryScanMsg">買完餸影低，認到嘅食材會加入下面；亦可以喺下面自己打字加。</p>
+        <p class="hint" id="pantryScanMsg">買完餸影低，認到嘅食材會先俾你確認，啱先加入；亦可以喺下面自己打字加。</p>
+      </div>
+      <div class="field" id="scanReview" hidden>
+        <div class="label"><span>確認食材</span> <b id="reviewOut"></b></div>
+        <div class="chips" id="reviewChips"></div>
+        <div class="addrow">
+          <input type="text" id="reviewAdd" placeholder="認漏咗？自己補一樣" maxlength="20" aria-label="補一樣食材">
+          <button type="button" class="btn2" id="reviewAddBtn">補上</button>
+        </div>
+        <div class="acts2">
+          <button type="button" class="primary" id="reviewOk">加入食材庫</button>
+          <button type="button" class="btn2" id="reviewNo">全部唔要</button>
+        </div>
+        <p class="hint">認錯嘅㩒 × 剔走，再㩒「加入食材庫」。未㩒之前唔會存低。</p>
       </div>
       <div class="field">
         <div class="label"><span>食材庫</span> <b id="pantryOut"></b></div>
@@ -996,6 +1015,11 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
     if (S.ingredients.length) {
       $("found").appendChild(document.createTextNode("認到的食材："));
       $("found").appendChild(el("span", null, S.ingredients.join("、")));
+      if (S.pantryOffer) {
+        var po = el("button", "linkbtn", "存入食材庫（先確認）→"); po.type = "button"; po.style.marginLeft = "8px";
+        po.onclick = function () { S.pantryOffer = false; offerPending(S.ingredients); showTab("pantry"); render(); $("pantryScanMsg").textContent = pending.length ? "請確認相入面認到嘅食材，啱先加入。" : "認到嘅食材全部已經喺食材庫。"; window.scrollTo(0, 0); };
+        $("found").appendChild(po);
+      }
     }
     $("back").hidden = view === "ideas";
     $("ticketError").hidden = !ticketErr; $("ticketError").textContent = ticketErr;
@@ -1587,8 +1611,8 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
         var d = cleanIdeas(raw);
         busy(false);
         if (!d.ideas.length) { showError(d.note || "認不到食物。請試一張更清楚、更光的相片。"); render(); return; }
-        if (hasPhoto) pantryAdd(d.ingredients);
-        else if (stock.length && !d.ingredients.length) d.ingredients = stock.map(function (g) { return g.n; });
+        var offer = hasPhoto && d.ingredients.length > 0;
+        if (!hasPhoto && stock.length && !d.ingredients.length) d.ingredients = stock.map(function (g) { return g.n; });
         if (more) {
           if (S !== round) return;
           var have = {}; S.ideas.forEach(function (x) { have[x.dish] = true; });
@@ -1599,7 +1623,7 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
           render(); return;
         }
         S = { isExample: false, limits: L, servings: servings, notes: notes, meal: meal, minHealth: minHealth, kcalMax: kcalMax, goalLine: goalRule(), diet: st.diet, currency: d.currency, place: st.place, budget: st.budget, budgetScope: st.budgetScope, when: W ? "" : st.when, general: !d.ingredients.length, picks: [], plan: null, planMsg: "", target: { n: dishTotal(), m: st.meatN, v: st.vegN }, ingredients: d.ingredients, ideas: d.ideas,
-          photoUrl: hasPhoto ? URL.createObjectURL(opts.images[0]) : null, week: null };
+          photoUrl: hasPhoto ? URL.createObjectURL(opts.images[0]) : null, week: null, pantryOffer: offer };
         if (W) {
           var t0 = new Date(), slots = {}, used = {};
           if (W.prep) W.meals.forEach(function (mm, mi) {
@@ -1858,6 +1882,33 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
     });
     if (changed) pantrySave();
   }
+  // Ingredients recognised from a photo wait here until the person confirms them.
+  var pending = [];
+  function offerPending(names) {
+    var seen = {}; pending.forEach(function (n) { seen[n] = true; });
+    (names || []).forEach(function (n) {
+      n = String(n || "").trim().slice(0, 30); if (!n || seen[n]) return;
+      var g = pantryFind(n); if (g && g.s < 2) return;   // already in stock
+      seen[n] = true; pending.push(n);
+    });
+    drawReview();
+  }
+  function drawReview() {
+    var box = $("reviewChips"); box.textContent = "";
+    pending.forEach(function (n, i) {
+      var grp = el("span", "pgrp"), x = el("button", "px", "×"); x.type = "button"; x.setAttribute("aria-label", "唔要 " + n);
+      x.onclick = function () { pending.splice(i, 1); drawReview(); };
+      grp.appendChild(el("span", "chip", n)); grp.appendChild(x); box.appendChild(grp);
+    });
+    $("scanReview").hidden = !pending.length;
+    $("reviewOut").textContent = pending.length + " 樣";
+    $("reviewOk").textContent = "加入食材庫（" + pending.length + " 樣）";
+  }
+  function reviewAddInput() { var v = $("reviewAdd").value.trim().slice(0, 30); if (!v) return; $("reviewAdd").value = ""; if (pending.indexOf(v) < 0) pending.push(v); drawReview(); }
+  $("reviewAddBtn").onclick = reviewAddInput;
+  $("reviewAdd").addEventListener("keydown", function (e) { if (e.key === "Enter" && !e.isComposing) { e.preventDefault(); reviewAddInput(); } });
+  $("reviewOk").onclick = function () { var n = pending.length; pantryAdd(pending); pending = []; drawReview(); $("pantryScanMsg").textContent = "加咗 " + n + " 樣入食材庫。"; };
+  $("reviewNo").onclick = function () { pending = []; drawReview(); $("pantryScanMsg").textContent = "冇加任何嘢。"; };
   function pantryUsed(dish, uses) {
     (uses || []).forEach(function (u) { var g = pantryFind(u); if (g && g.s === 0) g.s = 1; });
     pantry.cooked.unshift({ d: String(dish || "").slice(0, 40), t: Date.now() }); pantry.cooked = pantry.cooked.slice(0, 20);
@@ -1878,7 +1929,9 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
       var b = el("button", "chip" + cls, g.n + (g.s === 1 ? " · 用過" : "") + tag); b.type = "button";
       b.setAttribute("aria-label", g.n + (g.s === 2 ? "，用完" : g.s === 1 ? "，用過，仲有" : "，有") + tag.replace(" · ", "，"));
       b.onclick = function () { g.s = g.s === 2 ? 0 : 2; pantrySave(); };
-      box.appendChild(b);
+      var grp = el("span", "pgrp"), x = el("button", "px", "×"); x.type = "button"; x.setAttribute("aria-label", "刪除 " + g.n);
+      x.onclick = function () { var i = pantry.items.indexOf(g); if (i >= 0) pantry.items.splice(i, 1); pantrySave(); };
+      grp.appendChild(b); grp.appendChild(x); box.appendChild(grp);
     });
     $("pantryOut").textContent = pantry.items.length ? "仲有 " + stock.length + " 樣" : "";
     $("pantryMini").textContent = pantry.items.length ? "仲有 " + stock.length + " 樣" : "未有食材";
@@ -1895,7 +1948,7 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
       r.appendChild(d); rows.appendChild(r);
     });
     $("pantryHint").textContent = pantry.items.length
-      ? "㩒一下食材標記「用完」，再㩒就變返有。唔加相嘅時候，會用呢度仲有嘅食材去諗餸；加咗到期日嘅會先用快到期嘅，過咗期嘅唔會用。"
+      ? "㩒食材名標記「用完」，再㩒就變返有；㩒 × 就成樣刪走。唔加相嘅時候，會用呢度仲有嘅食材去諗餸；加咗到期日嘅會先用快到期嘅，過咗期嘅唔會用。"
       : "影過相之後，認到嘅食材會自動存喺呢度。之後唔使再影，都可以用剩低嘅食材諗今餐或者成個禮拜。";
     var ck = $("pantryCooked"); ck.hidden = !pantry.cooked.length;
     ck.textContent = "煮過：" + pantry.cooked.slice(0, 8).map(function (c) { var d = new Date(c.t); return c.d + "（" + (d.getMonth() + 1) + "/" + d.getDate() + "）"; }).join("、");
@@ -1930,9 +1983,9 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
         "Reply with only JSON in this shape, no other text:", '{"ingredients":[""]}'].join("\n");
       sample.json(prompt, { images: list, signal: ctl.signal, cache: false }).then(function (raw) {
         busy(false); btn.disabled = false;
-        var names = strs(raw && raw.ingredients, 80), before = pantryStock().length;
-        pantryAdd(names);
-        msg.textContent = names.length ? "認到 " + names.length + " 樣，食材庫多咗 " + Math.max(0, pantryStock().length - before) + " 樣。認錯嘅可以㩒佢標記用完。" : "認唔到食物，試下影清楚啲、光啲。";
+        var names = strs(raw && raw.ingredients, 80);
+        offerPending(names);
+        msg.textContent = !names.length ? "認唔到食物，試下影清楚啲、光啲。" : pending.length ? "認到 " + names.length + " 樣。請喺下面確認，啱先加入食材庫。" : "認到嘅 " + names.length + " 樣全部已經喺食材庫。";
       }, function (err) { busy(false); btn.disabled = false; msg.textContent = failCode(err) || "已停止。"; });
     });
   }

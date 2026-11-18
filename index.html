@@ -1119,7 +1119,7 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
         if (share) {
           var on = S.picks.indexOf(i) >= 0, ac = el("span", "acts2");
           var tg = el("button", "btn2 on", on ? "已加入 ✓" : "加入餐單"); tg.type = "button"; tg.disabled = working; tg.setAttribute("aria-pressed", on ? "true" : "false");
-          tg.onclick = function () { var k = S.picks.indexOf(i); if (k >= 0) S.picks.splice(k, 1); else S.picks.push(i); S.plan = null; render(); };
+          tg.onclick = function () { var k = S.picks.indexOf(i); if (k >= 0) S.picks.splice(k, 1); else { S.picks.push(i); stampPick(S.ideas[i]); } S.plan = null; render(); };
           var vw = el("button", "linkbtn", d.recipe ? "睇食譜 →" : "寫食譜 →"); vw.type = "button"; vw.disabled = working; vw.onclick = function () { openIdea(i); };
           ac.appendChild(tg); ac.appendChild(vw); b.appendChild(ac);
         } else b.onclick = function () { openIdea(i); };
@@ -1143,7 +1143,7 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
     if (!name) return;
     var hit = -1; S.ideas.forEach(function (d, i) { if (d.dish === name) hit = i; });
     if (hit < 0) { S.ideas.push({ custom: true, country: "自己諗嘅餸", dish: name, description: "你自己加嘅餸，食譜會喺排時間或者㩒「寫食譜」嗰陣寫。", uses: [], type: "", method: "", health: 0, kcal: 0, prepMin: 0, marinateMin: 0, cookMin: 0, totalMin: 0, recipe: null }); hit = S.ideas.length - 1; }
-    if (S.picks.indexOf(hit) < 0) S.picks.push(hit);
+    if (S.picks.indexOf(hit) < 0) { S.picks.push(hit); stampPick(S.ideas[hit]); }
     S.plan = null; render();
   }
   function renderWeek(box) {
@@ -1206,7 +1206,23 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
     wrap.appendChild(el("p", "hint", "記入之後可以喺「飲食日曆」睇返每日食乜；之後再寫嘅食譜唔會自動補入去。"));
     box.appendChild(wrap);
   }
+  // A dish stays on the menu until its meal has passed (breakfast 11:00, lunch 15:00, dinner end of day) or it is removed.
+  function dayStamp() { var t = new Date(); return t.getFullYear() * 10000 + (t.getMonth() + 1) * 100 + t.getDate(); }
+  function stampPick(x) { x.pickedAt = { d: dayStamp(), when: S.when || st.when || "晚餐" }; }
+  function pickExpired(x) {
+    var a = x && x.pickedAt; if (!a) return false;
+    var today = dayStamp(), h = new Date().getHours();
+    if (a.d < today) return true;
+    return a.d === today && ((a.when === "早餐" && h >= 11) || (a.when === "午餐" && h >= 15));
+  }
+  function prunePicks() {
+    if (!S || !Array.isArray(S.picks)) return;
+    var before = S.picks.length;
+    S.picks = S.picks.filter(function (i) { return S.ideas[i] && !pickExpired(S.ideas[i]); });
+    if (S.picks.length !== before) S.plan = null;
+  }
   function renderTray(box) {
+    prunePicks();
     var tray = el("div", "tray"), lab = el("div", "label"), T = S.target || { n: 0, m: ANY, v: ANY };
     var cnt = { "肉餸": 0, "菜餸": 0 }; S.picks.forEach(function (i) { var ty = S.ideas[i].type; if (ty in cnt) cnt[ty]++; });
     lab.appendChild(el("span", null, "今日餐單"));
@@ -1228,6 +1244,7 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
         chips.appendChild(c);
       });
       tray.appendChild(chips);
+      tray.appendChild(el("p", "hint", "揀咗嘅餸會一直留喺度，再㩒「建議菜式」都唔會冇；過咗嗰一餐，或者你㩒 × 先會走。"));
     }
     var own = el("div", "addrow"), oi = el("input"); oi.type = "text"; oi.maxLength = 40; oi.placeholder = "自己有諗法？打個餸名，例如：蒸水蛋"; oi.setAttribute("aria-label", "自己加一個餸"); oi.disabled = working;
     var ob = el("button", "btn2", "加入"); ob.type = "button"; ob.disabled = working; ob.onclick = function () { addOwnDish(oi.value); };
@@ -1570,7 +1587,7 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
       " Draw the options from these cuisines, spread fairly evenly, and set country to exactly one of these names: " + countryList() + ". Each must be a real home-style dish from that cuisine." +
       " day: suggest which day (1 to " + W.days + ") each option suits. Put the most perishable food (seafood, fresh fish, minced meat, leafy greens, bean sprouts, tofu) on the early days and food that keeps (root vegetables, eggs, frozen or cured food) later. Give each day exactly the number of suggested options per meal listed above" + (shared.length ? ", choosing dishes that go well together" : "") + ", and set day to 0 for the spare options.";
   }
-  function ideasPrompt(hasPhoto, notes, L, W, avoid, stock) {
+  function ideasPrompt(hasPhoto, notes, L, W, avoid, stock, chosen) {
     return [
       "You suggest dishes for a home-cooking app used in Hong Kong.",
       LANG + " Set each idea's country to exactly the name given in the list below.",
@@ -1598,6 +1615,7 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
         : "Cooking method: any. Set method to the dish's main cooking method in one or two Chinese characters (for example 蒸, 炒, 煎, 炸, 焗, 炆, 水煮, 煲湯, 涼拌).",
       timeRules(L),
       "These are menu ideas only: keep every entry brief. description is one short phrase of at most 15 Chinese characters. Do not write quantities or steps.",
+      chosen && chosen.length ? "The cook has already chosen these dishes for this meal and is keeping them: " + chosen.join("、") + ". Do not suggest them again. Suggest dishes that go well with them and round out the meal, rather than more dishes built on the same main ingredient." : "",
       avoid && avoid.length ? "This is a request for MORE options on top of a menu the cook already has. Offer only new dishes" + (W ? ", exactly " + W.pool + " of them, with day set to 0 for all" : "") + ". Do not repeat or lightly vary any of these: " + avoid.join("、") + "." : "",
       hasPhoto ? "If there is no recognisable food, reply with an empty ideas array and a short note saying so." : "",
       "Reply with only JSON in this shape, no other text:",
@@ -1656,6 +1674,8 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
     if (W && more) W.pool = Math.min(8, W.pool);
     var avoid = more ? S.ideas.map(function (x) { return x.dish; }) : null, round = S;
     var stock = hasPhoto || !st.usePantry ? [] : pantryStock();
+    var keep = [];
+    if (!more && !S.isExample && S.meal === "share" && !S.week && st.meal === "share" && !W) { prunePicks(); S.picks.forEach(function (i) { if (S.ideas[i]) keep.push(S.ideas[i]); }); }
     sampleP.then(function (sample) {
       if (!sample || working) return;
       ctl = new AbortController();
@@ -1665,7 +1685,7 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
       var opts = { signal: ctl.signal, cache: false,
         onText: function (u) { var m = u.text.match(/"dish"\s*:/g); if (m) $("statusText").textContent = "已想到 " + m.length + " 個菜式…"; } };
       if (hasPhoto) opts.images = files.slice();
-      sample.json(ideasPrompt(hasPhoto ? files.length : 0, notes, L, W, avoid, stock), opts).then(function (raw) {
+      sample.json(ideasPrompt(hasPhoto ? files.length : 0, notes, L, W, avoid, stock, keep.map(function (x) { return x.dish; })), opts).then(function (raw) {
         var d = cleanIdeas(raw);
         busy(false);
         if (!d.ideas.length) { showError(d.note || "認不到食物。請試一張更清楚、更光的相片。"); render(); return; }
@@ -1699,6 +1719,11 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
             }
           });
           S.week = { days: W.days, meals: W.meals, per: W.per, start: [t0.getFullYear(), t0.getMonth(), t0.getDate()], slots: slots, prep: W.prep };
+        }
+        if (keep.length) {
+          var kept = {}; keep.forEach(function (x) { kept[x.dish] = true; });
+          S.ideas = keep.concat(S.ideas.filter(function (x) { return !kept[x.dish]; }));
+          S.picks = keep.map(function (x, i) { return i; });
         }
         view = "ideas"; ticketErr = ""; render();
         if (window.matchMedia("(max-width: 820px)").matches) $("ticket").scrollIntoView({ behavior: "smooth", block: "start" });

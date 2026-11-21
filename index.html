@@ -121,9 +121,10 @@ p { margin: 0 }
 .wmeal { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 8px; align-items: start }
 .wmeal .slot { margin-top: 6px }
 .wsel { display: grid; gap: 6px; min-width: 0 }
-.wslot { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px; align-items: center }
-.wslot .btn2 { font-size: 0.88rem; padding: 4px 10px }
-.wslot select.held { background: var(--sunk) }
+.wsel select.held { background: var(--sunk) }
+.wpick select { flex: 1 1 170px; width: auto; min-width: 0; font-size: 0.9rem; padding: 4px 8px }
+.idea .wpick .btn2 { font-size: 0.88rem; padding: 4px 12px }
+.wplaced .chip { font-size: 0.85rem; padding: 2px 10px; background: var(--yellow); color: var(--on-yellow) }
 select { font: inherit; color: var(--ink); background: var(--surface); border: 2px solid var(--ink); border-radius: 12px; padding: 8px 10px; width: 100%; min-width: 0 }
 select:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px }
 .chip.gone { text-decoration: line-through; color: var(--muted); border-style: dashed }
@@ -1123,7 +1124,7 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
       : "每個都是完整一餐。點一下菜式，就會寫出完整食譜。之後可以返回再揀另一個。"));
     box.appendChild(head);
     var share = S.meal === "share" && !S.isExample && !S.week;
-    if (S.week) { head.querySelector("h2").textContent = "一個禮拜嘅選擇"; head.querySelector("p").textContent = "上面係一週餐單，每格都可以自己改；下面係全部選擇，㩒入去會寫完整食譜。"; renderWeek(box); }
+    if (S.week) { head.querySelector("h2").textContent = "一個禮拜嘅選擇"; head.querySelector("p").textContent = "下面係全部選擇。想食嘅，揀邊日邊餐再㩒「加入」，就會放入上面嘅一週餐單；唔想要就唔使理。㩒「寫食譜」可以先睇完整食譜。"; renderWeek(box); }
     if (share || (!S.isExample && !S.week && S.meal !== "share" && S.picks && S.picks.length)) renderTray(box);
     var order = [];
     S.ideas.forEach(function (d) { if (order.indexOf(d.country) < 0) order.push(d.country); });
@@ -1132,8 +1133,9 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
       var grid = el("div", "ideas");
       S.ideas.forEach(function (d, i) {
         if (d.country !== c) return;
-        var b = el(share ? "div" : "button", "idea" + (share ? " pick" : "") + (share && S.picks.indexOf(i) >= 0 ? " picked" : ""));
-        if (!share) { b.type = "button"; b.disabled = working; }
+        var wkm = !!S.week && !S.isExample, inWk = wkm && Object.keys(S.week.slots).some(function (k) { return S.week.slots[k] === i; });
+        var b = el(share || wkm ? "div" : "button", "idea" + (share || wkm ? " pick" : "") + ((share && S.picks.indexOf(i) >= 0) || inWk ? " picked" : ""));
+        if (!share && !wkm) { b.type = "button"; b.disabled = working; }
         if (d.requested) b.appendChild(el("span", "badge", "你想煮的"));
         var ih = el("span", "ihead"); ih.appendChild(el("strong", null, d.dish)); ih.appendChild(doodle(d.method ? methodDoodle(d.method) : FOODS[i % FOODS.length])); b.appendChild(ih);
         if (d.description) b.appendChild(el("span", "d", d.description));
@@ -1141,8 +1143,8 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
         if (d.extra && d.extra.length) { var ex = el("span", "u"); ex.appendChild(el("em", null, d.uses.length ? "另外要：" : "主要材料：")); ex.appendChild(document.createTextNode(d.extra.join("、"))); b.appendChild(ex); }
         if (d.method || d.type) { var mt = el("span", "u"); mt.appendChild(el("em", null, d.method ? "煮法：" : "類別：")); mt.appendChild(document.createTextNode([d.method, d.type, S.week ? d.meal : ""].filter(Boolean).join(" · "))); b.appendChild(mt); }
         if (d.health) { var hp = el("span", "hp"); hp.appendChild(document.createTextNode("健康指數")); hp.appendChild(el("i", null, hearts(d.health))); hp.appendChild(el("b", null, d.health + "/5")); b.appendChild(hp); }
-        var t = el("span", "t"); t.appendChild(el("span", null, d.totalMin ? "約 " + fmt(d.totalMin) + (d.kcal ? " · " + d.kcal + " kcal" : "") + (d.cost ? " · " + cash(d.cost) : "") : "未寫食譜")); var inWk = S.week && Object.keys(S.week.slots).some(function (k) { return S.week.slots[k] === i; });
-        if (!share) t.appendChild(el("span", null, inWk ? "✓ 已排入呢個禮拜" : S.picks && S.picks.indexOf(i) >= 0 ? "✓ 已加入餐單" : d.recipe ? "睇食譜 →" : "寫食譜 →")); b.appendChild(t);
+        var t = el("span", "t"); t.appendChild(el("span", null, d.totalMin ? "約 " + fmt(d.totalMin) + (d.kcal ? " · " + d.kcal + " kcal" : "") + (d.cost ? " · " + cash(d.cost) : "") : "未寫食譜"));
+        if (!share && !wkm) t.appendChild(el("span", null, S.picks && S.picks.indexOf(i) >= 0 ? "✓ 已加入餐單" : d.recipe ? "睇食譜 →" : "寫食譜 →")); b.appendChild(t);
         b.appendChild(timeBar(d));
         if (share) {
           var on = S.picks.indexOf(i) >= 0, ac = el("span", "acts2");
@@ -1150,6 +1152,12 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
           tg.onclick = function () { var k = S.picks.indexOf(i); if (k >= 0) S.picks.splice(k, 1); else { S.picks.push(i); stampPick(S.ideas[i]); } S.plan = null; render(); };
           var vw = el("button", "linkbtn", d.recipe ? "睇食譜 →" : "寫食譜 →"); vw.type = "button"; vw.disabled = working; vw.onclick = function () { openIdea(i); };
           ac.appendChild(tg); ac.appendChild(vw); b.appendChild(ac);
+        } else if (wkm) {
+          // Week plan: the cook decides whether this dish goes in, and on which day and meal.
+          var placed = weekPlaced(i); if (placed) b.appendChild(placed);
+          var wp = weekPicker(i); b.appendChild(wp);
+          var vw2 = el("button", "linkbtn", d.recipe ? "睇食譜 →" : "寫食譜 →"); vw2.type = "button"; vw2.disabled = working; vw2.onclick = function () { openIdea(i); };
+          var vr = el("span", "acts2"); vr.appendChild(vw2); b.appendChild(vr);
         } else b.onclick = function () { openIdea(i); };
         grid.appendChild(b);
       });
@@ -1177,15 +1185,15 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
   function renderWeek(box) {
     var W = S.week, wrap = el("div", "tray"), lab = el("div", "label"), filled = 0, total = 0;
     Object.keys(W.slots).forEach(function (k) { total++; if (W.slots[k] >= 0) filled++; });
-    var hn = 0; Object.keys(W.hold || {}).forEach(function (k) { if (W.hold[k] && W.slots[k] >= 0) hn++; });
-    lab.appendChild(el("span", null, "一週餐單")); lab.appendChild(el("b", null, "已排 " + filled + "／" + total + (hn ? "，保留咗 " + hn + " 格" : "")));
+    lab.appendChild(el("span", null, "一週餐單")); lab.appendChild(el("b", null, "已排 " + filled + "／" + total));
     wrap.appendChild(lab);
     var wc = 0; Object.keys(W.slots).forEach(function (k) { var i = W.slots[k]; if (i >= 0) wc += S.ideas[i].cost || 0; });
     if (wc) {
       var wall = wc * S.servings, wover = S.budget > 0 && S.budgetScope === "all" && wall > S.budget;
       wrap.appendChild(el("p", wover ? "over" : "hint", "成個餐單材料合共約 " + cash(wall) + "（" + S.servings + " 人）" + (S.budget > 0 && S.budgetScope === "all" ? "／預算 " + cash(S.budget) + (wover ? "，超出咗" : "") : "")));
     }
-    wrap.appendChild(el("p", "desc", W.prep ? "Meal prep：每個餸一次過煮幾份，分幾日食。每格都可以自己改。" : "易壞嘅食材（海鮮、葉菜、免治肉）排咗喺頭幾日。"));
+    wrap.appendChild(el("p", "desc", filled ? (W.prep ? "Meal prep：每個餸一次過煮幾份，分幾日食。" : "易壞嘅食材（海鮮、葉菜、免治肉）最好排喺頭幾日。")
+      : "仲未排任何餸。喺下面嘅選擇度，揀想食嘅餸，再揀加入邊日邊餐。"));
     for (var d = 1; d <= W.days; d++) (function (d) {
       var dt = new Date(W.start[0], W.start[1], W.start[2] + d - 1), row = el("div", "wday"), kc = 0;
       W.meals.forEach(function (mm, mi) { for (var k = 0; k < W.per[mi]; k++) { var i = W.slots[d + "-" + mi + "-" + k]; if (i >= 0) kc += S.ideas[i].kcal || 0; } });
@@ -1200,19 +1208,9 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
           var o0 = el("option", null, "（未揀）"); o0.value = "-1"; sel.appendChild(o0);
           S.ideas.forEach(function (x, i) { if (x.meal && x.meal !== mm && W.slots[key] !== i) return; var o = el("option", null, x.dish + (x.type ? "（" + x.type + "）" : "")); o.value = String(i); sel.appendChild(o); });
           sel.value = String(W.slots[key]);
-          // Choosing a dish by hand means the cook wants it, so it is kept when the rest is suggested again.
-          sel.onchange = function () {
-            W.slots[key] = Number(sel.value); W.hold = W.hold || {};
-            if (W.slots[key] >= 0) W.hold[key] = true; else delete W.hold[key];
-            W.logged = false; if (W.prep) S.plan = null; render();
-          };
-          var isHeld = !!(W.hold && W.hold[key]) && W.slots[key] >= 0;
-          if (isHeld) sel.className = "held";
-          var hb = el("button", "btn2 on", isHeld ? "✓ 保留" : "保留"); hb.type = "button";
-          hb.setAttribute("aria-pressed", isHeld ? "true" : "false"); hb.disabled = working || W.slots[key] < 0;
-          hb.setAttribute("aria-label", (dt.getMonth() + 1) + " 月 " + dt.getDate() + " 日" + mm + (isHeld ? "：取消保留" : "：保留呢個餸"));
-          hb.onclick = function () { W.hold = W.hold || {}; if (W.hold[key]) delete W.hold[key]; else W.hold[key] = true; render(); };
-          var sr = el("div", "wslot"); sr.appendChild(sel); sr.appendChild(hb); sels.appendChild(sr);
+          sel.onchange = function () { W.slots[key] = Number(sel.value); W.logged = false; if (W.prep) S.plan = null; render(); };
+          if (W.slots[key] >= 0) sel.className = "held";
+          sels.appendChild(sel);
         })(d + "-" + mi + "-" + k);
         line.appendChild(sels); row.appendChild(line);
       });
@@ -1243,16 +1241,19 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
       ac.appendChild(pb);
     }
     ac.appendChild(log);
-    var rg = el("button", "btn2", working ? "諗緊…" : hn ? "保留 " + hn + " 格，其他再諗過" : "成個禮拜再諗過"); rg.type = "button"; rg.disabled = working;
+    var rg = el("button", "btn2", working ? "諗緊…" : filled ? "換過另一批選擇（已排嘅唔變）" : "換過另一批選擇"); rg.type = "button"; rg.disabled = working;
     rg.onclick = function () { generate(false); };
     ac.appendChild(rg);
-    if (hn) {
-      var uh = el("button", "linkbtn", "全部取消保留"); uh.type = "button";
-      uh.onclick = function () { W.hold = {}; render(); };
+    if (filled) {
+      var uh = el("button", "linkbtn", "清空餐單"); uh.type = "button";
+      uh.onclick = function () {
+        if (uh.dataset.sure !== "1") { uh.dataset.sure = "1"; uh.textContent = "真係清空？再㩒一次"; return; }
+        Object.keys(W.slots).forEach(function (k) { W.slots[k] = -1; }); W.logged = false; S.plan = null; render();
+      };
       ac.appendChild(uh);
     }
     wrap.appendChild(ac);
-    wrap.appendChild(el("p", "hint", "想食嘅㩒「保留」（自己喺格度揀嘅餸會自動保留）。再諗過嘅時候，保留咗嘅餸唔會變，其他格會換過新菜式。"));
+    wrap.appendChild(el("p", "hint", "每個餸都由你自己揀：喺下面嘅選擇揀邊日邊餐，再㩒「加入」。想要第二批選擇就㩒「換過另一批選擇」，已經排咗嘅餸唔會變。"));
     wrap.appendChild(el("p", "hint", "記入之後可以喺「飲食日曆」睇返每日食乜；之後再寫嘅食譜唔會自動補入去。"));
     box.appendChild(wrap);
   }
@@ -1498,19 +1499,45 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
     var p = key.split("-"), dt = new Date(W.start[0], W.start[1], W.start[2] + Number(p[0]) - 1);
     return (dt.getMonth() + 1) + "/" + dt.getDate() + "（星期" + WD[dt.getDay()] + "）" + W.meals[Number(p[1])];
   }
-  // Where a dish goes when added to the week: the first empty slot for its meal, otherwise the first slot that is not held.
-  function weekSlotFor(W, idea) {
-    var empty = null, free = null, hold = W.hold || {};
-    for (var d = 1; d <= W.days; d++) W.meals.forEach(function (mm, mi) {
-      if (idea.meal && idea.meal !== mm) return;
-      for (var k = 0; k < W.per[mi]; k++) {
-        var key = d + "-" + mi + "-" + k;
-        if (!(key in W.slots)) continue;
-        if (empty === null && W.slots[key] < 0) empty = key;
-        if (free === null && !hold[key]) free = key;
-      }
+  function slotOrder(a, b) { var x = a.split("-").map(Number), y = b.split("-").map(Number); return x[0] - y[0] || x[1] - y[1] || x[2] - y[2]; }
+  // Where dish i already is in the week, each with a × to take it out again.
+  function weekPlaced(i) {
+    var W = S.week, box = el("span", "chips wplaced"), n = 0;
+    Object.keys(W.slots).sort(slotOrder).forEach(function (k) {
+      if (W.slots[k] !== i) return; n++;
+      var c = el("button", "chip", "✓ " + slotName(W, k) + " ×"); c.type = "button"; c.disabled = working;
+      c.setAttribute("aria-label", "由" + slotName(W, k) + "移走" + S.ideas[i].dish);
+      c.onclick = function () { W.slots[k] = -1; W.logged = false; if (W.prep) S.plan = null; render(); };
+      box.appendChild(c);
     });
-    return empty || free;
+    return n ? box : null;
+  }
+  // The cook picks the day and meal for dish i. Preselects an empty slot on the day Claude suggested, else the first empty one.
+  function weekPicker(i) {
+    var W = S.week, x = S.ideas[i], box = el("span", "acts2 wpick"), sel = el("select"), first = null, best = null, any = null;
+    sel.setAttribute("aria-label", x.dish + "：加入邊一日邊一餐");
+    for (var d = 1; d <= W.days; d++) (function (d) {
+      W.meals.forEach(function (mm, mi) {
+        if (x.meal && x.meal !== mm) return;
+        for (var k = 0; k < W.per[mi]; k++) {
+          var key = d + "-" + mi + "-" + k;
+          if (!(key in W.slots)) continue;
+          var cur = W.slots[key];
+          if (cur === i) continue;
+          var o = el("option", null, slotName(W, key) + (W.per[mi] > 1 ? " 第 " + (k + 1) + " 個餸" : "") + (cur >= 0 && S.ideas[cur] ? "（換走" + S.ideas[cur].dish + "）" : ""));
+          o.value = key; sel.appendChild(o);
+          if (any === null) any = key;
+          if (cur < 0 && first === null) first = key;
+          if (cur < 0 && best === null && x.day === d) best = key;
+        }
+      });
+    })(d);
+    if (any === null) return box;
+    sel.value = best || first || any;
+    var add = el("button", "btn2 on", "加入"); add.type = "button"; add.disabled = working;
+    add.onclick = function () { W.slots[sel.value] = i; W.logged = false; if (W.prep) S.plan = null; render(); };
+    box.appendChild(sel); box.appendChild(add);
+    return box;
   }
   function recipeActions(idea) {
     var wrap = el("div", "racts"), row = el("div", "acts2"), vi = S.ideas.indexOf(idea);
@@ -1531,25 +1558,17 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
         row.appendChild(see);
       }
     } else if (S.week && !S.isExample && vi >= 0) {
-      var W = S.week, at = [];
-      Object.keys(W.slots).forEach(function (k) { if (W.slots[k] === vi) at.push(k); });
-      var wk = el("button", "btn2 on", at.length ? "＋ 再排多一餐" : "＋ 加入呢個禮拜"); wk.type = "button";
-      wk.disabled = modifying || working;
-      wk.onclick = function () {
-        var k = weekSlotFor(W, idea);
-        if (!k) { weekMsg = "呢個禮拜" + (idea.meal || "") + "啱用嘅格已經全部保留咗。先喺一週餐單取消保留一格，再加。"; render(); return; }
-        W.slots[k] = vi; W.hold = W.hold || {}; W.hold[k] = true; W.logged = false; if (W.prep) S.plan = null;
-        weekMsg = ""; render();
-      };
-      row.appendChild(wk);
-      if (at.length) {
+      var W = S.week, placed = weekPlaced(vi), lab2 = el("div", "label");
+      lab2.appendChild(el("span", null, placed ? "已排入呢個禮拜" : "加入呢個禮拜？"));
+      wrap.appendChild(lab2);
+      if (placed) wrap.appendChild(placed);
+      var pick = weekPicker(vi);
+      if (pick.firstChild) {
         var see2 = el("button", "linkbtn", "睇一週餐單 →"); see2.type = "button";
-        see2.onclick = function () { view = "ideas"; modOpen = false; modErr = ""; weekMsg = ""; render(); $("ticket").scrollIntoView({ block: "start" }); };
-        row.appendChild(see2);
+        see2.onclick = function () { view = "ideas"; modOpen = false; modErr = ""; render(); $("ticket").scrollIntoView({ block: "start" }); };
+        pick.appendChild(see2); wrap.appendChild(pick);
       }
-      wrap.appendChild(row); row = el("div", "acts2");
-      if (at.length) wrap.appendChild(el("p", "hint", "✓ 已排入：" + at.map(function (k) { return slotName(W, k) + (W.hold && W.hold[k] ? "（保留）" : ""); }).join("、")));
-      if (weekMsg) wrap.appendChild(el("p", "note", weekMsg));
+      wrap.appendChild(el("p", "hint", placed ? "想再食多次，揀另一日再㩒「加入」；唔要就㩒日子旁邊嘅 ×。" : "揀邊日邊餐，再㩒「加入」。唔想要就唔使理。"));
     }
     var mod = el("button", "btn2", modOpen ? "收起修改" : "✎ 修改食譜"); mod.type = "button";
     mod.setAttribute("aria-expanded", modOpen ? "true" : "false");
@@ -1869,8 +1888,8 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
     if (!more && !S.isExample && S.meal === "share" && !S.week && st.meal === "share" && !W) { prunePicks(); S.picks.forEach(function (i) { if (S.ideas[i]) keep.push(S.ideas[i]); }); }
     // Week plan: dishes the cook held stay in their slots; everything else is suggested again.
     var held = [], oldStart = null;
-    if (!more && W && S.week && !S.isExample && S.week.hold) {
-      Object.keys(S.week.hold).forEach(function (k) { var i = S.week.slots[k]; if (S.week.hold[k] && i >= 0 && S.ideas[i]) held.push([k, S.ideas[i]]); });
+    if (!more && W && S.week && !S.isExample) {
+      Object.keys(S.week.slots).forEach(function (k) { var i = S.week.slots[k]; if (i >= 0 && S.ideas[i]) held.push([k, S.ideas[i]]); });
       if (held.length) oldStart = S.week.start;
       held.forEach(function (h) { if (keep.indexOf(h[1]) < 0) keep.push(h[1]); });
     }
@@ -1916,6 +1935,8 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
               slots[dd + "-" + mi + "-" + k] = pick;
             }
           });
+          // The week starts empty: the cook chooses every dish and where it goes. Claude's suggested day only preselects the picker.
+          Object.keys(slots).forEach(function (k) { slots[k] = -1; });
           S.week = { days: W.days, meals: W.meals, per: W.per, start: [t0.getFullYear(), t0.getMonth(), t0.getDate()], slots: slots, prep: W.prep };
         }
         if (keep.length) {

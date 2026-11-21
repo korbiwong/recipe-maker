@@ -359,6 +359,7 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
         <div class="field">
           <div class="label"><span>計幾多日</span> <b id="wDaysOut"></b></div>
           <div class="chips seg" id="wDaysSeg" role="radiogroup" aria-label="計幾多日"></div>
+          <p class="hint">3 日同 5 日只計星期一至五，唔計星期六日；今日係週末嘅話，由下個星期一開始。7 日就係成個禮拜。</p>
         </div>
         <div class="field">
           <div class="label"><span>每日邊餐</span> <b id="wMealsOut"></b></div>
@@ -907,7 +908,7 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
     return v === ANY ? "不限" : v + " kcal";
   });
   var drawPlanSeg = seg("planSeg", "planOut", ["meal", "week"], "plan", function (v) { return v === "week" ? "一個禮拜" : "今餐"; });
-  seg("wDaysSeg", "wDaysOut", [3, 5, 7], "wDays", function (v) { return v + " 日"; });
+  seg("wDaysSeg", "wDaysOut", [3, 5, 7], "wDays", function (v) { return v === 7 ? "7 日（成個禮拜）" : v + " 個平日"; });
   seg("wStyleSeg", "wStyleOut", ["fresh", "prep"], "wStyle", function (v) { return v === "prep" ? "Meal prep" : "每日新鮮煮"; });
   var WM = ["早餐", "午餐", "晚餐"];
   seg("whenSeg", "whenOut", WM, "when", function (v) { return v; });
@@ -927,14 +928,31 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
     $("wMealsOut").textContent = WM.filter(function (m) { return st.wMeals.indexOf(m) >= 0; }).join("、");
   }
   drawWMeals();
+  // 3- and 5-day plans are working days: Monday to Friday only, starting today or, at the weekend, next Monday.
+  // A 7-day plan is the whole week, starting today.
+  function isWeekend(d) { return d.getDay() === 0 || d.getDay() === 6; }
+  function weekDate(W, n) {   // the date of day n (1-based) of the plan
+    var d = new Date(W.start[0], W.start[1], W.start[2]);
+    if (!W.weekdays) { d.setDate(d.getDate() + n - 1); return d; }
+    while (isWeekend(d)) d.setDate(d.getDate() + 1);
+    for (var c = 1; c < n;) { d.setDate(d.getDate() + 1); if (!isWeekend(d)) c++; }
+    return d;
+  }
+  var EN_DAY = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
   function weekShape() {
+    var weekdays = st.wDays < 7, t = new Date(), s = new Date(t.getFullYear(), t.getMonth(), t.getDate());
+    if (weekdays) while (isWeekend(s)) s.setDate(s.getDate() + 1);
+    var start = [s.getFullYear(), s.getMonth(), s.getDate()], probe = { start: start, weekdays: weekdays }, names = [];
+    for (var n = 1; n <= st.wDays; n++) { var dn = weekDate(probe, n); names.push("day " + n + " = " + EN_DAY[dn.getDay()] + " " + dn.getDate() + "/" + (dn.getMonth() + 1)); }
+    var dayNote = (weekdays ? "These are working days only (Monday to Friday), no weekend days: " : "The days are: ") + names.join(", ") + "." +
+      (s.getTime() === new Date(t.getFullYear(), t.getMonth(), t.getDate()).getTime() ? " Day 1 is today." : " Day 1 is not today; the plan starts on the next working day.");
     var meals = WM.filter(function (m) { return st.wMeals.indexOf(m) >= 0; });
     var per = meals.map(function (m) { return st.meal === "share" && m !== "早餐" ? dishTotal() : 1; });
     var daily = 0; per.forEach(function (n) { daily += n; });
     var slots = st.wDays * daily, prep = st.wStyle === "prep";
     // Meal prep: each cooked dish is eaten on about three days, so far fewer distinct dishes are needed.
     var rec = per.map(function (n) { return Math.max(n, Math.ceil(st.wDays * n / 3)); }), recAll = 0; rec.forEach(function (n) { recAll += n; });
-    return { days: st.wDays, meals: meals, per: per, daily: daily, slots: slots, prep: prep, rec: rec,
+    return { days: st.wDays, meals: meals, per: per, daily: daily, slots: slots, prep: prep, rec: rec, weekdays: weekdays, start: start, dayNote: dayNote,
       pool: prep ? Math.min(20, recAll + Math.max(2, Math.ceil(recAll * 0.5))) : Math.min(30, slots + Math.max(3, Math.ceil(slots * 0.4))) };
   }
   seg("dietSeg", "dietOut", DIET_KEYS, "diet", function (v) { return DIETS[v][0]; });
@@ -1195,7 +1213,7 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
     wrap.appendChild(el("p", "desc", filled ? (W.prep ? "Meal prep：每個餸一次過煮幾份，分幾日食。" : "易壞嘅食材（海鮮、葉菜、免治肉）最好排喺頭幾日。")
       : "仲未排任何餸。喺下面嘅選擇度，揀想食嘅餸，再揀加入邊日邊餐。"));
     for (var d = 1; d <= W.days; d++) (function (d) {
-      var dt = new Date(W.start[0], W.start[1], W.start[2] + d - 1), row = el("div", "wday"), kc = 0;
+      var dt = weekDate(W, d), row = el("div", "wday"), kc = 0;
       W.meals.forEach(function (mm, mi) { for (var k = 0; k < W.per[mi]; k++) { var i = W.slots[d + "-" + mi + "-" + k]; if (i >= 0) kc += S.ideas[i].kcal || 0; } });
       var hd = el("strong", null, (dt.getMonth() + 1) + " 月 " + dt.getDate() + " 日（星期" + WD[dt.getDay()] + "）");
       if (kc) hd.appendChild(el("small", null, "每人約 " + kc + " kcal" + (S.meal === "share" ? "，未計飯" : "")));
@@ -1222,7 +1240,7 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
       var jobs = [], seen = {};
       for (var d = 1; d <= W.days; d++) W.meals.forEach(function (mm, mi) { for (var k = 0; k < W.per[mi]; k++) { var i = W.slots[d + "-" + mi + "-" + k]; if (i >= 0) jobs.push([d, mm, S.ideas[i]]); } });
       jobs.reduce(function (q, j) {
-        var dt = new Date(W.start[0], W.start[1], W.start[2] + j[0] - 1), x = j[2], r = x.recipe;
+        var dt = weekDate(W, j[0]), x = j[2], r = x.recipe;
         if (W.prep && !seen[x.dish]) { seen[x.dish] = true; pantryUsed(x.dish, x.uses); }
         var entry = { id: newId(), slot: j[1], dish: x.dish, country: x.country, method: x.method || "", health: x.health || 0, kcal: (r && r.kcal) || x.kcal || 0 };
         if (r) entry.recipe = { ingredients: r.ingredients.map(function (i) { return { item: i.item, qty: i.qty }; }), steps: r.steps };
@@ -1496,7 +1514,7 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
   var weekMsg = "";
   // "3-1-0" = day 3, meal 1, dish 0  ->  "11/23（星期一）晚餐"
   function slotName(W, key) {
-    var p = key.split("-"), dt = new Date(W.start[0], W.start[1], W.start[2] + Number(p[0]) - 1);
+    var p = key.split("-"), dt = weekDate(W, Number(p[0]));
     return (dt.getMonth() + 1) + "/" + dt.getDate() + "（星期" + WD[dt.getDay()] + "）" + W.meals[Number(p[1])];
   }
   function slotOrder(a, b) { var x = a.split("-").map(Number), y = b.split("-").map(Number); return x[0] - y[0] || x[1] - y[1] || x[2] - y[2]; }
@@ -1786,7 +1804,7 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
         "";
     }
     var need = W.meals.map(function (x, i) { return x + " " + W.per[i]; }).join("、");
-    return "Plan a menu for " + W.days + " days. Dishes needed each day, by meal: " + need + "." + mix +
+    return "Plan a menu for " + W.days + " days. " + W.dayNote + " Dishes needed each day, by meal: " + need + "." + mix +
       " Set meal on every option to exactly one of: " + W.meals.join("、") + ". Every option must suit its meal. " + W.meals.map(mealTimeRule).join(" ") +
       (W.meals.indexOf("早餐") >= 0 ? " A breakfast option is one complete individual breakfast, not a shared dish." : "") +
       (W.prep ? " This is MEAL PREP: the cook batch-cooks everything in one session and keeps portions in the fridge or freezer to reheat through the week. Only suggest dishes that keep for days and reheat well (braises, stews, curries, soups, marinated baked or pan-cooked meat, roasted or blanched sturdy vegetables, grain or rice bowls). Never dishes that must be eaten fresh or go soggy (crisp stir-fried leafy greens, deep-fried food, raw fish, runny eggs, dressed salads). Each cooked dish will be eaten on about three days."
@@ -1806,7 +1824,7 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
       W ? weekLine(W) : st.meal === "share" ? sharePlan()
         : "For each of these countries or regions, in this order, suggest exactly 3 different dishes: " + countryList() + ". Each must be a real home-style dish from that cuisine.",
       stock && stock.length ? "The cook's saved pantry, which is what is left from their grocery shopping (an item marked 用過 is partly used, so there may be less of it): " + stock.map(function (g) { var dl = daysLeft(g); return g.n + (g.s === 1 ? "（用過）" : "") + (dl !== null ? "（best before " + g.e + ", " + dl + " day(s) left）" : ""); }).join("、") + ". Treat these as the ingredients on hand, return them as the ingredients array (names only, without the notes in brackets), and favour the ones not yet used so that nothing is wasted."
-        + (stock.some(function (g) { return daysLeft(g) !== null; }) ? " Best-before dates matter: build dishes around the ingredients with the fewest days left first, so they are eaten before they expire" + (W ? "; in this multi-day plan, put any dish that uses a dated ingredient on a day on or before that ingredient's last day (day 1 is today), and never later" : "") + ". Say in each such dish's description which soon-to-expire ingredient it uses up." : "") : "",
+        + (stock.some(function (g) { return daysLeft(g) !== null; }) ? " Best-before dates matter: build dishes around the ingredients with the fewest days left first, so they are eaten before they expire" + (W ? "; in this multi-day plan, put any dish that uses a dated ingredient on a day on or before that ingredient's last day (count from today: " + W.dayNote + "), and never later" : "") + ". Say in each such dish's description which soon-to-expire ingredient it uses up." : "") : "",
       "You do NOT have to use every ingredient. For each dish pick only the few ingredients that genuinely suit it, and leave the rest out. Common pantry staples may be added. Make the dishes for a country differ in main ingredient or cooking style where possible.",
       notes && !(avoid && avoid.length) ? "Wished-for dish: if the cook's notes name a particular dish they want to make (for example 想煮咖喱雞), add it as ONE extra idea on top of the numbers asked for above, put it first, and set requested to true. Set its country to the cuisine it belongs to, even if that is not in the list" + (W ? ", and give it a day and meal like the others" : "") + ". It may need ingredients the cook does not have; list those in extra. Every other idea has requested false. If the notes name no dish, no idea is requested." : "",
       "In uses, list only the cook's own ingredients that the dish uses. In extra, list only the other MAIN ingredients the dish needs that the cook would have to buy: the meat, fish, vegetables, tofu, eggs, noodles and the like (names only, no quantities, at most 6). Leave out sauces, seasonings, oil, sugar, salt, spices, stock, cornstarch and aromatics such as garlic, ginger and spring onion. If the cook gave no ingredients, put all the main ingredients in extra.",
@@ -1920,7 +1938,7 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
         S = { isExample: false, limits: L, servings: servings, notes: notes, meal: meal, minHealth: minHealth, kcalMax: kcalMax, goalLine: goalRule(), gapLine: W ? "" : gapRule(), diet: st.diet, currency: d.currency, place: st.place, budget: st.budget, budgetScope: st.budgetScope, when: W ? "" : st.when, general: !d.ingredients.length, picks: [], plan: null, planMsg: "", target: { n: dishTotal(), m: st.meatN, v: st.vegN }, ingredients: d.ingredients, ideas: d.ideas,
           photoUrl: hasPhoto ? URL.createObjectURL(opts.images[0]) : null, week: null, pantryOffer: offer };
         if (W) {
-          var t0 = new Date(), slots = {}, used = {};
+          var slots = {}, used = {};
           if (W.prep) W.meals.forEach(function (mm, mi) {
             var chosen = []; d.ideas.forEach(function (x, i) { if (x.day > 0 && (!x.meal || x.meal === mm) && chosen.length < W.rec[mi]) chosen.push(i); });
             if (!chosen.length) d.ideas.forEach(function (x, i) { if ((!x.meal || x.meal === mm) && chosen.length < W.rec[mi]) chosen.push(i); });
@@ -1937,7 +1955,7 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
           });
           // The week starts empty: the cook chooses every dish and where it goes. Claude's suggested day only preselects the picker.
           Object.keys(slots).forEach(function (k) { slots[k] = -1; });
-          S.week = { days: W.days, meals: W.meals, per: W.per, start: [t0.getFullYear(), t0.getMonth(), t0.getDate()], slots: slots, prep: W.prep };
+          S.week = { days: W.days, meals: W.meals, per: W.per, start: W.start, weekdays: W.weekdays, slots: slots, prep: W.prep };
         }
         if (keep.length) {
           var kept = {}; keep.forEach(function (x) { kept[x.dish] = true; });

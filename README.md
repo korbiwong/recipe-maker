@@ -2,6 +2,8 @@
 
 A phone-friendly web app: photograph your ingredients (or skip the photo), pick cuisines and limits, choose dishes, get a combined cooking timeline with calorie estimates, and log what you ate in a calendar.
 
+The first tab also has a today dashboard: a calories-left ring with protein, carbs and fat, a one-tap photo log, a water counter, a weight log (with a chart in "我嘅目標") and a count of days in a row with something logged. Each photo or calorie estimate comes with a one-line comment on the meal, in a tone picked in "我嘅目標" (毒舌, 溫柔, 阿媽碎碎念, or none).
+
 This is the standalone version. It is a static site (no server), so it can be hosted on GitHub Pages and added to a phone's home screen.
 
 ## How it works

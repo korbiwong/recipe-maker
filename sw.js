@@ -1,5 +1,5 @@
 // Network first, falling back to the cached copy so the app still opens offline.
-const CACHE = "recipe-maker-v2";
+const CACHE = "recipe-maker-v3";
 const SHELL = ["./", "index.html", "app.js", "firebase-config.js", "manifest.webmanifest", "icon-192.png", "icon-512.png", "icon-180.png"];
 self.addEventListener("install", (e) => { e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting())); });
 self.addEventListener("activate", (e) => {

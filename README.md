@@ -2,6 +2,10 @@
 
 A phone-friendly web app: photograph your ingredients (or skip the photo), pick cuisines and limits, choose dishes, get a combined cooking timeline with calorie estimates, and log what you ate in a calendar.
 
+The first tab also has a today dashboard: a calories-left ring with protein, carbs and fat, a one-tap photo log, a water counter, a weight log (with a chart in "我嘅目標") and a count of days in a row with something logged. Each photo or calorie estimate comes with a one-line comment on the meal, in a tone picked in "我嘅目標" (毒舌, 溫柔, 阿媽碎碎念, 健身教練, 佛系, English bestie, or none); the water counter and the weekly review use the same tone.
+
+Also: exercise logging (net calories burned are added to that day's allowance), a built-in list of about 100 common Hong Kong foods that log with one tap, a 7-day summary under the calendar, optional body fat % (switches the formula to Katch-McArdle) and menstrual cycle (adds about 100 kcal in the luteal phase), and a calendar file with daily meal reminders for the phone's own calendar.
+
 This is the standalone version. It is a static site (no server), so it can be hosted on GitHub Pages and added to a phone's home screen.
 
 ## How it works

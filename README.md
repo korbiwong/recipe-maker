@@ -6,6 +6,8 @@ The first tab also has a today dashboard: a calories-left ring with protein, car
 
 Also: exercise logging (net calories burned are added to that day's allowance), a built-in list of about 100 common Hong Kong foods that log with one tap, a 7-day summary under the calendar, optional body fat % (switches the formula to Katch-McArdle) and menstrual cycle (adds about 100 kcal in the luteal phase), and a calendar file with daily meal reminders for the phone's own calendar.
 
+**Cary** (`cary/`) is a separate calorie-tracker site that shares the same account and records. It has a home page (calories left, macros, fibre, sugar and sodium, water, meals with photos), a + menu (photo, search, nutrition-label scan, upload, favourites, typing, exercise, water, weight), a progress page (nutrient charts, weight, body fat, muscle and visceral fat, BMI, 14-day calorie deficit, weekly comment), a connect page (an AI coach chat and friends by friend code), and a profile page (region, tone, reminders, day start hour, profile, nutrition limits, cycle). Friends need the `caryPublic` rule in `firestore-rules-to-add.txt`.
+
 This is the standalone version. It is a static site (no server), so it can be hosted on GitHub Pages and added to a phone's home screen.
 
 ## How it works

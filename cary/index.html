@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Cary</title>
 <meta name="description" content="影張相就知食咗幾多卡路里，仲會評你兩句。">
-<meta name="theme-color" content="#160f0b">
+<meta name="theme-color" content="#121010">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Cary">
@@ -13,223 +13,289 @@
 <link rel="icon" href="../icon-192.png">
 <link rel="apple-touch-icon" href="../icon-180.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+HK:wght@400;700;900&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+HK:wght@400;500;700;900&display=swap">
 <script src="../firebase-config.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="../app.js"></script>
 <style>
-/* Cary: a dark, warm calorie tracker. Espresso background, honey-gold accent, cream text; cards with soft edges; a bottom tab bar like a phone app. */
+/* Cary: near-black warm background, charcoal cards, amber accent, teal for exercise. A floating pill tab bar with a round add button, like a phone app. */
 :root {
-  --bg: #160f0b; --glow: #3a2414; --card: #241911; --card2: #2f2117; --field: #1b130d; --line: #4a3627;
-  --ink: #fbf1e3; --muted: #c4ae97; --gold: #f6b93b; --gold-ink: #1d1208;
-  --coral: #ff6b4a; --green: #8fd16f; --blue: #7cc8f2; --pro: #ff8a6b; --carb: #f6b93b; --fat: #7cc8f2;
-  --bubble: #fff1d6; --bubble-ink: #2a1a0c;
+  --bg: #121010; --card: #1e1b19; --card2: #282421; --field: #171413; --line: #322d29; --line2: #3e3833;
+  --ink: #f6f1ec; --muted: #9b928a; --dim: #6f6761;
+  --amber: #ffa21f; --amber-ink: #1a1005; --teal: #5db3a6; --teal-ink: #0d1f1c;
+  --red: #ff5f4d; --green: #7fd18a; --pro: #ff7a6b; --carb: #f2b33d; --fat: #5fc4c9; --fib: #8bd17c; --sug: #f28ab2; --sod: #8fa8ff;
+  --bubble: #3a2a14; --bubble-ink: #ffc061;
   color-scheme: dark;
 }
-* { box-sizing: border-box }
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent }
 [hidden] { display: none !important }
 html { -webkit-text-size-adjust: 100% }
-body { margin: 0; min-height: 100vh; background: radial-gradient(120% 50% at 50% 0%, var(--glow) 0%, var(--bg) 70%) fixed, var(--bg); color: var(--ink);
-  font: 400 16px/1.55 "Noto Sans HK", "PingFang HK", "PingFang TC", system-ui, sans-serif;
-  padding-bottom: calc(92px + env(safe-area-inset-bottom, 0px)) }
-.wrap { max-width: 560px; margin: 0 auto; padding: 0 max(16px, env(safe-area-inset-left, 0px)) 0 max(16px, env(safe-area-inset-right, 0px)) }
+body { margin: 0; min-height: 100vh; background: var(--bg); color: var(--ink); font: 400 16px/1.5 "Noto Sans HK", "PingFang HK", "PingFang TC", system-ui, sans-serif;
+  padding-bottom: calc(110px + env(safe-area-inset-bottom, 0px)) }
+.wrap { max-width: 560px; margin: 0 auto; padding: 0 max(16px, env(safe-area-inset-right, 0px)) 0 max(16px, env(safe-area-inset-left, 0px)) }
 h1, h2, h3, p { margin: 0 }
-button { font: inherit; color: inherit; cursor: pointer }
-button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px }
-input, select { font: inherit; color: var(--ink); background: var(--field); border: 1px solid var(--line); border-radius: 14px; padding: 11px 12px; width: 100%; min-width: 0 }
-input::placeholder { color: #8a7562 }
+button { font: inherit; color: inherit; cursor: pointer; background: none; border: 0; padding: 0 }
+button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 3px solid var(--amber); outline-offset: 2px }
+input, select, textarea { font: inherit; color: var(--ink); background: var(--field); border: 1px solid var(--line2); border-radius: 14px; padding: 11px 12px; width: 100%; min-width: 0 }
+input::placeholder, textarea::placeholder { color: var(--dim) }
+.ic { display: inline-grid; place-items: center; flex: none }
+.ic svg { width: 1.25em; height: 1.25em; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; display: block }
+.muted { color: var(--muted) } .hint { color: var(--muted); font-size: 0.86rem } .num { font-variant-numeric: tabular-nums }
 
-/* top bar */
-.top { position: sticky; top: 0; z-index: 10; padding: calc(10px + env(safe-area-inset-top, 0px)) 0 10px; background: linear-gradient(var(--bg) 70%, transparent) }
-.top .wrap { display: flex; align-items: center; gap: 10px }
-.top img { width: 36px; height: 36px; border-radius: 10px; display: block }
-.brand { font-weight: 900; font-size: 1.6rem; letter-spacing: -0.02em; color: var(--gold); flex: 1 }
-.pill { background: var(--card2); border: 1px solid var(--line); border-radius: 999px; padding: 4px 12px; font-size: 0.9rem; font-weight: 700; white-space: nowrap }
+/* header */
+.top { position: sticky; top: 0; z-index: 10; padding: calc(10px + env(safe-area-inset-top, 0px)) 0 8px; background: linear-gradient(var(--bg) 75%, rgba(18, 16, 16, 0)) }
+.top .wrap { display: flex; align-items: center; gap: 10px; min-height: 44px }
+.logo { width: 40px; height: 40px; border-radius: 50%; display: block; border: 2px solid var(--amber) }
+.brand { font-weight: 900; font-size: 1.5rem; letter-spacing: -0.01em; flex: 1 }
+.pagetitle { font-weight: 900; font-size: 1.7rem; flex: 1 }
+.pill { display: inline-flex; align-items: center; gap: 5px; background: var(--card2); border-radius: 999px; padding: 4px 11px; font-size: 0.82rem; font-weight: 700; white-space: nowrap }
+.pill.cyc { color: #b9a6ff; background: #2a2540 }
+.pill .ic { color: var(--amber) }
 
 /* cards */
-.card { background: var(--card); border: 1px solid var(--line); border-radius: 22px; padding: 16px; margin: 12px 0; display: grid; gap: 12px }
-.card h2 { font-size: 1.05rem; font-weight: 700 }
-.row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap }
-.row > .grow { flex: 1; min-width: 0 }
-.hint, .desc { color: var(--muted); font-size: 0.88rem }
-.big { font-weight: 900; font-size: 2.4rem; line-height: 1.1; letter-spacing: -0.02em }
-.big small { font-size: 1rem; font-weight: 700; color: var(--muted) }
+.card { background: var(--card); border-radius: 22px; padding: 16px; margin: 12px 0; display: grid; gap: 12px }
+.card h2 { font-size: 1rem; font-weight: 700 }
+.row { display: flex; align-items: center; gap: 10px }
+.grow { flex: 1; min-width: 0 }
+.sect { margin: 22px 4px 6px; display: flex; align-items: baseline; gap: 8px; font-size: 0.92rem; font-weight: 700; color: var(--muted) }
+.sect .grow + span { font-size: 0.78rem; font-weight: 400 }
 
 /* buttons */
-.primary { background: var(--gold); color: var(--gold-ink); border: 0; border-radius: 999px; padding: 11px 20px; font-weight: 700 }
-.primary:disabled { opacity: 0.5 }
-.btn2, .chip { background: transparent; color: var(--ink); border: 1px solid var(--line); border-radius: 999px; padding: 9px 16px; font-weight: 700 }
-.btn2:disabled { opacity: 0.5 }
-.small { padding: 6px 12px; font-size: 0.88rem }
-.linkbtn { background: none; border: 0; padding: 0; color: var(--gold); text-decoration: underline; font-size: 0.9rem; justify-self: start }
-.iconbtn { width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--line); background: var(--card2); display: grid; place-items: center; padding: 0; font-size: 1.1rem; line-height: 1; flex: none }
-.acts2 { display: flex; flex-wrap: wrap; gap: 8px; align-items: center }
+.primary { background: var(--amber); color: var(--amber-ink); border-radius: 999px; padding: 12px 20px; font-weight: 700; text-align: center }
+.primary:disabled, .btn2:disabled { opacity: 0.5 }
+.btn2 { border: 1px solid var(--line2); border-radius: 999px; padding: 9px 16px; font-weight: 700; text-align: center }
+.small { padding: 6px 12px; font-size: 0.86rem }
 .wide { width: 100% }
+.linkbtn { color: var(--amber); text-decoration: underline; font-size: 0.9rem }
+.iconbtn { width: 36px; height: 36px; border-radius: 50%; background: var(--card2); display: inline-grid; place-items: center; flex: none }
+.acts2 { display: flex; flex-wrap: wrap; gap: 8px; align-items: center }
 
-/* segmented options */
+/* options */
 .seg { display: flex; flex-wrap: wrap; gap: 8px }
-.opt { background: transparent; border: 1px solid var(--line); border-radius: 999px; padding: 8px 14px; font-weight: 700; font-size: 0.95rem }
-.opt[aria-checked="true"] { background: var(--gold); color: var(--gold-ink); border-color: var(--gold) }
+.opt { border: 1px solid var(--line2); border-radius: 999px; padding: 7px 14px; font-weight: 700; font-size: 0.92rem }
+.opt[aria-checked="true"] { background: var(--amber); color: var(--amber-ink); border-color: var(--amber) }
 .optcards { display: grid; gap: 10px }
-.optcards .opt { border-radius: 18px; padding: 14px 16px; text-align: left; display: grid; gap: 2px; font-size: 1.05rem }
-.optcards .opt small { font-weight: 400; font-size: 0.85rem; color: var(--muted) }
-.optcards .opt[aria-checked="true"] small { color: var(--gold-ink) }
-label.f { display: grid; gap: 6px; font-weight: 700; font-size: 0.92rem }
-label.f > span small { font-weight: 400; color: var(--muted) }
+.optcards .opt { border-radius: 18px; padding: 14px 16px; text-align: left; display: grid; gap: 2px; font-size: 1.02rem }
+.optcards .opt small { font-weight: 400; font-size: 0.84rem; color: var(--muted) }
+.optcards .opt[aria-checked="true"] small { color: var(--amber-ink) }
+label.f { display: grid; gap: 6px; font-weight: 700; font-size: 0.9rem }
 .two { display: grid; grid-template-columns: 1fr 1fr; gap: 10px }
-.unit { display: flex; align-items: center; gap: 8px } .unit span { color: var(--muted); white-space: nowrap }
+.unit { display: flex; align-items: center; gap: 8px } .unit > span { color: var(--muted); white-space: nowrap }
 .check { display: flex; gap: 10px; align-items: center; font-weight: 700 }
-.check input { width: 22px; height: 22px; accent-color: var(--gold); flex: none }
+.check input { width: 22px; height: 22px; accent-color: var(--amber); flex: none }
 
-/* date strip */
-.strip { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin-top: 4px }
-.strip button { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 6px 0; display: grid; gap: 0; justify-items: center; font-size: 0.78rem; color: var(--muted) }
-.strip button b { font-size: 1.05rem; color: var(--ink) }
-.strip button i { width: 6px; height: 6px; border-radius: 50%; background: transparent; margin-top: 2px }
-.strip button.has i { background: var(--gold) }
-.strip button[aria-pressed="true"] { background: var(--gold); border-color: var(--gold); color: var(--gold-ink) }
-.strip button[aria-pressed="true"] b { color: var(--gold-ink) }
-.strip button[aria-pressed="true"] i { background: var(--gold-ink) }
+/* week strip */
+.strip { background: var(--card); border-radius: 22px; padding: 10px 6px; display: grid; grid-template-columns: repeat(7, 1fr); margin-top: 4px }
+.strip button { display: grid; justify-items: center; gap: 6px; font-size: 0.75rem; color: var(--dim); padding: 2px 0 }
+.strip button b { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; font-size: 1rem; font-weight: 700; color: var(--ink) }
+.strip button i { width: 5px; height: 5px; border-radius: 50%; margin-top: -2px }
+.strip button.has i { background: var(--amber) }
+.strip button[aria-pressed="true"] b { background: var(--amber); color: var(--amber-ink) }
 
-/* calories ring and macro bars */
-.ringrow { display: flex; gap: 18px; align-items: center; flex-wrap: wrap }
-.ring { width: 150px; height: 150px; position: relative; flex: none }
-.ring svg { width: 100%; height: 100%; transform: rotate(-90deg); display: block }
-.ring .bg { fill: none; stroke: #3a2a1d; stroke-width: 13 }
-.ring .fg { fill: none; stroke: var(--gold); stroke-width: 13; stroke-linecap: round }
-.ring.over .fg { stroke: var(--coral) }
-.ring .mid { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; line-height: 1.15 }
-.ring .mid b { font-weight: 900; font-size: 2rem; letter-spacing: -0.02em }
-.ring .mid small { font-size: 0.78rem; color: var(--muted) }
-.macros { flex: 1; min-width: 170px; display: grid; gap: 10px }
-.macro { display: grid; gap: 4px }
-.macro .row { justify-content: space-between; font-size: 0.88rem }
-.macro .row b { font-weight: 700 }
-.macro .row span { color: var(--muted) }
-.mbar { height: 9px; border-radius: 99px; background: #3a2a1d; overflow: hidden }
-.mbar i { display: block; height: 100% ; border-radius: 99px }
-.mbar.over i { background: var(--coral) !important }
+/* summary */
+.sum { display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; align-items: center }
+.tag { display: inline-flex; align-items: center; gap: 4px; background: #1d3a33; color: #7fe0c8; border-radius: 999px; padding: 2px 9px; font-size: 0.72rem; font-weight: 700; justify-self: start }
+.huge { font-weight: 900; font-size: 2.9rem; line-height: 1.05; letter-spacing: -0.02em }
+.huge.over { color: var(--red) }
+.sumline { font-size: 0.9rem; color: var(--muted); display: flex; flex-wrap: wrap; align-items: center; gap: 6px }
+.sumline b { color: var(--amber); font-weight: 700 }
+.exlink { background: #1d3a33; color: #7fe0c8; border-radius: 999px; padding: 1px 8px; font-size: 0.78rem; font-weight: 700 }
+.ring { width: 118px; height: 118px; position: relative; grid-row: 1 / span 4; grid-column: 2 }
+.ring svg.r { width: 100%; height: 100%; transform: rotate(-90deg); display: block }
+.ring .bg { fill: none; stroke: #2e2926; stroke-width: 10 }
+.ring .fg { fill: none; stroke: var(--amber); stroke-width: 10; stroke-linecap: round }
+.ring.over .fg { stroke: var(--red) }
+.ring .mid { position: absolute; inset: 0; display: grid; place-items: center; color: var(--amber); font-size: 2rem }
+.ring.over .mid { color: var(--red) }
+.chips2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px }
+.chips2 div { background: var(--card2); border-radius: 12px; padding: 7px 10px; display: flex; align-items: center; gap: 6px; font-size: 0.82rem; color: var(--muted); white-space: nowrap; overflow: hidden }
+.chips2 b { color: var(--ink); font-weight: 700 }
+.chips2 .ic { color: #9fb3ff } .chips2 div + div .ic { color: var(--amber) }
 
-/* meals */
-.slothead { display: flex; align-items: center; gap: 10px }
-.slothead h3 { font-size: 1rem; font-weight: 700; flex: 1 }
-.slothead span { color: var(--muted); font-size: 0.88rem }
-.item { background: var(--card2); border-radius: 16px; padding: 10px 12px; display: grid; gap: 6px }
-.item .row { flex-wrap: nowrap; align-items: flex-start }
-.item strong { font-weight: 700 }
-.item .sub { font-size: 0.82rem; color: var(--muted) }
-.empty { color: var(--muted); font-size: 0.88rem; padding: 2px 0 }
-.slot + .slot { border-top: 1px solid var(--line); padding-top: 12px }
-.slot { display: grid; gap: 8px }
+/* macro pager */
+.pager { display: grid; grid-auto-flow: column; grid-auto-columns: 100%; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; margin: 12px 0 0 }
+.pager::-webkit-scrollbar { display: none }
+.page3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; scroll-snap-align: start }
+.mac { background: var(--card); border-radius: 18px; padding: 12px 8px; display: grid; justify-items: center; gap: 4px; text-align: center }
+.mini { width: 48px; height: 48px; position: relative }
+.mini svg.r { width: 100%; height: 100%; transform: rotate(-90deg) }
+.mini .bg { fill: none; stroke: #2e2926; stroke-width: 5 }
+.mini .fg { fill: none; stroke-width: 5; stroke-linecap: round }
+.mini .ic { position: absolute; inset: 0; font-size: 0.85rem }
+.mac small { font-size: 0.78rem; color: var(--muted) }
+.mac b { font-weight: 700; font-size: 0.95rem } .mac b span { color: var(--dim); font-weight: 400; font-size: 0.75rem }
+.mac.over b { color: var(--red) }
+.dots { display: flex; justify-content: center; gap: 5px; margin: 8px 0 0 }
+.dots i { width: 6px; height: 6px; border-radius: 50%; background: var(--line2) } .dots i.on { background: var(--amber) }
 
-/* the comment bubble */
-.bubble { background: var(--bubble); color: var(--bubble-ink); border-radius: 18px 18px 18px 6px; padding: 9px 14px; font-weight: 700; font-size: 0.95rem; line-height: 1.5 }
-.bubble::before { content: "Cary 話"; display: block; font-size: 0.72rem; font-weight: 700; color: #8a5a1e; letter-spacing: 0.04em }
+/* action buttons */
+.acts { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 14px 0 }
+.acts button { border-radius: 16px; padding: 14px 8px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 8px }
+.eat { background: var(--amber); color: var(--amber-ink) } .move { background: var(--teal); color: var(--teal-ink) }
 
-/* water and exercise */
-.cups { display: flex; flex-wrap: wrap; gap: 6px }
-.cup { width: 24px; height: 30px; border: 2px solid var(--line); border-radius: 4px 4px 9px 9px; background: transparent }
-.cup.on { background: var(--blue); border-color: var(--blue) }
-.exlist { display: grid; gap: 6px; list-style: none; margin: 0; padding: 0 }
-.exlist li { display: flex; justify-content: space-between; gap: 8px; align-items: center; background: var(--card2); border-radius: 12px; padding: 8px 12px; font-size: 0.92rem }
+/* water strip */
+.water { display: flex; align-items: center; gap: 10px }
+.cups { display: flex; flex-wrap: wrap; gap: 4px; flex: 1 }
+.cup { width: 15px; height: 20px; border: 2px solid var(--line2); border-radius: 3px 3px 6px 6px } .cup.on { background: var(--fat); border-color: var(--fat) }
 
-/* stats and charts */
-.stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px }
-.stat { background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 12px 14px }
-.stat small { color: var(--muted); font-size: 0.8rem; display: block }
-.stat b { font-weight: 900; font-size: 1.4rem; letter-spacing: -0.01em }
+/* diary */
+.banner { background: var(--bubble); color: var(--bubble-ink); border-radius: 14px 14px 0 0; padding: 9px 14px; font-weight: 700; font-size: 0.88rem; display: flex; gap: 8px; align-items: flex-start }
+.banner + .meal { border-top-left-radius: 0; border-top-right-radius: 0 }
+.meal { background: var(--card); border-radius: 18px; padding: 10px; display: grid; grid-template-columns: 96px 1fr; gap: 12px; align-items: center; width: 100%; text-align: left; margin-bottom: 10px }
+.meal .ph { width: 96px; height: 84px; border-radius: 12px; background: var(--card2) center / cover; display: grid; place-items: center; font-size: 1.8rem; color: var(--dim) }
+.meal .t { display: flex; gap: 8px; align-items: baseline } .meal .t strong { flex: 1; min-width: 0; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
+.meal .t small { color: var(--muted); font-size: 0.78rem; white-space: nowrap }
+.meal .k { font-weight: 900; font-size: 1.25rem; display: flex; align-items: center; gap: 4px } .meal .k .ic { color: var(--red) }
+.meal .k.none { font-size: 0.9rem; font-weight: 700; color: var(--amber) }
+.meal .m { display: flex; gap: 12px; font-size: 0.8rem; color: var(--muted) } .meal .m span { display: inline-flex; gap: 3px; align-items: center }
+.slotlab { font-size: 0.72rem; color: var(--dim) }
+.bubble { background: var(--bubble); color: var(--bubble-ink); border-radius: 16px 16px 16px 6px; padding: 9px 13px; font-weight: 700; font-size: 0.92rem }
+.emptylog { background: var(--card); border-radius: 18px; padding: 22px; text-align: center; color: var(--muted); display: grid; gap: 10px; justify-items: center }
+
+/* progress */
+.nchips { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none } .nchips::-webkit-scrollbar { display: none }
+.nchips button { flex: none; height: 34px; min-width: 34px; border-radius: 999px; background: var(--card2); display: inline-flex; align-items: center; justify-content: center; gap: 5px; padding: 0 9px; font-size: 0.85rem; font-weight: 700 }
+.nchips button[aria-pressed="true"] { background: var(--amber); color: var(--amber-ink) !important }
+.status { text-align: right; font-size: 0.85rem; color: var(--green); font-weight: 700 } .status.over { color: var(--red) }
 .chart { display: block; width: 100%; height: auto }
-.chart .ax { stroke: var(--line); stroke-width: 1 }
-.chart .tg { stroke: var(--green); stroke-width: 2; stroke-dasharray: 6 5 }
-.chart .ln { fill: none; stroke: var(--gold); stroke-width: 3; stroke-linejoin: round; stroke-linecap: round }
-.chart .pt { fill: var(--card); stroke: var(--gold); stroke-width: 2.5 }
-.chart .bar { fill: var(--gold) } .chart .bar.over { fill: var(--coral) } .chart .bar.none { fill: var(--line) }
-.chart text { fill: var(--muted); font-size: 11px; font-family: inherit }
-.kv { display: grid; gap: 0; margin: 0 }
-.kv div { display: flex; justify-content: space-between; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--line) }
-.kv div:last-child { border-bottom: 0 }
-.kv dt { color: var(--muted) } .kv dd { margin: 0; font-weight: 700; text-align: right }
-.warn { background: #3d2a12; border: 1px solid #7a5520; color: #ffd9a0; border-radius: 14px; padding: 10px 12px; font-size: 0.88rem }
+.chart .ax { stroke: var(--line); stroke-width: 1 } .chart .cap { stroke: var(--muted); stroke-width: 1.5; stroke-dasharray: 5 4 }
+.chart .bar { fill: #3a332d } .chart .bar.has { fill: var(--amber) } .chart .bar.sel { fill: #ffc46b } .chart .bar.over { fill: var(--red) }
+.chart text { fill: var(--dim); font-size: 10px; font-family: inherit } .chart text.sel { fill: var(--amber); font-weight: 700 }
+.chart .capl { fill: var(--ink); font-size: 10px; font-weight: 700 } .chart .capbg { fill: var(--card2) }
+.chart .ln { fill: none; stroke: var(--amber); stroke-width: 2.5; stroke-linejoin: round; stroke-linecap: round } .chart .pt { fill: var(--amber) }
+.chart .tg { stroke: var(--green); stroke-width: 1.5; stroke-dasharray: 5 4 }
+.range { display: flex; align-items: center; gap: 8px } .range span { flex: 1; text-align: center; background: var(--card2); border-radius: 999px; padding: 7px; font-size: 0.88rem; font-weight: 700 }
+.body2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px }
+.bcard { background: var(--card); border-radius: 18px; padding: 14px; display: grid; gap: 4px; align-content: start; text-align: left; position: relative; min-height: 132px }
+.bcard.full { grid-column: 1 / -1; min-height: 0 }
+.bcard .plus { position: absolute; top: 10px; right: 10px; width: 28px; height: 28px }
+.bcard small { color: var(--muted); font-size: 0.8rem }
+.bcard .v { font-weight: 900; font-size: 1.7rem; letter-spacing: -0.01em } .bcard .v span { font-size: 0.85rem; font-weight: 400; color: var(--muted) }
+.bcard .v.none { font-size: 1.15rem; color: var(--dim) }
+.spark { width: 100%; height: 36px; display: block } .spark path { fill: none; stroke: var(--dim); stroke-width: 1.5; stroke-dasharray: 3 3 } .spark .ln2 { stroke: var(--amber); stroke-dasharray: none; stroke-width: 2 } .spark circle { fill: var(--ink) }
+.gauge { display: flex; gap: 3px; height: 6px; margin-top: 6px; position: relative } .gauge i { flex: 1; border-radius: 3px }
+.gauge b { position: absolute; top: -4px; width: 3px; height: 14px; background: var(--ink); border-radius: 2px }
+.ok { color: var(--teal); font-weight: 700; font-size: 0.8rem }
+.stats5 { display: grid; grid-template-columns: repeat(5, 1fr); text-align: center; gap: 2px }
+.stats5 div { display: grid; gap: 1px; justify-items: center } .stats5 b { font-weight: 900; font-size: 1.05rem } .stats5 small { font-size: 0.68rem; color: var(--muted) }
+.stats5 .ic { font-size: 0.95rem; color: var(--amber) }
 
-/* hits from the food list */
-.hits { display: grid; gap: 6px }
-.hits button { display: flex; justify-content: space-between; gap: 10px; text-align: left; background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 10px 12px }
-.hits button span { color: var(--muted); white-space: nowrap }
-.rrow { display: grid; grid-template-columns: minmax(0, 1fr) 90px 34px; gap: 6px; align-items: center }
-.rrow input { padding: 8px 10px }
-.thumb { width: 100%; max-height: 220px; object-fit: cover; border-radius: 16px; display: block }
+/* connect */
+.search { display: flex; align-items: center; gap: 8px; background: var(--card); border-radius: 14px; padding: 0 12px } .search input { background: none; border: 0; padding: 11px 0 }
+.person { display: flex; align-items: center; gap: 12px; padding: 12px 4px; width: 100%; text-align: left; border-bottom: 1px solid var(--line) }
+.av { width: 52px; height: 52px; border-radius: 50%; display: grid; place-items: center; font-weight: 900; font-size: 1.3rem; flex: none; background: #26313a; color: #a9c6dd }
+.av.coach { background: var(--amber); color: var(--amber-ink) }
+.person b { font-weight: 700 } .person small { display: block; color: var(--muted); font-size: 0.84rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
+.beta { font-size: 0.62rem; border: 1px solid var(--line2); border-radius: 6px; padding: 0 5px; margin-left: 6px; color: var(--muted); vertical-align: middle }
+.unread { width: 10px; height: 10px; border-radius: 50%; background: var(--amber); flex: none }
+.invite { text-align: center; display: grid; gap: 6px; justify-items: center; padding: 30px 0 }
+.invite b { font-size: 1.05rem }
+.chat { display: grid; gap: 8px; align-content: start; min-height: 40vh; max-height: 58vh; overflow-y: auto; padding: 4px 0 }
+.msg { max-width: 82%; padding: 9px 13px; border-radius: 18px; white-space: pre-wrap; font-size: 0.95rem; line-height: 1.5 }
+.msg.u { justify-self: end; background: var(--amber); color: var(--amber-ink); border-bottom-right-radius: 6px }
+.msg.a { justify-self: start; background: var(--card); border-bottom-left-radius: 6px }
+.msg img { display: block; max-width: 160px; border-radius: 10px; margin-bottom: 6px }
+.composer { display: flex; gap: 8px; align-items: flex-end } .composer textarea { resize: none; height: 46px; max-height: 120px }
 
-/* floating camera button and bottom tabs */
-.fab { position: fixed; right: max(18px, calc(50vw - 262px)); bottom: calc(84px + env(safe-area-inset-bottom, 0px)); z-index: 20; width: 64px; height: 64px; border-radius: 50%; border: 0;
-  background: var(--gold); color: var(--gold-ink); font-size: 1.7rem; box-shadow: 0 10px 28px rgba(0, 0, 0, 0.5), 0 0 0 4px rgba(246, 185, 59, 0.2) }
-.tabbar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 15; background: rgba(22, 15, 11, 0.94); border-top: 1px solid var(--line);
-  padding: 6px 0 calc(6px + env(safe-area-inset-bottom, 0px)); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px) }
-.tabbar .wrap { display: grid; grid-template-columns: repeat(3, 1fr) }
-.tabbar button { background: none; border: 0; display: grid; justify-items: center; gap: 2px; padding: 6px 0; color: var(--muted); font-size: 0.78rem; font-weight: 700 }
-.tabbar svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round }
-.tabbar button[aria-current="page"] { color: var(--gold) }
+/* profile */
+.prof { display: flex; align-items: center; gap: 14px }
+.prof .av { width: 60px; height: 60px; background: #3a2c1c; color: var(--amber); font-size: 1.5rem }
+.prof b { font-size: 1.3rem; font-weight: 900 }
+.list { background: var(--card); border-radius: 18px; overflow: hidden }
+.li { display: flex; align-items: center; gap: 14px; padding: 13px 16px; width: 100%; text-align: left }
+.li + .li { border-top: 1px solid var(--line) }
+.li > .ic { color: var(--amber); font-size: 1.05rem }
+.li .grow small { display: block; color: var(--muted); font-size: 0.8rem }
+.li .chev { color: var(--dim) }
+.li.red, .li.red > .ic { color: var(--red) }
+.foot { text-align: center; color: var(--dim); font-size: 0.76rem; padding: 18px 0 }
 
-/* bottom sheet and dialogs */
+/* tab bar and add button */
+.nav { position: fixed; left: 0; right: 0; bottom: calc(10px + env(safe-area-inset-bottom, 0px)); z-index: 20 }
+.nav .wrap { display: flex; gap: 10px; align-items: center }
+.navpill { flex: 1; display: grid; grid-template-columns: repeat(4, 1fr); background: rgba(40, 36, 33, 0.82); border: 1px solid var(--line2); border-radius: 999px; padding: 5px;
+  -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5) }
+.navpill button { display: grid; justify-items: center; gap: 1px; padding: 6px 0; border-radius: 999px; font-size: 0.7rem; font-weight: 700; color: var(--ink) }
+.navpill button .ic { font-size: 1.15rem }
+.navpill button[aria-current="page"] { background: rgba(255, 255, 255, 0.1); color: var(--amber) }
+.addbtn { width: 62px; height: 62px; border-radius: 50%; background: var(--amber); color: var(--amber-ink); display: grid; place-items: center; font-size: 1.8rem; flex: none; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5); transition: transform 0.2s }
+.addbtn[aria-expanded="true"] { transform: rotate(45deg) }
+@media (prefers-reduced-motion: reduce) { .addbtn { transition: none } }
+
+/* add menu */
+.menu { position: fixed; inset: 0; z-index: 19; background: rgba(10, 9, 9, 0.6); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); display: flex; align-items: flex-end }
+.menu .wrap { width: 100%; padding-bottom: calc(92px + env(safe-area-inset-bottom, 0px)) }
+.menubox { background: rgba(40, 36, 33, 0.95); border: 1px solid var(--line2); border-radius: 26px; padding: 16px; display: grid; gap: 12px }
+.menubox h2 { font-size: 1rem; font-weight: 900 } .menubox h2 small { font-weight: 400; color: var(--muted); font-size: 0.82rem; margin-left: 6px }
+.mgrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px 6px }
+.mgrid button { display: grid; justify-items: center; gap: 6px; font-size: 0.85rem; font-weight: 700 }
+.mgrid .ic { width: 52px; height: 52px; border-radius: 50%; background: #33291d; color: var(--amber); font-size: 1.25rem }
+.mfoot { background: rgba(0, 0, 0, 0.25); border-radius: 12px; padding: 7px; text-align: center; font-size: 0.78rem; color: var(--muted) } .mfoot b { color: var(--amber) }
+
+/* sheets */
 dialog { color: var(--ink) }
-dialog::backdrop { background: rgba(0, 0, 0, 0.6) }
-dialog.sheet { margin: auto auto 0; width: 100%; max-width: 560px; max-height: 90vh; border: 1px solid var(--line); border-bottom: 0; border-radius: 26px 26px 0 0; background: var(--card2);
+dialog::backdrop { background: rgba(0, 0, 0, 0.65) }
+dialog.sheet { margin: auto auto 0; width: 100%; max-width: 560px; max-height: 92vh; border: 1px solid var(--line2); border-bottom: 0; border-radius: 26px 26px 0 0; background: #201d1b;
   padding: 16px 16px calc(18px + env(safe-area-inset-bottom, 0px)); overflow: auto }
 dialog.sheet[open] { display: grid; gap: 14px }
 .sheethead { display: flex; align-items: center; gap: 10px } .sheethead h2 { flex: 1; font-size: 1.2rem; font-weight: 900 }
-dialog.keydlg { border: 1px solid var(--line); border-radius: 22px; padding: 18px; width: min(440px, 92vw); background: var(--card2) }
-dialog.keydlg[open] { display: grid; gap: 12px }
-dialog.keydlg h2 { font-size: 1.2rem; font-weight: 900 }
-.spin { width: 38px; height: 38px; border-radius: 50%; border: 4px solid var(--line); border-top-color: var(--gold); animation: spin 0.9s linear infinite; justify-self: center }
+dialog.keydlg { border: 1px solid var(--line2); border-radius: 22px; padding: 18px; width: min(440px, 92vw); background: #201d1b }
+dialog.keydlg[open] { display: grid; gap: 12px } dialog.keydlg h2 { font-size: 1.2rem; font-weight: 900 }
+dialog.keydlg .desc { color: var(--muted); font-size: 0.9rem } dialog.keydlg .chip { border: 1px solid var(--line2); border-radius: 999px; padding: 8px 14px }
+.thumb { width: 100%; max-height: 240px; object-fit: cover; border-radius: 16px; display: block }
+.spin { width: 38px; height: 38px; border-radius: 50%; border: 4px solid var(--line2); border-top-color: var(--amber); animation: spin 0.9s linear infinite; justify-self: center }
 @keyframes spin { to { transform: rotate(360deg) } }
 @media (prefers-reduced-motion: reduce) { .spin { animation-duration: 3s } }
-.toast { position: fixed; left: 50%; bottom: calc(160px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); z-index: 40; background: var(--ink); color: var(--gold-ink); padding: 10px 16px; border-radius: 999px; font-weight: 700; font-size: 0.92rem; max-width: 90vw; text-align: center }
-.tabs.acct { display: flex; flex-wrap: wrap; gap: 8px }
+.hits { display: grid; gap: 6px }
+.hits button { display: flex; justify-content: space-between; gap: 10px; text-align: left; background: var(--card); border-radius: 14px; padding: 11px 12px } .hits button span { color: var(--muted); white-space: nowrap }
+.rrow { display: grid; grid-template-columns: minmax(0, 1fr) 88px 36px; gap: 6px; align-items: center } .rrow input { padding: 8px 10px }
+.kv { display: grid; margin: 0 } .kv div { display: flex; justify-content: space-between; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--line) } .kv div:last-child { border-bottom: 0 }
+.kv dt { color: var(--muted) } .kv dd { margin: 0; font-weight: 700; text-align: right }
+.warn { background: #3a2812; color: #ffd08a; border-radius: 14px; padding: 10px 12px; font-size: 0.86rem }
+.toast { position: fixed; left: 50%; bottom: calc(96px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); z-index: 40; background: var(--ink); color: #1a1512; padding: 10px 16px; border-radius: 999px; font-weight: 700; font-size: 0.9rem; max-width: 90vw; text-align: center }
+.code { font-weight: 900; font-size: 1.8rem; letter-spacing: 0.12em; text-align: center; background: var(--card); border-radius: 14px; padding: 10px }
+.prose { display: grid; gap: 10px; font-size: 0.92rem; color: #d9d1c9 }
 
 /* first-run questions */
-.onb { position: fixed; inset: 0; z-index: 30; background: radial-gradient(120% 60% at 50% 0%, var(--glow) 0%, var(--bg) 70%), var(--bg); overflow: auto }
+.onb { position: fixed; inset: 0; z-index: 30; background: var(--bg); overflow: auto }
 .onb .wrap { min-height: 100%; display: flex; flex-direction: column; gap: 18px; padding-top: calc(20px + env(safe-area-inset-top, 0px)); padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px)) }
-.onb .prog { height: 6px; border-radius: 99px; background: var(--card2); overflow: hidden } .onb .prog i { display: block; height: 100%; background: var(--gold) }
-.onb h1 { font-size: 1.8rem; font-weight: 900; line-height: 1.25; letter-spacing: -0.01em }
+.onb .prog { height: 6px; border-radius: 99px; background: var(--card2); overflow: hidden } .onb .prog i { display: block; height: 100%; background: var(--amber) }
+.onb h1 { font-size: 1.8rem; font-weight: 900; line-height: 1.25 }
 .onb .body { display: grid; gap: 14px; align-content: start; flex: 1 }
-.onb .foot { display: grid; gap: 10px }
-.onb .foot .primary { padding: 15px; font-size: 1.05rem }
-.hero { display: grid; justify-items: center; text-align: center; gap: 14px; padding-top: 8vh }
-.hero img { width: 104px; height: 104px; border-radius: 28px; box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5) }
-.hero .brand { font-size: 3rem; flex: none }
-.hero p { color: var(--muted); font-size: 1.1rem; white-space: pre-line }
-.bmi { font-weight: 700; color: var(--gold) }
+.onb .footer { display: grid; gap: 10px } .onb .footer .primary { padding: 15px; font-size: 1.05rem }
+.hero { display: grid; justify-items: center; text-align: center; gap: 14px; padding-top: 10vh }
+.hero img { width: 110px; height: 110px; border-radius: 50%; border: 3px solid var(--amber); box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5) }
+.hero .brand { font-size: 3rem; flex: none } .hero p { color: var(--muted); font-size: 1.1rem; white-space: pre-line }
+.bmi { font-weight: 700; color: var(--amber) }
 </style>
 </head>
 <body>
-<header class="top"><div class="wrap"><img src="../icon-192.png" alt=""><span class="brand">Cary</span><span class="pill" id="streak" hidden></span></div></header>
-
+<header class="top"><div class="wrap" id="topbar"></div></header>
 <main class="wrap">
-  <section id="pgToday" aria-label="今日"></section>
+  <section id="pgHome" aria-label="主頁"></section>
   <section id="pgProg" aria-label="進度" hidden></section>
-  <section id="pgMe" aria-label="我" hidden>
-    <div id="meForm"></div>
-    <div class="card">
-      <h2>帳戶同 API key</h2>
-      <p class="hint">影相認食物要用你自己嘅 Anthropic API key（只存喺呢部裝置）。登入之後，記錄會跟住帳戶去其他裝置，亦會同「食譜製造器」共用同一份。</p>
-      <div class="tabs acct" id="acct"></div>
-      <div class="acts2"><button type="button" class="btn2 small" id="redo">重新答一次開頭啲問題</button><a class="linkbtn" href="../">去食譜製造器</a></div>
-    </div>
-  </section>
+  <section id="pgLink" aria-label="連繫" hidden></section>
+  <section id="pgMe" aria-label="個人" hidden></section>
 </main>
+<div class="tabs" id="acct" hidden></div>
 
-<button type="button" class="fab" id="fab" aria-label="影相記低食物">📸</button>
-<nav class="tabbar" aria-label="頁面"><div class="wrap">
-  <button type="button" data-pg="today" aria-current="page"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg>今日</button>
-  <button type="button" data-pg="prog"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>進度</button>
-  <button type="button" data-pg="me"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 4-6 8-6s7 2 8 6"/></svg>我</button>
+<div class="menu" id="menu" hidden><div class="wrap"><div class="menubox" role="menu" aria-label="記低食物">
+  <h2>又食嘢？<small>揀個方法記低佢</small></h2>
+  <div class="mgrid" id="mgrid"></div>
+  <p class="mfoot" id="mfoot"></p>
+</div></div></div>
+<nav class="nav" aria-label="頁面"><div class="wrap">
+  <div class="navpill" id="navpill"></div>
+  <button type="button" class="addbtn" id="addbtn" aria-label="記低" aria-expanded="false"></button>
 </div></nav>
 
 <dialog class="sheet" id="sheet"></dialog>
 <div class="onb" id="onb" hidden></div>
 <div class="toast" id="toast" role="status" hidden></div>
-<input type="file" id="pin" accept="image/jpeg,image/png,image/webp,image/gif" multiple hidden>
+<input type="file" id="pinCam" accept="image/*" capture="environment" hidden>
+<input type="file" id="pinLib" accept="image/jpeg,image/png,image/webp,image/gif" multiple hidden>
 
 <script>
 (function () {
@@ -237,35 +303,59 @@ dialog.keydlg h2 { font-size: 1.2rem; font-weight: 900 }
   function el(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
   function pad(n) { return (n < 10 ? "0" : "") + n; }
   function num(v) { v = Math.round(Number(v)); return isFinite(v) && v > 0 ? v : 0; }
+  function fmt(n) { return Math.round(n).toLocaleString("en-US"); }
   function newId() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
   function isoDay(t) { return t.getFullYear() + "-" + pad(t.getMonth() + 1) + "-" + pad(t.getDate()); }
   function fromIso(s) { var a = s.split("-"); return new Date(+a[0], +a[1] - 1, +a[2]); }
-  function today0() { var t = new Date(); return new Date(t.getFullYear(), t.getMonth(), t.getDate()); }
+  function sameDay(a, b) { return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate(); }
+  function addDays(d, n) { return new Date(d.getFullYear(), d.getMonth(), d.getDate() + n); }
   var SLOTS = ["早餐", "午餐", "晚餐", "小食"], WD = ["日", "一", "二", "三", "四", "五", "六"];
-  function defaultSlot() { var h = new Date().getHours(); return h < 11 ? "早餐" : h < 15 ? "午餐" : h < 21 ? "晚餐" : "小食"; }
   var toastT = null;
   function toast(msg) { var t = $("toast"); t.textContent = msg; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(function () { t.hidden = true; }, 3200); }
-  var COPY = { no_key: "未設定 API key。去「我」頁㩒「設定 API key」。", bad_key: "API key 唔啱，去「我」頁再設定。", rate_limited: "太多人用緊，等一陣再試。",
-    bad_request: "呢個內容用唔到，試下另一張相。", refused: "呢張相處理唔到，試下另一張。", empty_completion: "冇回應，再試一次。", invalid_json: "讀唔明回應，再試一次。",
+  var COPY = { no_key: "未設定 API key。去「個人」頁㩒「Claude API key」。", bad_key: "API key 唔啱，去「個人」頁再設定。", rate_limited: "太多人用緊，等一陣再試。",
+    bad_request: "呢個內容用唔到，試下另一張相。", refused: "呢個處理唔到，試下另一個。", empty_completion: "冇回應，再試一次。", invalid_json: "讀唔明回應，再試一次。",
     image_rejected: "呢張相用唔到，請用 JPEG、PNG 或 WebP。", upstream_error: "連唔到 Claude，再試一次。" };
   function failMsg(e) { var c = e && e.code; return c === "cancelled" ? "已停止。" : COPY[c] || COPY.upstream_error; }
 
-  /* ---- profile: the same record as 食譜製造器, so both apps share it ---- */
+  /* ---- icons ---- */
+  var IC = {
+    home: "M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z", chart: "M3 20h18M6 16l4-5 3 3 5-7", people: "M9 11a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7zM2 20c.8-3.5 3.6-5.5 7-5.5s6.2 2 7 5.5M16 4.3a3.3 3.3 0 0 1 0 6.4M18 14.6c2 .6 3.4 2.4 4 5.4",
+    person: "M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 21c1-4 4-6 8-6s7 2 8 6", plus: "M12 5v14M5 12h14", x: "M6 6l12 12M18 6L6 18",
+    camera: "M4 8h3l2-3h6l2 3h3v11H4zM12 16.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z", search: "M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14zM20 20l-4-4",
+    scan: "M4 8V5h3M17 5h3v3M20 16v3h-3M7 19H4v-3M8 9v6M11 9v6M14 9v6M17 9v6", image: "M3 6h18v13H3zM3 16l5-5 4 4 3-3 6 6M16 10h.01", bookmark: "M6 3h12v18l-6-4-6 4z",
+    keyboard: "M2 7h20v11H2zM6 11h.01M10 11h.01M14 11h.01M18 11h.01M7 15h10", run: "M14 5.5a1.5 1.5 0 1 0 0-.01M10 21l2-6 3 2v4M6 12l3-4h4l3 3 3 1M11 8l-2 6-4 1",
+    drop: "M12 3c3 4.5 6 7.5 6 11a6 6 0 0 1-12 0c0-3.5 3-6.5 6-11z", scale: "M4 20h16l-2-12H6zM9 8a3 3 0 0 1 6 0M12 12l1.5-2.5",
+    flame: "M12 3c1 4 5 5.5 5 10a5 5 0 0 1-10 0c0-2.5 1.5-4 2.5-5 0 2 1 3 2 3 0-3-1-5.5.5-8z", moon: "M20 14A8 8 0 1 1 10 4a6 6 0 0 0 10 10z", bolt: "M13 2L4 14h7l-1 8 9-12h-7z",
+    gear: "M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM19 12a7 7 0 0 0-.1-1.2l2-1.6-2-3.4-2.4 1a7 7 0 0 0-2-1.2L14 3h-4l-.5 2.6a7 7 0 0 0-2 1.2l-2.4-1-2 3.4 2 1.6A7 7 0 0 0 5 12c0 .4 0 .8.1 1.2l-2 1.6 2 3.4 2.4-1a7 7 0 0 0 2 1.2L10 21h4l.5-2.6a7 7 0 0 0 2-1.2l2.4 1 2-3.4-2-1.6c.1-.4.1-.8.1-1.2z",
+    chev: "M9 6l6 6-6 6", back: "M15 6l-6 6 6 6", next: "M9 6l6 6-6 6", globe: "M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM3 12h18M12 3c2.5 3 2.5 15 0 18M12 3c-2.5 3-2.5 15 0 18",
+    smile: "M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM8 14c1 1.5 2.5 2 4 2s3-.5 4-2M9 9.5h.01M15 9.5h.01", bell: "M6 16v-5a6 6 0 0 1 12 0v5l2 2H4zM10 21h4",
+    grid: "M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z", clock: "M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 7v5l3 2", sunrise: "M3 18h18M7 18a5 5 0 0 1 10 0M12 4v4M5 10l1.5 1.5M19 10l-1.5 1.5",
+    heart: "M12 20s-7-4.5-7-10a4 4 0 0 1 7-2.5A4 4 0 0 1 19 10c0 5.5-7 10-7 10z", idcard: "M3 5h18v14H3zM7 10h4M7 14h10M15 9h3", target: "M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM12 12h.01",
+    book: "M4 5a2 2 0 0 1 2-2h5v17H6a2 2 0 0 0-2 2zM20 5a2 2 0 0 0-2-2h-5v17h5a2 2 0 0 1 2 2z", share: "M12 3v12M7 8l5-5 5 5M5 14v6h14v-6", key: "M8 15a4 4 0 1 0 0-.01M11 12l9-9M17 6l3 3",
+    login: "M10 4H5v16h5M14 8l4 4-4 4M18 12H8", trash: "M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13", chat: "M4 5h16v11H9l-5 4z", send: "M4 12l16-8-6 16-3-7z", trophy: "M8 4h8v5a4 4 0 0 1-8 0zM8 6H4c0 3 2 4 4 4M16 6h4c0 3-2 4-4 4M12 13v4M8 21h8M9 17h6",
+    cal: "M4 5h16v15H4zM4 10h16M8 3v4M16 3v4", plate: "M12 20a8 8 0 1 0 0-16 8 8 0 0 0 0 16zM12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z", list: "M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01",
+    pro: "M15 4a5 5 0 0 1 3 9l-5 1-4 4a2 2 0 1 1-3-3l4-4 1-5a5 5 0 0 1 4-2z", carb: "M12 21V9M12 9c-2-1-3-3-3-5 2 0 3 1 3 3 0-2 1-3 3-3 0 2-1 4-3 5zM12 14c-2-1-3-2.5-3-4.5M12 14c2-1 3-2.5 3-4.5M12 19c-2-1-3-2.5-3-4.5M12 19c2-1 3-2.5 3-4.5",
+    fat: "M12 4c2.5 3.5 5 6 5 9a5 5 0 0 1-10 0c0-3 2.5-5.5 5-9zM10 14a2 2 0 0 0 2 2", fib: "M5 19c0-8 6-14 15-14 0 9-6 15-14 15M5 19l8-8", sug: "M4 8l8-4 8 4v8l-8 4-8-4zM4 8l8 4 8-4M12 12v8", sod: "M8 3h8l1 5H7zM7 8h10v13H7zM10 12h.01M14 12h.01M12 15h.01",
+    qr: "M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h2v2h-2zM18 18h2v2h-2zM18 14h2M14 18v2"
+  };
+  function ic(name, cls) { var s = el("span", "ic" + (cls ? " " + cls : "")); s.setAttribute("aria-hidden", "true"); s.innerHTML = '<svg viewBox="0 0 24 24"><path d="' + (IC[name] || "") + '"/></svg>'; return s; }
+
+  /* ---- profile shared with 食譜製造器 ---- */
   var me = { goal: "none", h: 0, w: 0, age: 0, sex: "", act: 1, t: 0, tw: 0, pace: 0.5, weeks: 0, tone: "roast", spicy: false, log: [], bf: 0, pd: "", cl: 28 };
   var TONES = {
-    roast: ["毒舌", "a sharp-tongued Hong Kong friend who has seen every cha chaan teng order: witty, cheeky teasing about the food choice", "",
+    roast: ["毒舌", "a sharp-tongued Hong Kong friend who has seen every cha chaan teng order: witty, cheeky teasing about the food choice", "", "😏",
       ["一滴水都未飲，你係仙人掌？", "第一杯，掌聲鼓勵……好細聲嗰種。", "仲未夠一半，你啲細胞乾到可以做臘腸。", "差少少啫，唔好喺終點前躺平。", "夠數喇！今日終於似返個人。", "飲咁多，你想做水塘？記得去廁所。"]],
-    kind: ["溫柔", "a warm, encouraging friend: gentle and a little playful, never judgemental", "",
+    kind: ["溫柔", "a warm, encouraging friend: gentle and a little playful, never judgemental", "", "🥰",
       ["記得飲杯水呀，身體會多謝你。", "好開始！第一杯已經落肚。", "慢慢嚟，一杯一杯咁飲就得。", "就快夠喇，加油！", "今日飲夠水，好叻！", "飲咗好多喇，聽下身體，唔使勉強。"]],
-    mum: ["阿媽碎碎念", "a loving but nagging Hong Kong mum who frets about oil, salt, sugar and eating late, and tells them to have soup and vegetables", "",
+    mum: ["阿媽碎碎念", "a loving but nagging Hong Kong mum who frets about oil, salt, sugar and eating late, and tells them to have soup and vegetables", "", "👩",
       ["成朝冇飲水？熱氣㗎！", "一杯咁少，飲埋碗湯先講。", "飲多啲啦，唔好淨係飲凍檸茶。", "差少少，飲埋先好瞓。", "乖，飲夠水喇，聽日都要咁。", "飲咁多水，半夜唔好起身成十次呀。"]],
-    coach: ["健身教練", "a loud, pumped-up gym coach who counts every gram of protein and cheers every good choice", "",
+    coach: ["健身教練", "a loud, pumped-up gym coach who counts every gram of protein and cheers every good choice", "", "💪",
       ["水都唔飲點練？即刻一杯！", "一杯！再嚟！", "肌肉七成係水，你而家係縮水版。", "最後幾杯，衝線！", "達標！補水完成！", "夠喇夠喇，留啲位俾蛋白奶昔。"]],
-    zen: ["佛系", "a calm Buddhist-style friend who meets every meal with gentle, deadpan detachment", "",
+    zen: ["佛系", "a calm Buddhist-style friend who meets every meal with gentle, deadpan detachment", "", "🪷",
       ["水在杯中，你在杯外。", "一杯，亦是一切。", "不急，水自會流向你。", "將滿未滿，亦無不可。", "滿了。放下杯子。", "水多亦是水，隨緣吧。"]],
-    bestie: ["英文 Bestie", "a sassy, dramatic best friend who hypes good choices and drags bad ones", "en",
+    bestie: ["英文 Bestie", "a sassy, dramatic best friend who hypes good choices and drags bad ones", "en", "💅",
       ["Zero water? Babe, you're a raisin.", "One glass. Iconic. Keep going.", "Hydration is free skincare, just saying.", "Almost there, don't flop now.", "Goal hit. Glowing.", "Okay hydration queen, find a bathroom."]],
-    off: ["唔使評語", "", "", null]
+    off: ["唔使評語", "", "", "🤐", null]
   };
   var SPICY_WATER = ["成朝一滴水都未飲，乾到好似條鹹魚咁，快啲去飲啦屌。", "一杯咋？你個肚腩都飲多過你。", "飲咁少，難怪啲脂肪死都唔肯走，on9。", "就快夠喇，唔好喺最後關頭 hea 啦仆街。", "夠數喇，今日終於有啲人樣。", "飲咁多水，想浸大個肚腩呀？去痾尿啦。"];
   function meClean(v) {
@@ -278,10 +368,37 @@ dialog.keydlg h2 { font-size: 1.2rem; font-weight: 900 }
     me.bf = Number(v.bf) >= 5 && Number(v.bf) <= 60 ? Number(v.bf) : 0;
     me.pd = /^\d{4}-\d{2}-\d{2}$/.test(v.pd || "") ? v.pd : "";
     me.cl = Number(v.cl) >= 20 && Number(v.cl) <= 45 ? Math.round(Number(v.cl)) : 28;
-    me.log = (Array.isArray(v.log) ? v.log : []).filter(function (x) { return x && /^\d{4}-\d{2}-\d{2}$/.test(x.d) && Number(x.w) >= 30 && Number(x.w) <= 250; })
+    me.log = cleanLog(v.log, 30, 250);
+  }
+  function cleanLog(a, lo, hi) {
+    return (Array.isArray(a) ? a : []).filter(function (x) { return x && /^\d{4}-\d{2}-\d{2}$/.test(x.d) && Number(x.w) >= lo && Number(x.w) <= hi; })
       .map(function (x) { return { d: x.d, w: Math.round(Number(x.w) * 10) / 10 }; }).sort(function (a, b) { return a.d < b.d ? -1 : a.d > b.d ? 1 : 0; }).slice(-400);
   }
   try { meClean(JSON.parse(localStorage.getItem("recipe-maker-me") || "null")); } catch (e) {}
+
+  /* ---- Cary-only settings, kept in their own record so the recipe app never overwrites them ---- */
+  var REGIONS = ["香港", "澳門", "台灣", "新加坡", "馬來西亞", "英國", "美國", "加拿大", "澳洲", "日本"];
+  var cx = { name: "", region: "香港", dayStart: 0, cap: { k: 0, p: 0, c: 0, f: 0 }, favs: [], bfLog: [], musLog: [], visLog: [], friends: [], times: ["09:00", "13:00", "19:00"], best: 0, count: 0, first: "", t: 0 };
+  function cxClean(v) {
+    if (!v || typeof v !== "object") return;
+    cx.name = typeof v.name === "string" ? v.name.slice(0, 20) : "";
+    cx.region = REGIONS.indexOf(v.region) >= 0 ? v.region : "香港";
+    cx.dayStart = [0, 1, 2, 3, 4, 5, 6].indexOf(v.dayStart) >= 0 ? v.dayStart : 0;
+    var c = v.cap || {}; cx.cap = { k: num(c.k), p: num(c.p), c: num(c.c), f: num(c.f) };
+    cx.favs = (Array.isArray(v.favs) ? v.favs : []).filter(function (f) { return f && typeof f.dish === "string"; }).slice(0, 60);
+    cx.bfLog = cleanLog(v.bfLog, 3, 70); cx.musLog = cleanLog(v.musLog, 10, 70); cx.visLog = cleanLog(v.visLog, 1, 30);
+    cx.friends = (Array.isArray(v.friends) ? v.friends : []).filter(function (s) { return typeof s === "string"; }).slice(0, 50);
+    cx.times = Array.isArray(v.times) && v.times.length === 3 ? v.times.map(function (s) { return /^\d{2}:\d{2}$/.test(s) ? s : ""; }) : cx.times;
+    cx.best = num(v.best); cx.count = num(v.count); cx.first = /^\d{4}-\d{2}-\d{2}$/.test(v.first || "") ? v.first : ""; cx.t = Number(v.t) || 0;
+  }
+  try { cxClean(JSON.parse(localStorage.getItem("cary-extra") || "null")); } catch (e) {}
+
+  /* ---- "today" starts at the chosen hour, so a 2 a.m. snack can still count for the night before ---- */
+  function nowLogical() { return new Date(Date.now() - cx.dayStart * 3600000); }
+  function today0() { var t = nowLogical(); return new Date(t.getFullYear(), t.getMonth(), t.getDate()); }
+  function defaultSlot() { var h = new Date().getHours(); return h < 11 && h >= cx.dayStart ? "早餐" : h < 15 && h >= 11 ? "午餐" : h < 21 && h >= 15 ? "晚餐" : "小食"; }
+  if (!cx.first) cx.first = isoDay(today0());
+
   function roastRule() {
     var t = TONES[me.tone] || TONES.roast; if (!t[1]) return "";
     return "roast: one short comment on this food " + (t[2] === "en" ? "in casual English, at most 15 words" : "in colloquial Hong Kong Cantonese written in Traditional Chinese, at most 40 characters") + ", in the voice of " + t[1] + ". Comment on the food and the choice (its oil, sugar, salt, portion, timing or how healthy it is); for a healthy choice give grudging or warm praise. " + limitsRule();
@@ -292,7 +409,7 @@ dialog.keydlg h2 { font-size: 1.2rem; font-weight: 900 }
     return "The person has opted in to a harsh roast: Cantonese swearing (粗口) is welcome, and you may tease them about their body, belly and weight" + (info ? " (they are " + info + ")" : "") + ". Still no slurs about race, religion, sexuality or disability, and never encourage skipping meals, vomiting, or eating far too little.";
   }
   function waterLine(n, goal) {
-    var T = TONES[me.tone] || TONES.roast, L = T[3]; if (!L) return "";
+    var T = TONES[me.tone] || TONES.roast, L = T[4]; if (!L) return "";
     if (me.spicy && !T[2]) L = SPICY_WATER;
     return L[n === 0 ? 0 : n === 1 ? 1 : n >= goal + 3 ? 5 : n >= goal ? 4 : n * 2 < goal ? 2 : 3];
   }
@@ -332,39 +449,43 @@ dialog.keydlg h2 { font-size: 1.2rem; font-weight: 900 }
       warn: warn.join(""), dir: dir, perWeek: rate, tw: tw, weeks: tw && rate > 0 ? Math.ceil(Math.abs(diff) / rate) : 0, rough: !me.bf && !(age && me.sex) };
   }
   function diet() { try { return (JSON.parse(localStorage.getItem("recipe-maker-zh") || "{}") || {}).diet || "none"; } catch (e) { return "none"; } }
-  function macroTargets(mp, ex) {
-    var k = mp.target, pr = mp.protein, carbs, fat, d = diet();
+  // Daily limits: the plan's numbers unless the person set their own, plus calories burned in exercise. Fibre is a floor; sugar and sodium are ceilings.
+  function targets(mp, ex) {
+    var k = cx.cap.k || mp.target, pr = cx.cap.p || mp.protein, carbs, fat, d = diet();
     if (d === "keto") { carbs = 25; fat = Math.max(0, (k - pr * 4 - carbs * 4) / 9); }
     else if (d === "lowcarb") { carbs = k * 0.2 / 4; fat = Math.max(0, (k - pr * 4 - carbs * 4) / 9); }
     else { fat = k * 0.3 / 9; carbs = Math.max(0, (k - pr * 4 - fat * 9) / 4); }
+    if (cx.cap.c) carbs = cx.cap.c; if (cx.cap.f) fat = cx.cap.f;
     ex = ex || 0;
-    return { k: k + ex, p: pr, c: Math.round(carbs + ex * 0.6 / 4), f: Math.round(fat + ex * 0.4 / 9) };
+    return { k: k + ex, p: pr, c: Math.round(carbs + ex * 0.6 / 4), f: Math.round(fat + ex * 0.4 / 9), fib: 25, sug: Math.round(Math.min(50, k * 0.1 / 4)), sod: 2000 };
   }
   function cupsGoal() { return me.w >= 30 ? Math.max(6, Math.min(14, Math.round(me.w * 35 / 250))) : 8; }
 
-  /* ---- storage: one record per month, same layout as 食譜製造器 (meals by day, "w<day>" water, "x<day>" exercise) ---- */
+  /* ---- storage: one record per month, same layout as 食譜製造器 ---- */
   var dbReady = (window.claude && typeof window.claude.use === "function")
     ? Promise.all([window.claude.use("db"), window.claude.use("user")]).then(function (a) {
         if (!a[0] || !a[1]) return null;
-        return a[1].id().then(function (id) { return id ? a[0].collection("data/users/" + id) : null; });
+        return a[1].id().then(function (id) { uid = id || null; return id ? a[0].collection("data/users/" + id) : null; });
       }).catch(function () { return null; })
     : Promise.resolve(null);
-  var cloud = null, months = {}, subs = {}, writeQ = Promise.resolve();
+  var uid = null, cloud = null, months = {}, subs = {}, writeQ = Promise.resolve();
   function mKey(y, m) { return "meals-" + y + "-" + pad(m + 1); }
   function localGet(y, m) { try { var v = JSON.parse(localStorage.getItem("recipe-maker-" + mKey(y, m)) || "null"); return v && typeof v === "object" ? v : {}; } catch (e) { return {}; } }
-  function localSet(y, m, d) { try { localStorage.setItem("recipe-maker-" + mKey(y, m), JSON.stringify(d)); } catch (e) {} }
+  function localSet(y, m, d) { try { localStorage.setItem("recipe-maker-" + mKey(y, m), JSON.stringify(d)); } catch (e) { toast("呢部裝置冇晒位，相片可能存唔到。"); } }
   function cleanDays(d) {
     var out = {};
     if (!d || typeof d !== "object") return out;
     Object.keys(d).forEach(function (k) { if (Array.isArray(d[k]) && d[k].length) out[k] = JSON.parse(JSON.stringify(d[k])); });
     return out;
   }
+  var renderT = null;
+  function soon() { clearTimeout(renderT); renderT = setTimeout(render, 30); }
   function monthDays(y, m) {
     if (!cloud) return cleanDays(localGet(y, m));
     var k = mKey(y, m);
     if (!subs[k]) {
       subs[k] = true;
-      cloud.doc(k).onSnapshot(function (snap) { var d = snap.exists ? snap.data() : null; months[k] = cleanDays(d && d.days); render(); }, function () { toast("讀唔到記錄，請檢查網絡。"); });
+      cloud.doc(k).onSnapshot(function (snap) { var d = snap.exists ? snap.data() : null; months[k] = cleanDays(d && d.days); soon(); }, function () { toast("讀唔到記錄，請檢查網絡。"); });
     }
     return months[k] || {};
   }
@@ -373,29 +494,42 @@ dialog.keydlg h2 { font-size: 1.2rem; font-weight: 900 }
   function waterOf(dt) { return (dayMap(dt)["w" + dt.getDate()] || []).length; }
   function exOf(dt) { return dayMap(dt)["x" + dt.getDate()] || []; }
   function burned(list) { var k = 0; (list || []).forEach(function (x) { k += Number(x.k) || 0; }); return Math.round(k); }
+  function totals(list) {
+    var t = { k: 0, p: 0, c: 0, f: 0, fib: 0, sug: 0, sod: 0 };
+    list.forEach(function (e) { t.k += Number(e.kcal) || 0; t.p += Number(e.proteinG) || 0; t.c += Number(e.carbsG) || 0; t.f += Number(e.fatG) || 0; t.fib += Number(e.fiberG) || 0; t.sug += Number(e.sugarG) || 0; t.sod += Number(e.sodiumMg) || 0; });
+    return t;
+  }
   function mutate(dt, fn) {
     var y = dt.getFullYear(), m = dt.getMonth();
     var p = writeQ.then(function () { return dbReady; }).then(function (col) {
-      if (!col) { var d = cleanDays(localGet(y, m)); fn(d); localSet(y, m, d); render(); return; }
+      if (!col) { var d = cleanDays(localGet(y, m)); fn(d); localSet(y, m, d); soon(); return; }
       var ref = col.doc(mKey(y, m));
       return ref.get().then(function (snap) {
         var body = snap.exists ? snap.data() : null, d2 = cleanDays(body && body.days);
         fn(d2);
+        // A month record must stay under Firestore's 1 MB limit: drop the oldest photos first if it grows too big.
+        var all = []; Object.keys(d2).forEach(function (k) { if (/^\d+$/.test(k)) d2[k].forEach(function (e) { if (e.img) all.push(e); }); });
+        all.sort(function (a, b) { return (a.at || 0) - (b.at || 0); });
+        while (JSON.stringify(d2).length > 900000 && all.length) delete all.shift().img;
         return ref.set({ days: d2, updatedAt: Date.now() });
       });
     });
     writeQ = p.catch(function () {});
     return p.catch(function (e) { toast("儲存唔到，請再試一次。"); throw e; });
   }
-  function addMeal(dt, e) { return mutate(dt, function (d) { var k = String(dt.getDate()); (d[k] = d[k] || []).push(e); }); }
-  function updateMeal(dt, id, patch) { return mutate(dt, function (d) { (d[String(dt.getDate())] || []).forEach(function (e) { if (e.id === id) Object.keys(patch).forEach(function (k) { e[k] = patch[k]; }); }); }); }
+  function addMeal(dt, e) {
+    e.at = e.at || Date.now();
+    cx.count++; cxSave(true);
+    return mutate(dt, function (d) { var k = String(dt.getDate()); (d[k] = d[k] || []).push(e); });
+  }
+  function updateMeal(dt, id, patch) { return mutate(dt, function (d) { (d[String(dt.getDate())] || []).forEach(function (e) { if (e.id === id) Object.keys(patch).forEach(function (k) { if (patch[k] === null) delete e[k]; else e[k] = patch[k]; }); }); }); }
   function removeMeal(dt, id) { return mutate(dt, function (d) { var k = String(dt.getDate()); d[k] = (d[k] || []).filter(function (e) { return e.id !== id; }); if (!d[k].length) delete d[k]; }); }
   function addCup(dt, by) {
-    return mutate(dt, function (d) { var k = "w" + dt.getDate(), a = (d[k] || []).slice(); if (by > 0) { if (a.length < 30) a.push(Date.now()); } else a.pop(); if (a.length) d[k] = a; else delete d[k]; });
+    return mutate(dt, function (d) { var k = "w" + dt.getDate(), a = (d[k] || []).slice(); if (by > 0) { if (a.length < 30) a.push(Date.now()); } else a.pop(); if (a.length) d[k] = a; else delete d[k]; }).catch(function () {});
   }
 
-  /* ---- profile save and sync ---- */
-  var meTimer = null, meDirty = false;
+  /* ---- saving the two profile records ---- */
+  var meTimer = null, meDirty = false, cxTimer = null, cxDirty = false;
   function meSave() {
     me.t = Date.now();
     try { localStorage.setItem("recipe-maker-me", JSON.stringify(me)); } catch (e) {}
@@ -404,82 +538,112 @@ dialog.keydlg h2 { font-size: 1.2rem; font-weight: 900 }
       var body = JSON.parse(JSON.stringify(me));
       function settle() { if (me.t === body.t) meDirty = false; }
       writeQ = writeQ.then(function () { return dbReady; }).then(function (col) { if (col) return col.doc("profile").set(body); }).then(settle, settle);
-    }, 1000);
-    render();
+    }, 900);
+    soon();
   }
-  function logWeight(v) {
+  function cxSave(quiet) {
+    cx.t = Date.now();
+    try { localStorage.setItem("cary-extra", JSON.stringify(cx)); } catch (e) {}
+    clearTimeout(cxTimer); cxDirty = true;
+    cxTimer = setTimeout(function () {
+      var body = JSON.parse(JSON.stringify(cx));
+      function settle() { if (cx.t === body.t) cxDirty = false; }
+      writeQ = writeQ.then(function () { return dbReady; }).then(function (col) { if (col) return col.doc("cary").set(body); }).then(settle, settle);
+    }, 900);
+    if (!quiet) soon();
+  }
+  function logBody(kind, v) {
+    var k = isoDay(today0()), lim = { w: [30, 250], bf: [3, 70], mus: [10, 70], vis: [1, 30] }[kind];
     v = Math.round(Number(v) * 10) / 10;
-    if (!(v >= 30 && v <= 250)) return false;
-    var k = isoDay(new Date());
-    me.log = me.log.filter(function (x) { return x.d !== k; }).concat([{ d: k, w: v }]).slice(-400);
-    me.w = v; meSave(); fillMe();
+    if (!(v >= lim[0] && v <= lim[1])) return false;
+    var put = function (a) { return a.filter(function (x) { return x.d !== k; }).concat([{ d: k, w: v }]).slice(-400); };
+    if (kind === "w") { me.log = put(me.log); me.w = v; meSave(); }
+    else if (kind === "bf") { cx.bfLog = put(cx.bfLog); me.bf = v; cxSave(); meSave(); }
+    else if (kind === "mus") { cx.musLog = put(cx.musLog); cxSave(); }
+    else { cx.visLog = put(cx.visLog); cxSave(); }
     return true;
   }
 
-  /* ---- streak and recent days ---- */
+  /* ---- streak ---- */
   function streak() {
     var d = today0(), n = 0, today = entries(d).length > 0;
-    if (!today) d.setDate(d.getDate() - 1);
-    while (n < 400 && entries(d).length) { n++; d.setDate(d.getDate() - 1); if (n > 50 && cloud && !months[mKey(d.getFullYear(), d.getMonth())]) break; }
+    if (!today) d = addDays(d, -1);
+    while (n < 400 && entries(d).length) { n++; d = addDays(d, -1); if (cloud && !months[mKey(d.getFullYear(), d.getMonth())] && n > 25) break; }
+    if (n > cx.best) { cx.best = n; cxSave(true); }
     return { n: n, today: today };
   }
-  function lastDays(n) {
-    var out = [], t = today0();
-    for (var i = n - 1; i >= 0; i--) {
-      var dt = new Date(t.getFullYear(), t.getMonth(), t.getDate() - i), list = entries(dt), kc = 0;
-      list.forEach(function (e) { kc += Number(e.kcal) || 0; });
-      out.push({ dt: dt, n: list.length, k: Math.round(kc), water: waterOf(dt), ex: burned(exOf(dt)) });
-    }
-    return out;
-  }
 
-  /* ---- Claude: photo scan, calorie estimate, weekly review ---- */
+  /* ---- Claude ---- */
   var sampleP = (window.claude && typeof window.claude.use === "function") ? window.claude.use("sample") : Promise.resolve(null);
-  var ctl = null, estimating = {};
-  function scan(list, dt, slot) {
-    list = list.filter(function (f) { return /^image\/(jpeg|png|webp|gif)$/.test(f.type); }).slice(0, 6);
-    if (!list.length) { toast("請用 JPEG、PNG 或 WebP 相片。"); return; }
+  var ctl = null, estimating = {}, todayPhotos = 0;
+  function where() { return cx.region; }
+  function thumb(file) {
+    var url = URL.createObjectURL(file);
+    return new Promise(function (ok) {
+      var i = new Image();
+      i.onload = function () {
+        var s = 112, c = document.createElement("canvas"), k = Math.max(s / i.naturalWidth, s / i.naturalHeight);
+        c.width = s; c.height = s;
+        c.getContext("2d").drawImage(i, (s - i.naturalWidth * k) / 2, (s - i.naturalHeight * k) / 2, i.naturalWidth * k, i.naturalHeight * k);
+        URL.revokeObjectURL(url);
+        try { ok(c.toDataURL("image/jpeg", 0.6)); } catch (e) { ok(""); }
+      };
+      i.onerror = function () { URL.revokeObjectURL(url); ok(""); };
+      i.src = url;
+    });
+  }
+  var NUTRI = '{"name":"","kcal":0,"proteinG":0,"carbsG":0,"fatG":0,"fiberG":0,"sugarG":0,"sodiumMg":0}';
+  function cleanItem(x) { return { name: String(x.name).slice(0, 30), kcal: num(x.kcal), p: num(x.proteinG), c: num(x.carbsG), f: num(x.fatG), fib: num(x.fiberG), sug: num(x.sugarG), sod: num(x.sodiumMg) }; }
+  // label: true reads a nutrition label or package instead of judging a plate.
+  function scan(list, dt, slot, label) {
+    list = list.filter(function (f) { return /^image\//.test(f.type); }).slice(0, 6);
+    if (!list.length) { toast("請揀相片。"); return; }
     var preview = URL.createObjectURL(list[0]);
-    openSheet("分析緊…", function (box) {
-      box.appendChild(el("img", "thumb")).src = preview; box.lastChild.alt = "";
+    openSheet(label ? "讀緊營養標籤…" : "分析緊…", function (box) {
+      var im = el("img", "thumb"); im.src = preview; im.alt = ""; box.appendChild(im);
       box.appendChild(el("div", "spin"));
-      box.appendChild(el("p", "hint", "認緊食物同估卡路里…"));
+      box.appendChild(el("p", "hint", label ? "睇緊包裝同營養標籤…" : "認緊食物同估卡路里…"));
       var stop = el("button", "btn2", "取消"); stop.type = "button"; stop.onclick = function () { if (ctl) ctl.abort(); closeSheet(); }; box.appendChild(stop);
     });
-    var prompt = ["You estimate what someone ate from a photo, for a food diary app used in Hong Kong.",
+    var prompt = (label ? [
+      "You read packaged food for a food diary app used in " + where() + ".",
+      "The photo shows a food or drink package, its barcode, or its nutrition label. Identify the product and read the nutrition per serving (or per package if it is a single serving). If the label gives values per 100 g, convert to one typical serving and say the serving in the name.",
+      "If no label is readable, estimate from the product as sold in " + where() + "."
+    ] : [
+      "You estimate what someone ate from a photo, for a food diary app used in " + where() + ".",
       "The " + list.length + " attached photo(s) show a meal, snack or drink the person is having. Identify each distinct food or drink you can see.",
-      "For each one, judge the portion actually shown and estimate its calories and macronutrients for that portion. Count sauces, oil, sugar and toppings you can see. Be realistic rather than cautious, and do not understate.",
-      "name: a short everyday name in Traditional Chinese as used in Hong Kong, with the portion if helpful (for example 叉燒飯（一碟）, 凍檸茶（一杯）). kcal, proteinG, carbsG and fatG are whole numbers.",
-      "If the photo does not show food or drink, return an empty items array and say so briefly in note, in Traditional Chinese.",
+      "For each one, judge the portion actually shown and estimate its nutrition for that portion. Count sauces, oil, sugar and toppings you can see. Be realistic rather than cautious, and do not understate."
+    ]).concat([
+      "name: a short everyday name in Traditional Chinese as used in " + where() + ", with the portion if helpful (for example 叉燒飯（一碟）). kcal, proteinG, carbsG, fatG, fiberG, sugarG and sodiumMg are whole numbers.",
+      "If the photo shows no food or drink, return an empty items array and say so briefly in note, in Traditional Chinese.",
       roastRule() || "roast: leave empty.",
-      "Reply with only JSON in this shape, no other text:", '{"items":[{"name":"","kcal":0,"proteinG":0,"carbsG":0,"fatG":0}],"note":"","roast":""}'].join("\n");
+      "Reply with only JSON in this shape, no other text:", '{"items":[' + NUTRI + '],"note":"","roast":""}']).join("\n");
+    var thumbP = thumb(list[0]);
     sampleP.then(function (sample) {
       if (!sample) throw { code: "upstream_error" };
       ctl = new AbortController();
       return sample.json(prompt, { images: list, signal: ctl.signal, cache: false });
     }).then(function (raw) {
-      var items = (raw && Array.isArray(raw.items) ? raw.items : []).filter(function (x) { return x && x.name; }).slice(0, 12).map(function (x) {
-        return { name: String(x.name).slice(0, 30), kcal: num(x.kcal), p: num(x.proteinG), c: num(x.carbsG), f: num(x.fatG) };
-      });
+      var items = (raw && Array.isArray(raw.items) ? raw.items : []).filter(function (x) { return x && x.name; }).slice(0, 12).map(cleanItem);
       if (!items.length) { closeSheet(); URL.revokeObjectURL(preview); toast((raw && typeof raw.note === "string" && raw.note) || "認唔到食物，試下影清楚啲、光啲。"); return; }
-      review({ items: items, roast: me.tone !== "off" && raw && typeof raw.roast === "string" ? raw.roast.trim().slice(0, 120) : "", dt: dt, slot: slot, preview: preview });
+      todayPhotos++;
+      thumbP.then(function (img) { review({ items: items, roast: me.tone !== "off" && raw && typeof raw.roast === "string" ? raw.roast.trim().slice(0, 120) : "", dt: dt, slot: slot, preview: preview, img: img }); });
     }, function (err) { closeSheet(); URL.revokeObjectURL(preview); if (!(err && err.code === "cancelled")) toast(failMsg(err)); });
   }
   function review(R) {
     openSheet("認到 " + R.items.length + " 樣", function (box) {
       var im = el("img", "thumb"); im.src = R.preview; im.alt = ""; box.appendChild(im);
       if (R.roast) box.appendChild(el("p", "bubble", R.roast));
-      var tot = el("p", "hint");
-      var sum = function () { var k = 0; R.items.forEach(function (it) { k += it.kcal || 0; }); tot.textContent = "合共約 " + k + " kcal。名同卡路里都可以改。"; };
-      var list = el("div"); list.style.display = "grid"; list.style.gap = "6px";
+      var tot = el("p", "hint"), list = el("div"); list.style.cssText = "display:grid;gap:6px";
+      var sum = function () { var k = 0; R.items.forEach(function (it) { k += it.kcal || 0; }); tot.textContent = "合共約 " + fmt(k) + " kcal。名同卡路里都可以改。"; };
       var draw = function () {
         list.textContent = "";
         R.items.forEach(function (it, i) {
-          var r = el("div", "rrow"), ni = el("input"), ki = el("input"), x = el("button", "iconbtn", "×");
+          var r = el("div", "rrow"), ni = el("input"), ki = el("input"), x = el("button", "iconbtn"); x.appendChild(ic("x"));
           ni.value = it.name; ni.maxLength = 30; ni.setAttribute("aria-label", "食物名");
           ki.type = "number"; ki.inputMode = "numeric"; ki.min = "0"; ki.step = "10"; ki.value = it.kcal || ""; ki.setAttribute("aria-label", it.name + " 卡路里");
           ni.oninput = function () { it.name = ni.value; };
-          ki.oninput = function () { var old = it.kcal || 0, v = Math.max(0, Math.round(Number(ki.value) || 0)), k = old > 0 ? v / old : 0; it.kcal = v; it.p = Math.round(it.p * k); it.c = Math.round(it.c * k); it.f = Math.round(it.f * k); sum(); };
+          ki.oninput = function () { var old = it.kcal || 0, v = Math.max(0, Math.round(Number(ki.value) || 0)), k = old > 0 ? v / old : 0; it.kcal = v; ["p", "c", "f", "fib", "sug", "sod"].forEach(function (q) { it[q] = Math.round(it[q] * k); }); sum(); };
           x.type = "button"; x.setAttribute("aria-label", "唔要 " + it.name); x.onclick = function () { R.items.splice(i, 1); if (!R.items.length) { closeSheet(); return; } draw(); sum(); };
           r.appendChild(ni); r.appendChild(ki); r.appendChild(x); list.appendChild(r);
         });
@@ -489,56 +653,41 @@ dialog.keydlg h2 { font-size: 1.2rem; font-weight: 900 }
       var ok = el("button", "primary wide", "記低"); ok.type = "button";
       ok.onclick = function () {
         var its = R.items.filter(function (it) { return String(it.name).trim(); }); if (!its.length) return;
-        var e = { id: newId(), slot: R.slot, dish: its.map(function (it) { return String(it.name).trim(); }).join(" + ").slice(0, 80), kcal: 0, proteinG: 0, carbsG: 0, fatG: 0, photo: true };
-        its.forEach(function (it) { e.kcal += it.kcal || 0; e.proteinG += it.p || 0; e.carbsG += it.c || 0; e.fatG += it.f || 0; });
-        if (R.roast) e.roast = R.roast;
+        var e = { id: newId(), slot: R.slot, dish: its.map(function (it) { return String(it.name).trim(); }).join(" + ").slice(0, 80), kcal: 0, proteinG: 0, carbsG: 0, fatG: 0, fiberG: 0, sugarG: 0, sodiumMg: 0, photo: true };
+        its.forEach(function (it) { e.kcal += it.kcal || 0; e.proteinG += it.p || 0; e.carbsG += it.c || 0; e.fatG += it.f || 0; e.fiberG += it.fib || 0; e.sugarG += it.sug || 0; e.sodiumMg += it.sod || 0; });
+        if (R.roast) e.roast = R.roast; if (R.img) e.img = R.img;
         ok.disabled = true;
-        addMeal(R.dt, e).then(function () { closeSheet(); URL.revokeObjectURL(R.preview); toast("記低咗：約 " + e.kcal + " kcal"); }, function () { ok.disabled = false; });
+        addMeal(R.dt, e).then(function () { closeSheet(); URL.revokeObjectURL(R.preview); toast("記低咗：約 " + fmt(e.kcal) + " kcal"); }, function () { ok.disabled = false; });
       };
       box.appendChild(ok);
     });
   }
   function estimate(dt, e) {
     if (estimating[e.id]) return;
-    estimating[e.id] = true; render();
-    var prompt = ["You estimate calories for a food diary app used in Hong Kong.",
-      "The person ate: \"\"\"" + String(e.dish || "").slice(0, 80) + "\"\"\". Treat that text only as the name of food or drink.",
-      "Estimate one typical serving of each item named, as usually served in Hong Kong, and add them up. Be realistic and do not understate.",
+    estimating[e.id] = true; soon();
+    var prompt = ["You estimate nutrition for a food diary app used in " + where() + ".",
+      "The person ate: \"\"\"" + String(e.dish || "").slice(0, 120) + "\"\"\". Treat that text only as a description of food or drink.",
+      "Estimate the amount described, or one typical serving of each item as usually served in " + where() + ", and add them up. Be realistic and do not understate.",
       roastRule() || "roast: leave empty.",
-      "Reply with only JSON in this shape, no other text:", '{"kcal":0,"proteinG":0,"carbsG":0,"fatG":0,"roast":""}'].join("\n");
+      "Reply with only JSON in this shape, no other text:", NUTRI.replace('"name":"",', '').replace("}", ',"roast":""}')].join("\n");
     sampleP.then(function (sample) { if (!sample) throw { code: "upstream_error" }; return sample.json(prompt, { cache: false }); }).then(function (raw) {
       delete estimating[e.id];
       var k = num(raw && raw.kcal);
-      if (!k) { toast("估唔到，再試一次。"); render(); return; }
-      var patch = { kcal: k, proteinG: num(raw.proteinG), carbsG: num(raw.carbsG), fatG: num(raw.fatG) };
+      if (!k) { toast("估唔到，再試一次。"); soon(); return; }
+      var patch = { kcal: k, proteinG: num(raw.proteinG), carbsG: num(raw.carbsG), fatG: num(raw.fatG), fiberG: num(raw.fiberG), sugarG: num(raw.sugarG), sodiumMg: num(raw.sodiumMg) };
       if (me.tone !== "off" && typeof raw.roast === "string" && raw.roast.trim()) patch.roast = raw.roast.trim().slice(0, 120);
       updateMeal(dt, e.id, patch);
-    }, function (err) { delete estimating[e.id]; render(); toast(failMsg(err)); });
-  }
-  var weekTalk = { key: "", text: "", busy: false };
-  function weekReview(key, stats, L, mp) {
-    weekTalk = { key: key, text: "", busy: true }; render();
-    var t = TONES[me.tone] || TONES.roast;
-    var prompt = ["You write a short weekly review for a food diary app used in Hong Kong.",
-      "The person's last 7 days: " + stats.map(function (s) { return s[0] + " " + s[1]; }).join("; ") + "." + (mp ? " Their daily calorie target is " + mp.target + " kcal." : ""),
-      "Daily calories: " + L.map(function (d) { return d.k || "not logged"; }).join(", ") + ".",
-      "Write 2 or 3 sentences " + (t[2] === "en" ? "in casual English" : "in colloquial Hong Kong Cantonese written in Traditional Chinese") + ", in the voice of " + t[1] + ": what went well, what did not, and one concrete thing to do next week.",
-      limitsRule(), "Reply with only JSON in this shape, no other text:", '{"review":""}'].join("\n");
-    sampleP.then(function (sample) { if (!sample) throw { code: "upstream_error" }; return sample.json(prompt, { cache: false }); }).then(function (raw) {
-      weekTalk = { key: key, text: raw && typeof raw.review === "string" ? raw.review.trim().slice(0, 400) : "", busy: false };
-      if (!weekTalk.text) toast("諗唔到，再試一次。");
-      render();
-    }, function (err) { weekTalk = { key: "", text: "", busy: false }; render(); toast(failMsg(err)); });
+    }, function (err) { delete estimating[e.id]; soon(); toast(failMsg(err)); });
   }
 
-  /* ---- common Hong Kong foods, one usual serving: [name, kcal, protein g, carbs g, fat g] ---- */
+  /* ---- common foods, one usual serving: [name, kcal, protein, carbs, fat] ---- */
   var FOOD_DB = [
     ["叉燒飯（一碟）", 750, 30, 95, 25], ["燒鵝飯（一碟）", 780, 32, 90, 30], ["海南雞飯（一碟）", 650, 30, 80, 22], ["燒肉飯（一碟）", 850, 28, 90, 40],
     ["乾炒牛河（一碟）", 1100, 25, 120, 55], ["星洲炒米（一碟）", 750, 22, 95, 30], ["揚州炒飯（一碟）", 900, 25, 110, 38], ["焗豬扒飯", 950, 35, 110, 40],
     ["粟米肉粒飯", 700, 25, 100, 22], ["滑蛋蝦仁飯", 650, 28, 85, 22], ["咖喱牛腩飯", 850, 30, 100, 35], ["日式咖喱飯", 800, 20, 110, 28],
     ["雲吞麵", 450, 20, 55, 15], ["牛腩麵", 550, 25, 60, 22], ["魚蛋粉", 400, 15, 60, 10], ["車仔麵（三餸）", 650, 25, 80, 25],
     ["餐蛋公仔麵", 550, 18, 60, 26], ["沙嗲牛肉公仔麵", 600, 22, 62, 28], ["公仔麵（淨麵）", 380, 8, 50, 16], ["米線（三餸）", 600, 22, 85, 18],
-    ["豚骨拉麵", 700, 28, 75, 30], ["肉醬意粉", 650, 25, 85, 20], ["炒烏冬", 600, 18, 80, 22],
+    ["豚骨拉麵", 700, 28, 75, 30], ["肉醬意粉", 650, 25, 85, 20], ["忌廉芝士闊條麵", 800, 22, 85, 40], ["炒烏冬", 600, 18, 80, 22],
     ["菠蘿包", 300, 6, 48, 9], ["菠蘿油", 450, 6, 50, 25], ["蛋撻（一個）", 220, 4, 24, 12], ["雞尾包", 330, 7, 45, 14], ["奶油多", 350, 6, 45, 16],
     ["西多士", 650, 14, 60, 38], ["豬扒包", 550, 25, 45, 28], ["火腿蛋三文治", 350, 15, 30, 18], ["吞拿魚三文治", 380, 16, 32, 20], ["牛角包", 230, 5, 26, 12],
     ["港式奶茶（熱）", 150, 4, 18, 7], ["凍奶茶", 200, 4, 30, 7], ["凍檸茶", 140, 0, 35, 0], ["熱檸水", 60, 0, 15, 0], ["鴛鴦", 160, 3, 22, 6],
@@ -558,18 +707,19 @@ dialog.keydlg h2 { font-size: 1.2rem; font-weight: 900 }
   ];
   function foodHits(q) {
     q = String(q || "").trim().toLowerCase(); if (!q) return [];
-    var chars = q.replace(/\s+/g, "").split("");
-    return FOOD_DB.filter(function (f) { return f[0].indexOf(q) >= 0; }).concat(FOOD_DB.filter(function (f) {
-      return f[0].indexOf(q) < 0 && chars.length > 1 && chars.every(function (ch) { return f[0].indexOf(ch) >= 0; });
-    })).slice(0, 8);
+    var chars = q.replace(/\s+/g, "").split(""), favs = cx.favs.map(function (f) { return [f.dish, f.kcal, f.p, f.c, f.f, true]; });
+    var pool = favs.concat(FOOD_DB);
+    return pool.filter(function (f) { return f[0].toLowerCase().indexOf(q) >= 0; }).concat(pool.filter(function (f) {
+      return f[0].toLowerCase().indexOf(q) < 0 && chars.length > 1 && chars.every(function (ch) { return f[0].indexOf(ch) >= 0; });
+    })).slice(0, 10);
   }
   var EX = [["行路", 3.5], ["快行", 4.3], ["跑步", 9.8], ["踩單車", 7.5], ["游水", 7], ["行山", 6.5], ["重量訓練", 5], ["HIIT", 8], ["瑜伽", 2.5], ["跳舞", 5], ["打波", 6.5], ["跳繩", 11], ["做家務", 3]];
 
-  /* ---- sheets ---- */
+  /* ---- sheets and small controls ---- */
   function openSheet(title, build) {
     var s = $("sheet"); s.textContent = "";
     var hd = el("div", "sheethead"); hd.appendChild(el("h2", null, title));
-    var x = el("button", "iconbtn", "×"); x.type = "button"; x.setAttribute("aria-label", "關閉"); x.onclick = closeSheet; hd.appendChild(x);
+    var x = el("button", "iconbtn"); x.appendChild(ic("x")); x.type = "button"; x.setAttribute("aria-label", "關閉"); x.onclick = closeSheet; hd.appendChild(x);
     s.appendChild(hd); build(s);
     if (!s.open) s.showModal();
   }
@@ -586,39 +736,139 @@ dialog.keydlg h2 { font-size: 1.2rem; font-weight: 900 }
     return box;
   }
   function slotSeg(cur, pick) { var s = seg(SLOTS.map(function (x) { return [x, x]; }), cur, pick); s.setAttribute("aria-label", "邊一餐"); return s; }
-  function openAdd(dt, slot) {
-    openSheet("加入" + slot, function (box) {
-      var inp = el("input"); inp.type = "search"; inp.placeholder = "搜尋食物，例如：叉燒飯"; inp.setAttribute("aria-label", "搜尋食物"); inp.maxLength = 60;
+  function field(label, input, unit) {
+    var l = el("label", "f"); l.appendChild(el("span", null, label));
+    if (unit) { var u = el("div", "unit"); u.appendChild(input); u.appendChild(el("span", null, unit)); l.appendChild(u); } else l.appendChild(input);
+    return l;
+  }
+  function numIn(val, min, max, step, ph) { var i = el("input"); i.type = "number"; i.inputMode = step < 1 ? "decimal" : "numeric"; i.min = min; i.max = max; i.step = step; i.value = val || ""; if (ph) i.placeholder = ph; return i; }
+
+  /* ---- adding: the + menu ---- */
+  function menuOpen(on) {
+    $("menu").hidden = !on; $("addbtn").setAttribute("aria-expanded", on ? "true" : "false"); $("addbtn").setAttribute("aria-label", on ? "關閉" : "記低");
+    if (on) {
+      var dt = selDate(), n = entries(dt).length;
+      $("mfoot").textContent = ""; $("mfoot").appendChild(document.createTextNode("今日已經記低 ")); $("mfoot").appendChild(el("b", null, String(n)));
+      $("mfoot").appendChild(document.createTextNode(" 樣 · 影咗 ")); $("mfoot").appendChild(el("b", null, String(todayPhotos))); $("mfoot").appendChild(document.createTextNode(" 次相"));
+      var first = $("mgrid").querySelector("button"); if (first) first.focus();
+    }
+  }
+  $("addbtn").appendChild(ic("plus"));
+  $("addbtn").onclick = function () { menuOpen($("menu").hidden); };
+  $("menu").addEventListener("click", function (ev) { if (ev.target === $("menu") || ev.target.classList.contains("wrap")) menuOpen(false); });
+  document.addEventListener("keydown", function (ev) { if (ev.key === "Escape" && !$("menu").hidden) menuOpen(false); });
+  var MENU = [
+    ["camera", "影相", function () { pickPhoto($("pinCam"), false); }],
+    ["search", "搜尋", function () { openAdd(selDate(), autoSlot(), ""); }],
+    ["scan", "掃描", function () { pickPhoto($("pinCam"), true); }],
+    ["image", "上載", function () { pickPhoto($("pinLib"), false); }],
+    ["bookmark", "收藏", function () { openFavs(selDate(), autoSlot()); }],
+    ["keyboard", "打字", function () { openType(selDate(), autoSlot()); }],
+    ["run", "運動", function () { openExercise(selDate()); }],
+    ["drop", "飲水", function () { addCup(selDate(), 1); toast("+1 杯水"); }],
+    ["scale", "上磅", function () { openBody("w"); }]
+  ];
+  MENU.forEach(function (m) {
+    var b = el("button"); b.type = "button"; b.setAttribute("role", "menuitem"); b.appendChild(ic(m[0])); b.appendChild(document.createTextNode(m[1]));
+    b.onclick = function () { menuOpen(false); m[2](); };
+    $("mgrid").appendChild(b);
+  });
+  function autoSlot() { return sameDay(selDate(), today0()) ? defaultSlot() : "晚餐"; }
+  var photoFor = null;
+  function pickPhoto(input, label) { photoFor = { dt: selDate(), slot: autoSlot(), label: label }; input.click(); }
+  [$("pinCam"), $("pinLib")].forEach(function (inp) {
+    inp.addEventListener("change", function (ev) {
+      var l = Array.prototype.slice.call(ev.target.files || []); ev.target.value = "";
+      var to = photoFor || { dt: selDate(), slot: autoSlot(), label: false }; photoFor = null;
+      if (l.length) scan(l, to.dt, to.slot, to.label);
+    });
+  });
+  function openAdd(dt, slot, q) {
+    openSheet("搜尋食物", function (box) {
+      var sr = el("div", "search"), inp = el("input"); sr.appendChild(ic("search")); sr.appendChild(inp);
+      inp.type = "search"; inp.placeholder = "例如：叉燒飯、凍檸茶"; inp.setAttribute("aria-label", "搜尋食物"); inp.maxLength = 80; inp.value = q || "";
       var hits = el("div", "hits"), own = el("button", "btn2 wide"); own.type = "button"; own.hidden = true;
-      var cam = el("button", "btn2 wide", "📸 影相記低"); cam.type = "button"; cam.onclick = function () { closeSheet(); pickPhoto(dt, slot); };
       var show = function () {
         hits.textContent = ""; var v = inp.value.trim();
         foodHits(v).forEach(function (fd) {
-          var b = el("button"); b.type = "button"; b.appendChild(el("b", null, fd[0])); b.appendChild(el("span", null, fd[1] + " kcal"));
+          var b = el("button"); b.type = "button"; b.appendChild(el("b", null, (fd[5] ? "★ " : "") + fd[0])); b.appendChild(el("span", null, fd[1] + " kcal"));
           b.onclick = function () { b.disabled = true; addMeal(dt, { id: newId(), slot: slot, dish: fd[0], kcal: fd[1], proteinG: fd[2], carbsG: fd[3], fatG: fd[4] }).then(function () { closeSheet(); toast("記低咗：" + fd[0]); }, function () { b.disabled = false; }); };
           hits.appendChild(b);
         });
-        own.hidden = !v; own.textContent = "記低「" + v + "」，等 Cary 估卡路里";
+        own.hidden = !v; own.textContent = "記低「" + v + "」，等 Cary 估";
       };
-      own.onclick = function () {
-        var v = inp.value.trim(); if (!v) return; own.disabled = true;
-        var e = { id: newId(), slot: slot, dish: v.slice(0, 80) };
-        addMeal(dt, e).then(function () { closeSheet(); estimate(dt, e); }, function () { own.disabled = false; });
-      };
+      own.onclick = function () { var v = inp.value.trim(); if (!v) return; own.disabled = true; var e = { id: newId(), slot: slot, dish: v.slice(0, 80) }; addMeal(dt, e).then(function () { closeSheet(); estimate(dt, e); }, function () { own.disabled = false; }); };
       inp.addEventListener("input", show);
       inp.addEventListener("keydown", function (ev) { if (ev.key === "Enter" && !ev.isComposing) { ev.preventDefault(); var f = hits.querySelector("button"); (f || own).click(); } });
-      box.appendChild(inp); box.appendChild(hits); box.appendChild(own); box.appendChild(cam);
-      box.appendChild(el("p", "hint", "內置大約 100 樣常見港式食物；搵唔到就照打，Cary 會幫你估。"));
-      setTimeout(function () { inp.focus(); }, 50);
+      box.appendChild(sr); box.appendChild(slotSeg(slot, function (s) { slot = s; })); box.appendChild(hits); box.appendChild(own);
+      box.appendChild(el("p", "hint", "★ 係你收藏咗嘅。內置大約 100 樣常見港式食物；搵唔到就照打，Cary 會幫你估。"));
+      show(); setTimeout(function () { inp.focus(); }, 60);
+    });
+  }
+  function openType(dt, slot) {
+    openSheet("打字記低", function (box) {
+      var ta = el("textarea"); ta.rows = 3; ta.maxLength = 120; ta.placeholder = "例如：一碗雲吞麵加一杯凍檸茶少甜"; ta.setAttribute("aria-label", "食咗乜");
+      box.appendChild(ta); box.appendChild(slotSeg(slot, function (s) { slot = s; }));
+      var ok = el("button", "primary wide", "記低，等 Cary 估卡路里"); ok.type = "button";
+      ok.onclick = function () { var v = ta.value.trim(); if (!v) { ta.focus(); return; } ok.disabled = true; var e = { id: newId(), slot: slot, dish: v.slice(0, 120) }; addMeal(dt, e).then(function () { closeSheet(); estimate(dt, e); }, function () { ok.disabled = false; }); };
+      box.appendChild(ok); box.appendChild(el("p", "hint", "寫得越詳細（份量、甜度、加咗乜）就估得越準。"));
+      setTimeout(function () { ta.focus(); }, 60);
+    });
+  }
+  function openFavs(dt, slot) {
+    openSheet("收藏", function (box) {
+      if (!cx.favs.length) { box.appendChild(el("p", "hint", "未有收藏。喺主頁㩒一樣食物，再㩒「收藏」，下次就可以喺度一㩒記低。")); return; }
+      box.appendChild(slotSeg(slot, function (s) { slot = s; }));
+      var hits = el("div", "hits");
+      cx.favs.forEach(function (f) {
+        var b = el("button"); b.type = "button"; b.appendChild(el("b", null, f.dish)); b.appendChild(el("span", null, (f.kcal || "?") + " kcal"));
+        b.onclick = function () { b.disabled = true; var e = { id: newId(), slot: slot, dish: f.dish, kcal: f.kcal, proteinG: f.p, carbsG: f.c, fatG: f.f, fiberG: f.fib, sugarG: f.sug, sodiumMg: f.sod }; if (f.img) e.img = f.img; addMeal(dt, e).then(function () { closeSheet(); toast("記低咗：" + f.dish); }, function () { b.disabled = false; }); };
+        hits.appendChild(b);
+      });
+      box.appendChild(hits);
+    });
+  }
+  function openMeal(dt, e) {
+    openSheet(e.slot || "食物", function (box) {
+      if (e.img) { var im = el("img", "thumb"); im.src = e.img; im.alt = ""; box.appendChild(im); }
+      var ni = el("input"); ni.value = e.dish || ""; ni.maxLength = 80; box.appendChild(field("名", ni));
+      var kv = el("dl", "kv");
+      [["卡路里", e.kcal, "kcal"], ["蛋白質", e.proteinG, "克"], ["碳水", e.carbsG, "克"], ["脂肪", e.fatG, "克"], ["纖維", e.fiberG, "克"], ["糖", e.sugarG, "克"], ["鈉", e.sodiumMg, "毫克"]].forEach(function (r) {
+        var d = el("div"); d.appendChild(el("dt", null, r[0])); d.appendChild(el("dd", null, r[1] ? fmt(r[1]) + " " + r[2] : "—")); kv.appendChild(d);
+      });
+      box.appendChild(kv);
+      if (e.roast) box.appendChild(el("p", "bubble", e.roast));
+      var por = 1, pl = el("p", "hint", "份量 × 1");
+      box.appendChild(seg([[0.5, "半份"], [0.75, "¾"], [1, "一份"], [1.5, "1.5"], [2, "雙份"]], 1, function (v) { por = v; pl.textContent = "份量 × " + v + "（記低時會照比例改數字）"; }));
+      box.appendChild(pl);
+      var slot = e.slot || "小食"; box.appendChild(slotSeg(slot, function (s) { slot = s; }));
+      var save = el("button", "primary wide", "儲存"); save.type = "button";
+      save.onclick = function () {
+        var patch = { dish: ni.value.trim().slice(0, 80) || e.dish, slot: slot };
+        if (por !== 1) ["kcal", "proteinG", "carbsG", "fatG", "fiberG", "sugarG", "sodiumMg"].forEach(function (k) { if (Number(e[k]) > 0) patch[k] = Math.round(e[k] * por); });
+        save.disabled = true; updateMeal(dt, e.id, patch).then(function () { closeSheet(); }, function () { save.disabled = false; });
+      };
+      box.appendChild(save);
+      var row = el("div", "acts2"), faved = cx.favs.some(function (f) { return f.dish === e.dish; });
+      var fav = el("button", "btn2 small", faved ? "★ 已收藏" : "☆ 收藏"); fav.type = "button";
+      fav.onclick = function () {
+        if (cx.favs.some(function (f) { return f.dish === e.dish; })) cx.favs = cx.favs.filter(function (f) { return f.dish !== e.dish; });
+        else cx.favs.unshift({ dish: e.dish, kcal: num(e.kcal), p: num(e.proteinG), c: num(e.carbsG), f: num(e.fatG), fib: num(e.fiberG), sug: num(e.sugarG), sod: num(e.sodiumMg), img: e.img || "" });
+        cx.favs = cx.favs.slice(0, 60); cxSave(); fav.textContent = cx.favs.some(function (f) { return f.dish === e.dish; }) ? "★ 已收藏" : "☆ 收藏";
+      };
+      row.appendChild(fav);
+      if (!(Number(e.kcal) > 0)) { var es = el("button", "btn2 small", "等 Cary 估"); es.type = "button"; es.onclick = function () { closeSheet(); estimate(dt, e); }; row.appendChild(es); }
+      var del = el("button", "btn2 small", "刪除"); del.type = "button"; del.style.color = "var(--red)";
+      del.onclick = function () { del.disabled = true; removeMeal(dt, e.id).then(function () { closeSheet(); toast("刪除咗"); }, function () { del.disabled = false; }); };
+      row.appendChild(del); box.appendChild(row);
+      if (e.at) box.appendChild(el("p", "hint", "記低時間：" + new Date(e.at).toLocaleString("zh-HK", { month: "numeric", day: "numeric", hour: "numeric", minute: "2-digit" })));
     });
   }
   function openExercise(dt) {
     var pick = 2;
-    openSheet("記運動", function (box) {
+    openSheet("做咗運動？", function (box) {
       box.appendChild(seg(EX.map(function (e, i) { return [i, e[0]]; }), pick, function (i) { pick = i; }));
-      var lab = el("label", "f"); lab.appendChild(el("span", null, "做咗幾耐"));
-      var u = el("div", "unit"), mins = el("input"); mins.type = "number"; mins.inputMode = "numeric"; mins.min = "1"; mins.max = "600"; mins.step = "5"; mins.placeholder = "30";
-      u.appendChild(mins); u.appendChild(el("span", null, "分鐘")); lab.appendChild(u); box.appendChild(lab);
+      var mins = numIn("", 1, 600, 5, "30"); box.appendChild(field("做咗幾耐", mins, "分鐘"));
       var ok = el("button", "primary wide", "記低"); ok.type = "button";
       ok.onclick = function () {
         var mn = Math.round(Number(mins.value)); if (!(mn >= 1 && mn <= 600)) { mins.focus(); return; }
@@ -629,318 +879,619 @@ dialog.keydlg h2 { font-size: 1.2rem; font-weight: 900 }
         mutate(dt, function (d) { var k = "x" + dt.getDate(); (d[k] = d[k] || []).push(x); }).then(function () { closeSheet(); toast(x.n + " " + mn + " 分鐘，燒咗約 " + x.k + " kcal"); }, function () { ok.disabled = false; });
       };
       box.appendChild(ok);
+      var ex = exOf(dt);
+      if (ex.length) {
+        box.appendChild(el("p", "hint", "今日記低咗："));
+        var hits = el("div", "hits");
+        ex.forEach(function (x) {
+          var b = el("button"); b.type = "button"; b.appendChild(el("b", null, x.n + " " + x.min + " 分鐘")); b.appendChild(el("span", null, x.k + " kcal · 刪除"));
+          b.setAttribute("aria-label", "刪除 " + x.n);
+          b.onclick = function () { b.disabled = true; mutate(dt, function (m) { var k = "x" + dt.getDate(); m[k] = (m[k] || []).filter(function (z) { return z.id !== x.id; }); if (!m[k].length) delete m[k]; }).then(function () { b.remove(); }); };
+          hits.appendChild(b);
+        });
+        box.appendChild(hits);
+      }
       box.appendChild(el("p", "hint", "按你體重估算淨消耗，會加入當日可以食嘅份量。"));
     });
   }
-  function openWeight() {
-    openSheet("記體重", function (box) {
-      var last = me.log[me.log.length - 1];
-      var u = el("div", "unit"), inp = el("input"); inp.type = "number"; inp.inputMode = "decimal"; inp.min = "30"; inp.max = "250"; inp.step = "0.1";
-      inp.value = last ? last.w : me.w || ""; inp.setAttribute("aria-label", "今日體重");
-      u.appendChild(inp); u.appendChild(el("span", null, "kg")); box.appendChild(u);
+  var BODY = { w: ["體重", "kg", 30, 250, 0.1], bf: ["體脂", "%", 3, 70, 0.1], mus: ["肌肉率", "%", 10, 70, 0.1], vis: ["內臟脂肪", "級", 1, 30, 1] };
+  function bodyLog(kind) { return kind === "w" ? me.log : kind === "bf" ? cx.bfLog : kind === "mus" ? cx.musLog : cx.visLog; }
+  function openBody(kind) {
+    var B = BODY[kind], L = bodyLog(kind), last = L[L.length - 1];
+    openSheet("記低" + B[0], function (box) {
+      var inp = numIn(last ? last.w : kind === "w" ? me.w : "", B[2], B[3], B[4]); inp.setAttribute("aria-label", B[0]);
+      box.appendChild(field("今日" + B[0], inp, B[1]));
       var ok = el("button", "primary wide", "記低"); ok.type = "button";
-      var go = function () { if (logWeight(inp.value)) { closeSheet(); toast("記低咗：" + inp.value + " kg"); } else inp.focus(); };
+      var go = function () { if (logBody(kind, inp.value)) { closeSheet(); toast("記低咗：" + inp.value + " " + B[1]); } else inp.focus(); };
       ok.onclick = go; inp.addEventListener("keydown", function (ev) { if (ev.key === "Enter") { ev.preventDefault(); go(); } });
       box.appendChild(ok);
-      box.appendChild(el("p", "hint", "每日同一時間（例如朝早去完廁所）磅，數字會穩定啲。"));
-      setTimeout(function () { inp.select(); }, 50);
+      var ch = lineChart(L, kind === "w" ? me.tw : 0, 320, 150); if (ch) box.appendChild(ch);
+      box.appendChild(el("p", "hint", kind === "w" ? "每日同一時間（例如朝早去完廁所）磅，數字會穩定啲。" : "體脂、肌肉率同內臟脂肪要用有呢啲功能嘅體脂磅先量到。"));
+      setTimeout(function () { inp.select(); }, 60);
     });
   }
-  var photoFor = null;
-  function pickPhoto(dt, slot) { photoFor = { dt: dt, slot: slot }; $("pin").click(); }
-  $("pin").addEventListener("change", function (ev) {
-    var l = Array.prototype.slice.call(ev.target.files || []); ev.target.value = "";
-    var to = photoFor || { dt: selDate(), slot: defaultSlot() }; photoFor = null;
-    if (l.length) scan(l, to.dt, to.slot);
-  });
-  $("fab").onclick = function () { pickPhoto(selDate(), sameDay(selDate(), today0()) ? defaultSlot() : "晚餐"); };
 
-  /* ---- drawing helpers ---- */
-  function card(title) { var c = el("div", "card"); if (title) c.appendChild(el("h2", null, title)); return c; }
-  function sameDay(a, b) { return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate(); }
-  function ringEl(eaten, target) {
-    var left = Math.round(target - eaten), f = target ? Math.min(1, eaten / target) : 0, C = 2 * Math.PI * 62;
-    var w = el("div", "ring" + (left < 0 ? " over" : "")); w.setAttribute("role", "img");
-    w.setAttribute("aria-label", "食咗 " + Math.round(eaten) + " kcal，目標 " + target + " kcal，" + (left >= 0 ? "仲食得 " + left : "超出 " + (-left)) + " kcal");
-    w.innerHTML = '<svg viewBox="0 0 150 150" aria-hidden="true"><circle class="bg" cx="75" cy="75" r="62"/>' + (f > 0 ? '<circle class="fg" cx="75" cy="75" r="62" stroke-dasharray="' + (C * f).toFixed(1) + ' ' + C.toFixed(1) + '"/>' : '') + '</svg>';
-    var mid = el("div", "mid"); mid.setAttribute("aria-hidden", "true");
-    mid.appendChild(el("b", null, String(Math.abs(left)))); mid.appendChild(el("small", null, left >= 0 ? "kcal 仲食得" : "kcal 超咗"));
-    w.appendChild(mid); return w;
-  }
-  function macroEl(name, eaten, target, color) {
-    var m = el("div", "macro"), r = el("div", "row"); r.appendChild(el("b", null, name)); r.appendChild(el("span", null, Math.round(eaten) + "／" + target + " 克")); m.appendChild(r);
-    var bar = el("div", "mbar" + (eaten > target * 1.05 ? " over" : "")), i = el("i"); i.style.width = Math.min(100, target ? eaten / target * 100 : 0) + "%"; i.style.background = color; bar.appendChild(i);
-    bar.setAttribute("role", "img"); bar.setAttribute("aria-label", name + " 食咗 " + Math.round(eaten) + " 克，目標 " + target + " 克"); m.appendChild(bar);
-    return m;
-  }
-
-  /* ---- pages ---- */
-  var page = "today", sel = isoDay(new Date());
-  function selDate() { var d = fromIso(sel); return d > today0() ? today0() : d; }
-  function render() {
-    var sk = streak(), p = $("streak");
-    p.hidden = !sk.n; p.textContent = "🔥 " + sk.n + " 日";
-    p.setAttribute("aria-label", "連續記錄 " + sk.n + " 日" + (sk.today ? "" : "，今日未記"));
-    $("pgToday").hidden = page !== "today"; $("pgProg").hidden = page !== "prog"; $("pgMe").hidden = page !== "me";
-    $("fab").hidden = page === "me";
-    Array.prototype.forEach.call(document.querySelectorAll(".tabbar button"), function (b) { if (b.getAttribute("data-pg") === page) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current"); });
-    if (page === "today") drawToday(); else if (page === "prog") drawProg(); else drawPlan();
-  }
-  Array.prototype.forEach.call(document.querySelectorAll(".tabbar button"), function (b) {
-    b.onclick = function () { page = b.getAttribute("data-pg"); render(); window.scrollTo(0, 0); };
-  });
-
-  function drawToday() {
-    var root = $("pgToday"); root.textContent = "";
-    var dt = selDate(), t0 = today0(), mp = mePlan(), list = entries(dt), ex = exOf(dt), bx = burned(ex);
-    var strip = el("div", "strip"); strip.setAttribute("aria-label", "揀日子");
-    for (var i = 6; i >= 0; i--) (function (x) {
-      var b = el("button" , entries(x).length ? "has" : ""); b.type = "button";
-      b.setAttribute("aria-pressed", sameDay(x, dt) ? "true" : "false");
-      b.setAttribute("aria-label", (x.getMonth() + 1) + " 月 " + x.getDate() + " 日" + (entries(x).length ? "，有記錄" : ""));
-      b.appendChild(el("span", null, sameDay(x, t0) ? "今日" : WD[x.getDay()])); b.appendChild(el("b", null, x.getDate())); b.appendChild(el("i"));
-      b.onclick = function () { sel = isoDay(x); render(); };
-      strip.appendChild(b);
-    })(new Date(t0.getFullYear(), t0.getMonth(), t0.getDate() - i));
-    root.appendChild(strip);
-
-    var eat = { k: 0, p: 0, c: 0, f: 0 };
-    list.forEach(function (e) { eat.k += Number(e.kcal) || 0; eat.p += Number(e.proteinG) || 0; eat.c += Number(e.carbsG) || 0; eat.f += Number(e.fatG) || 0; });
-    var sc = card();
-    if (!mp) {
-      sc.appendChild(el("h2", null, sameDay(dt, t0) ? "今日" : (dt.getMonth() + 1) + " 月 " + dt.getDate() + " 日"));
-      sc.appendChild(el("div", "big", Math.round(eat.k) + " ")).appendChild(el("small", null, "kcal 食咗"));
-      sc.appendChild(el("p", "hint", "答幾條問題，Cary 就計到你每日食幾多先啱。"));
-      var go = el("button", "primary", "幫我計目標"); go.type = "button"; go.onclick = function () { onbStart(1); }; sc.appendChild(go);
-    } else {
-      var tg = macroTargets(mp, bx), rr = el("div", "ringrow"), ms = el("div", "macros");
-      rr.appendChild(ringEl(eat.k, tg.k));
-      ms.appendChild(el("p", "hint", "目標 " + tg.k + " kcal" + (bx ? "（包括運動 " + bx + "）" : "") + " · 食咗 " + Math.round(eat.k)));
-      ms.appendChild(macroEl("蛋白質", eat.p, tg.p, "var(--pro)")); ms.appendChild(macroEl("碳水", eat.c, tg.c, "var(--carb)")); ms.appendChild(macroEl("脂肪", eat.f, tg.f, "var(--fat)"));
-      rr.appendChild(ms); sc.appendChild(rr);
-      if (mp.cyc && sameDay(dt, t0)) sc.appendChild(el("p", "hint", "週期第 " + mp.cyc.day + " 日（" + mp.cyc.phase + "）" + (mp.cyc.extra ? "，今日目標加咗 " + mp.cyc.extra + " kcal。" : "。")));
-      if (list.some(function (e) { return !(Number(e.kcal) > 0); })) sc.appendChild(el("p", "hint", "有啲嘢未有卡路里，㩒佢下面「估卡路里」先計得到。"));
-    }
-    root.appendChild(sc);
-
-    var mc = card();
-    SLOTS.forEach(function (sl) {
-      var its = list.filter(function (e) { return (SLOTS.indexOf(e.slot) >= 0 ? e.slot : "小食") === sl; }), k = 0;
-      its.forEach(function (e) { k += Number(e.kcal) || 0; });
-      var s = el("div", "slot"), hd = el("div", "slothead");
-      hd.appendChild(el("h3", null, sl)); if (k) hd.appendChild(el("span", null, Math.round(k) + " kcal"));
-      var add = el("button", "iconbtn", "+"); add.type = "button"; add.setAttribute("aria-label", "加入" + sl); add.onclick = function () { openAdd(dt, sl); }; hd.appendChild(add);
-      s.appendChild(hd);
-      if (!its.length) s.appendChild(el("p", "empty", "未記低"));
-      its.forEach(function (e) {
-        var it = el("div", "item"), r = el("div", "row"), tx = el("div", "grow");
-        tx.appendChild(el("strong", null, String(e.dish || "")));
-        var sub = Number(e.kcal) > 0 ? e.kcal + " kcal" + (e.proteinG || e.carbsG || e.fatG ? " · 蛋白質 " + (e.proteinG || 0) + " · 碳水 " + (e.carbsG || 0) + " · 脂肪 " + (e.fatG || 0) : "") : "";
-        if (sub) tx.appendChild(el("div", "sub", sub));
-        r.appendChild(tx);
-        var del = el("button", "iconbtn", "×"); del.type = "button"; del.setAttribute("aria-label", "刪除 " + (e.dish || ""));
-        del.onclick = function () { del.disabled = true; removeMeal(dt, e.id).catch(function () { del.disabled = false; }); };
-        r.appendChild(del); it.appendChild(r);
-        if (!(Number(e.kcal) > 0)) { var es = el("button", "btn2 small", estimating[e.id] ? "Cary 估緊…" : "估卡路里"); es.type = "button"; es.disabled = !!estimating[e.id]; es.onclick = function () { estimate(dt, e); }; es.style.justifySelf = "start"; it.appendChild(es); }
-        if (e.roast) it.appendChild(el("p", "bubble", String(e.roast)));
-        s.appendChild(it);
-      });
-      mc.appendChild(s);
-    });
-    root.appendChild(mc);
-
-    var n = waterOf(dt), goal = cupsGoal(), wc = card(), wh = el("div", "row");
-    wh.appendChild(el("h2", "grow", "飲水 " + n + "／" + goal + " 杯"));
-    if (n) { var mi = el("button", "iconbtn", "−"); mi.type = "button"; mi.setAttribute("aria-label", "減一杯"); mi.onclick = function () { mi.disabled = true; addCup(dt, -1); }; wh.appendChild(mi); }
-    var pl = el("button", "primary small", "+1 杯"); pl.type = "button"; pl.onclick = function () { pl.disabled = true; addCup(dt, 1); }; wh.appendChild(pl);
-    wc.appendChild(wh);
-    var cups = el("div", "cups"); cups.setAttribute("role", "img"); cups.setAttribute("aria-label", "飲咗 " + n + " 杯，目標 " + goal + " 杯");
-    for (var c = 0; c < Math.max(goal, n); c++) cups.appendChild(el("span", "cup" + (c < n ? " on" : "")));
-    wc.appendChild(cups);
-    var wl = waterLine(n, goal); if (wl) wc.appendChild(el("p", "bubble", wl));
-    root.appendChild(wc);
-
-    var xc = card(), xh = el("div", "row");
-    xh.appendChild(el("h2", "grow", "運動" + (bx ? " · 燒咗約 " + bx + " kcal" : "")));
-    var xa = el("button", "btn2 small", "+ 記運動"); xa.type = "button"; xa.onclick = function () { openExercise(dt); }; xh.appendChild(xa);
-    xc.appendChild(xh);
-    if (ex.length) {
-      var ul = el("ul", "exlist");
-      ex.forEach(function (x) {
-        var li = el("li"); li.appendChild(el("span", null, x.n + " " + x.min + " 分鐘 · " + x.k + " kcal"));
-        var d = el("button", "iconbtn", "×"); d.type = "button"; d.setAttribute("aria-label", "刪除 " + x.n);
-        d.onclick = function () { d.disabled = true; mutate(dt, function (m) { var k = "x" + dt.getDate(); m[k] = (m[k] || []).filter(function (z) { return z.id !== x.id; }); if (!m[k].length) delete m[k]; }); };
-        li.appendChild(d); ul.appendChild(li);
-      });
-      xc.appendChild(ul);
-    } else xc.appendChild(el("p", "empty", "今日未有運動記錄。"));
-    root.appendChild(xc);
-
-    var last = me.log[me.log.length - 1], wtc = card(), wr = el("div", "row");
-    var wtx = el("div", "grow"); wtx.appendChild(el("h2", null, "體重"));
-    wtx.appendChild(el("p", "hint", last ? last.w + " kg（" + (last.d === isoDay(new Date()) ? "今日" : +last.d.slice(5, 7) + "/" + +last.d.slice(8)) + "）" + (me.tw ? " · 目標 " + me.tw + " kg" : "") : "未有記錄"));
-    wr.appendChild(wtx);
-    var wb = el("button", "btn2 small", "記體重"); wb.type = "button"; wb.onclick = openWeight; wr.appendChild(wb);
-    wtc.appendChild(wr); root.appendChild(wtc);
-  }
-
-  function weightChart() {
-    var L = me.log.slice(-60); if (L.length < 2) return null;
+  /* ---- charts ---- */
+  function lineChart(L, target, W, H) {
+    L = L.slice(-60); if (L.length < 2) return null;
     var dn = function (s) { return Date.UTC(+s.slice(0, 4), +s.slice(5, 7) - 1, +s.slice(8, 10)) / 86400000; };
-    var W = 320, H = 160, pl = 34, pr = 10, pt = 10, pb = 22, t0 = dn(L[0].d), span = Math.max(1, dn(L[L.length - 1].d) - t0);
-    var ws = L.map(function (x) { return x.w; }); if (me.tw) ws.push(me.tw);
+    var pl = 34, pr = 10, pt = 10, pb = 22, t0 = dn(L[0].d), span = Math.max(1, dn(L[L.length - 1].d) - t0);
+    var ws = L.map(function (x) { return x.w; }); if (target) ws.push(target);
     var lo = Math.floor(Math.min.apply(null, ws) - 0.5), hi = Math.ceil(Math.max.apply(null, ws) + 0.5);
     var X = function (s) { return (pl + (dn(s) - t0) / span * (W - pl - pr)).toFixed(1); }, Y = function (w) { return (pt + (hi - w) / (hi - lo) * (H - pt - pb)).toFixed(1); };
     var md = function (s) { return +s.slice(5, 7) + "/" + +s.slice(8); };
     var svg = '<svg class="chart" viewBox="0 0 ' + W + ' ' + H + '" aria-hidden="true">' +
       '<line class="ax" x1="' + pl + '" x2="' + (W - pr) + '" y1="' + Y(hi) + '" y2="' + Y(hi) + '"/><line class="ax" x1="' + pl + '" x2="' + (W - pr) + '" y1="' + Y(lo) + '" y2="' + Y(lo) + '"/>' +
       '<text x="' + (pl - 6) + '" y="' + (+Y(hi) + 4) + '" text-anchor="end">' + hi + '</text><text x="' + (pl - 6) + '" y="' + (+Y(lo) + 4) + '" text-anchor="end">' + lo + '</text>' +
-      (me.tw ? '<line class="tg" x1="' + pl + '" x2="' + (W - pr) + '" y1="' + Y(me.tw) + '" y2="' + Y(me.tw) + '"/>' : '') +
+      (target ? '<line class="tg" x1="' + pl + '" x2="' + (W - pr) + '" y1="' + Y(target) + '" y2="' + Y(target) + '"/>' : '') +
       '<polyline class="ln" points="' + L.map(function (x) { return X(x.d) + "," + Y(x.w); }).join(" ") + '"/>' +
       L.map(function (x) { return '<circle class="pt" r="3.5" cx="' + X(x.d) + '" cy="' + Y(x.w) + '"/>'; }).join("") +
       '<text x="' + pl + '" y="' + (H - 6) + '">' + md(L[0].d) + '</text><text x="' + (W - pr) + '" y="' + (H - 6) + '" text-anchor="end">' + md(L[L.length - 1].d) + '</text></svg>';
     var w = el("div"); w.setAttribute("role", "img");
-    w.setAttribute("aria-label", "體重由 " + md(L[0].d) + " 嘅 " + L[0].w + " kg 到 " + md(L[L.length - 1].d) + " 嘅 " + L[L.length - 1].w + " kg" + (me.tw ? "，綠色虛線係目標 " + me.tw + " kg" : ""));
+    w.setAttribute("aria-label", "由 " + md(L[0].d) + " 嘅 " + L[0].w + " 到 " + md(L[L.length - 1].d) + " 嘅 " + L[L.length - 1].w + (target ? "，綠色虛線係目標 " + target : ""));
     w.innerHTML = svg; return w;
   }
+  function spark(L) {
+    var w = el("div"); w.setAttribute("aria-hidden", "true");
+    if (L.length < 2) { w.innerHTML = '<svg class="spark" viewBox="0 0 100 36" preserveAspectRatio="none"><path d="M0 26H100"/>' + (L.length ? '<circle cx="96" cy="26" r="3"/>' : '') + '</svg>'; return w; }
+    var S = L.slice(-14), lo = Math.min.apply(null, S.map(function (x) { return x.w; })), hi = Math.max.apply(null, S.map(function (x) { return x.w; })), r = hi - lo || 1;
+    var pts = S.map(function (x, i) { return (i / (S.length - 1) * 96 + 2).toFixed(1) + "," + (30 - (x.w - lo) / r * 24).toFixed(1); });
+    w.innerHTML = '<svg class="spark" viewBox="0 0 100 36" preserveAspectRatio="none"><path class="ln2" d="M' + pts.join("L") + '"/><circle cx="' + pts[pts.length - 1].split(",")[0] + '" cy="' + pts[pts.length - 1].split(",")[1] + '" r="3"/></svg>';
+    return w;
+  }
+  function ringSvg(f, size, sw, color) {
+    var r = (size - sw) / 2, C = 2 * Math.PI * r;
+    return '<svg class="r" viewBox="0 0 ' + size + ' ' + size + '" aria-hidden="true"><circle class="bg" cx="' + size / 2 + '" cy="' + size / 2 + '" r="' + r + '"/>' +
+      (f > 0 ? '<circle class="fg" cx="' + size / 2 + '" cy="' + size / 2 + '" r="' + r + '" stroke-dasharray="' + (C * Math.min(1, f)).toFixed(1) + ' ' + C.toFixed(1) + '"' + (color ? ' style="stroke:' + color + '"' : '') + '/>' : '') + '</svg>';
+  }
+
+  /* ---- top bar and tabs ---- */
+  var page = "home", sel = isoDay(today0());
+  function selDate() { var d = fromIso(sel), t = today0(); return d > t ? t : d; }
+  var TABS = [["home", "home", "主頁"], ["prog", "chart", "進度"], ["link", "people", "連繫"], ["me", "person", "個人"]];
+  TABS.forEach(function (t) {
+    var b = el("button"); b.type = "button"; b.setAttribute("data-pg", t[0]); b.appendChild(ic(t[1])); b.appendChild(document.createTextNode(t[2]));
+    b.onclick = function () { page = t[0]; menuOpen(false); render(); window.scrollTo(0, 0); };
+    $("navpill").appendChild(b);
+  });
+  function drawTop() {
+    var t = $("topbar"); t.textContent = "";
+    if (page === "home") {
+      var lg = el("img", "logo"); lg.src = "../icon-192.png"; lg.alt = ""; t.appendChild(lg); t.appendChild(el("span", "brand", "Cary"));
+      var cy = cycleNow(); if (cy) { var cp = el("span", "pill cyc"); cp.appendChild(ic("moon")); cp.appendChild(document.createTextNode(cy.phase)); t.appendChild(cp); }
+      var sk = streak(), sp = el("span", "pill"); sp.appendChild(ic("flame")); sp.appendChild(document.createTextNode(String(sk.n)));
+      sp.setAttribute("aria-label", "連續記錄 " + sk.n + " 日"); t.appendChild(sp);
+    } else t.appendChild(el("h1", "pagetitle", { prog: "進度", link: "連繫", me: "個人" }[page]));
+    if (page === "link") { var qb = el("button", "iconbtn"); qb.type = "button"; qb.appendChild(ic("qr")); qb.setAttribute("aria-label", "加朋友"); qb.onclick = openAddFriend; t.appendChild(qb); }
+  }
+  function render() {
+    drawTop();
+    ["home", "prog", "link", "me"].forEach(function (p) { $("pg" + { home: "Home", prog: "Prog", link: "Link", me: "Me" }[p]).hidden = page !== p; });
+    Array.prototype.forEach.call($("navpill").children, function (b) { if (b.getAttribute("data-pg") === page) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current"); });
+    if (page === "home") drawHome(); else if (page === "prog") drawProg(); else if (page === "link") drawLink(); else drawMe();
+    publish();
+  }
+
+  /* ---- 主頁 ---- */
+  var macroPage = 0;
+  function drawHome() {
+    var root = $("pgHome"); root.textContent = "";
+    var dt = selDate(), t0 = today0(), mp = mePlan(), list = entries(dt), ex = exOf(dt), bx = burned(ex), T = totals(list);
+    var strip = el("div", "strip"); strip.setAttribute("aria-label", "揀日子");
+    var mon = addDays(t0, -6);
+    if (dt < mon) mon = addDays(dt, -3);
+    for (var i = 0; i < 7; i++) (function (x) {
+      var fut = x > t0, b = el("button", entries(x).length ? "has" : ""); b.type = "button"; b.disabled = fut;
+      b.setAttribute("aria-pressed", sameDay(x, dt) ? "true" : "false");
+      b.setAttribute("aria-label", (x.getMonth() + 1) + " 月 " + x.getDate() + " 日" + (entries(x).length ? "，有記錄" : ""));
+      b.appendChild(el("span", null, WD[x.getDay()])); var bb = el("b", null, x.getDate()); if (fut) bb.style.color = "var(--dim)"; b.appendChild(bb); b.appendChild(el("i"));
+      b.onclick = function () { sel = isoDay(x); render(); };
+      strip.appendChild(b);
+    })(addDays(mon, i));
+    root.appendChild(strip);
+
+    var sc = el("div", "card");
+    if (!mp) {
+      sc.appendChild(el("h2", null, "未有目標"));
+      var bg = el("div", "huge", fmt(T.k)); sc.appendChild(bg); sc.appendChild(el("p", "hint", "kcal 食咗。答幾條問題，Cary 就計到你每日可以食幾多。"));
+      var go = el("button", "primary", "幫我計目標"); go.type = "button"; go.onclick = function () { onbStart(1); }; sc.appendChild(go);
+      root.appendChild(sc);
+    } else {
+      var tg = targets(mp, bx), left = Math.round(tg.k - T.k), sum = el("div", "sum");
+      var tag = el("span", "tag"); tag.appendChild(ic("bolt")); tag.appendChild(document.createTextNode("活動量 · " + ["坐定定", "輕度", "中度", "好活躍"][me.act])); sum.appendChild(tag);
+      var ring = el("div", "ring" + (left < 0 ? " over" : "")); ring.innerHTML = ringSvg(tg.k ? T.k / tg.k : 0, 118, 10);
+      var mid = el("div", "mid"); mid.appendChild(ic("flame")); ring.appendChild(mid);
+      ring.setAttribute("role", "img"); ring.setAttribute("aria-label", "食咗 " + fmt(T.k) + "，目標 " + fmt(tg.k) + " kcal");
+      sum.appendChild(ring);
+      sum.appendChild(el("div", "huge num" + (left < 0 ? " over" : ""), fmt(Math.abs(left))));
+      sum.appendChild(el("span", "hint", left >= 0 ? "仲剩" : "超咗"));
+      var sl = el("div", "sumline"); sl.appendChild(el("b", null, fmt(T.k))); sl.appendChild(document.createTextNode("/ " + fmt(tg.k) + " kcal"));
+      var exb = el("button", "exlink", "+" + bx + " 運動 ›"); exb.type = "button"; exb.onclick = function () { openExercise(dt); }; sl.appendChild(exb);
+      sum.appendChild(sl); sc.appendChild(sum);
+      var c2 = el("div", "chips2"), d1 = el("div"), d2 = el("div");
+      d1.appendChild(ic("moon")); d1.appendChild(document.createTextNode("BMR ")); d1.appendChild(el("b", null, fmt(mp.bmr))); d1.appendChild(document.createTextNode(" kcal"));
+      d2.appendChild(ic("bolt")); d2.appendChild(document.createTextNode("TDEE ")); d2.appendChild(el("b", null, fmt(mp.tdee))); d2.appendChild(document.createTextNode(" kcal"));
+      c2.appendChild(d1); c2.appendChild(d2); sc.appendChild(c2);
+      if (mp.cyc && sameDay(dt, t0) && mp.cyc.extra) sc.appendChild(el("p", "hint", "黃體期第 " + mp.cyc.day + " 日：今日目標加咗 " + mp.cyc.extra + " kcal。"));
+      root.appendChild(sc);
+
+      var pager = el("div", "pager"), M = [
+        [["蛋白質", "p", "pro", "var(--pro)", "g"], ["碳水", "c", "carb", "var(--carb)", "g"], ["脂肪", "f", "fat", "var(--fat)", "g"]],
+        [["纖維", "fib", "fib", "var(--fib)", "g"], ["糖", "sug", "sug", "var(--sug)", "g"], ["鈉", "sod", "sod", "var(--sod)", "mg"]]];
+      M.forEach(function (pg) {
+        var p3 = el("div", "page3");
+        pg.forEach(function (m) {
+          var v = T[m[1]], g = tg[m[1]], over = m[1] !== "fib" && v > g * 1.05, c = el("div", "mac" + (over ? " over" : ""));
+          var mini = el("div", "mini"); mini.innerHTML = ringSvg(g ? v / g : 0, 48, 5, over ? "var(--red)" : m[3]); var i2 = ic(m[2]); i2.style.color = m[3]; mini.appendChild(i2); c.appendChild(mini);
+          c.appendChild(el("small", null, m[0]));
+          var b = el("b", null, fmt(v)); b.appendChild(el("span", null, "/" + fmt(g) + m[4])); c.appendChild(b);
+          c.setAttribute("aria-label", m[0] + " " + fmt(v) + "，" + (m[1] === "fib" ? "目標" : "上限") + " " + fmt(g) + m[4]);
+          p3.appendChild(c);
+        });
+        pager.appendChild(p3);
+      });
+      var dots = el("div", "dots"); dots.setAttribute("aria-hidden", "true"); dots.appendChild(el("i", macroPage === 0 ? "on" : "")); dots.appendChild(el("i", macroPage === 1 ? "on" : ""));
+      pager.addEventListener("scroll", function () { macroPage = Math.round(pager.scrollLeft / pager.clientWidth); dots.children[0].className = macroPage === 0 ? "on" : ""; dots.children[1].className = macroPage === 1 ? "on" : ""; }, { passive: true });
+      root.appendChild(pager); root.appendChild(dots);
+      if (macroPage) requestAnimationFrame(function () { pager.scrollLeft = pager.clientWidth * macroPage; });
+    }
+
+    var acts = el("div", "acts"), a1 = el("button", "eat"), a2 = el("button", "move");
+    a1.type = a2.type = "button"; a1.appendChild(ic("scan")); a1.appendChild(document.createTextNode("又食嘢？記低佢")); a1.onclick = function () { menuOpen(true); };
+    a2.appendChild(ic("run")); a2.appendChild(document.createTextNode("做咗運動？")); a2.onclick = function () { openExercise(dt); };
+    acts.appendChild(a1); acts.appendChild(a2); root.appendChild(acts);
+
+    var n = waterOf(dt), goal = cupsGoal(), wc = el("div", "card"), wr = el("div", "water");
+    var wi = ic("drop"); wi.style.color = "var(--fat)"; wr.appendChild(wi);
+    var cups = el("div", "cups"); cups.setAttribute("role", "img"); cups.setAttribute("aria-label", "飲咗 " + n + " 杯，目標 " + goal + " 杯");
+    for (var c = 0; c < Math.max(goal, n); c++) cups.appendChild(el("span", "cup" + (c < n ? " on" : "")));
+    wr.appendChild(cups); wr.appendChild(el("b", "num", n + "/" + goal));
+    if (n) { var mi = el("button", "iconbtn", "−"); mi.type = "button"; mi.setAttribute("aria-label", "減一杯"); mi.onclick = function () { mi.disabled = true; addCup(dt, -1); }; wr.appendChild(mi); }
+    var pl = el("button", "iconbtn"); pl.appendChild(ic("plus")); pl.type = "button"; pl.setAttribute("aria-label", "加一杯水"); pl.style.background = "var(--fat)"; pl.style.color = "#062022"; pl.onclick = function () { pl.disabled = true; addCup(dt, 1); }; wr.appendChild(pl);
+    wc.appendChild(wr); var wl = waterLine(n, goal); if (wl) wc.appendChild(el("p", "hint", wl)); root.appendChild(wc);
+
+    root.appendChild(el("div", "sect", "食咗乜"));
+    if (!list.length) {
+      var em = el("div", "emptylog"); em.appendChild(el("p", null, sameDay(dt, t0) ? "今日未記低任何嘢。" : "呢日冇記錄。"));
+      var eb = el("button", "primary small"); eb.type = "button"; eb.appendChild(document.createTextNode("📸 影相記低")); eb.onclick = function () { pickPhoto($("pinCam"), false); }; em.appendChild(eb);
+      root.appendChild(em); return;
+    }
+    var sorted = list.slice().sort(function (a, b) { return (b.at || 0) - (a.at || 0); });
+    var lastRoast = sorted.filter(function (e) { return e.roast; })[0];
+    if (lastRoast) { var bn = el("div", "banner"); bn.appendChild(el("span", null, (TONES[me.tone] || TONES.roast)[3])); bn.appendChild(el("span", null, lastRoast.roast)); root.appendChild(bn); }
+    sorted.forEach(function (e) {
+      var b = el("button", "meal"); b.type = "button";
+      var ph = el("div", "ph"); if (e.img) ph.style.backgroundImage = "url(" + e.img + ")"; else ph.appendChild(ic("plate")); b.appendChild(ph);
+      var tx = el("div"); tx.style.cssText = "display:grid;gap:3px;min-width:0";
+      var t = el("div", "t"); t.appendChild(el("strong", null, String(e.dish || "")));
+      t.appendChild(el("small", null, e.at ? new Date(e.at).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }).toLowerCase() : (e.slot || ""))); tx.appendChild(t);
+      if (Number(e.kcal) > 0) { var k = el("div", "k"); k.appendChild(ic("flame")); k.appendChild(document.createTextNode(fmt(e.kcal) + " 卡路里")); tx.appendChild(k); }
+      else tx.appendChild(el("div", "k none", estimating[e.id] ? "Cary 估緊…" : "未有卡路里 · 㩒入去估"));
+      if (e.proteinG || e.carbsG || e.fatG) {
+        var mm = el("div", "m");
+        [["pro", e.proteinG, "var(--pro)"], ["carb", e.carbsG, "var(--carb)"], ["fat", e.fatG, "var(--fat)"]].forEach(function (q) { var s = el("span"); var ii = ic(q[0]); ii.style.color = q[2]; s.appendChild(ii); s.appendChild(document.createTextNode((q[1] || 0) + "g")); mm.appendChild(s); });
+        tx.appendChild(mm);
+      }
+      tx.appendChild(el("span", "slotlab", e.slot || ""));
+      b.appendChild(tx); b.setAttribute("aria-label", (e.slot || "") + "：" + (e.dish || "") + (Number(e.kcal) > 0 ? "，" + e.kcal + " 卡路里" : ""));
+      b.onclick = function () { openMeal(dt, e); };
+      root.appendChild(b);
+    });
+  }
+
+  /* ---- 進度 ---- */
+  var nut = "k", weekOff = 0, progSel = null, weekTalk = { key: "", text: "", busy: false };
+  var NUTS = [["k", "熱量", "flame", "kcal", "var(--amber)"], ["p", "蛋白質", "pro", "g", "var(--pro)"], ["c", "碳水", "carb", "g", "var(--carb)"], ["f", "脂肪", "fat", "g", "var(--fat)"], ["sug", "糖", "sug", "g", "var(--sug)"], ["fib", "纖維", "fib", "g", "var(--fib)"], ["sod", "鈉", "sod", "mg", "var(--sod)"]];
   function drawProg() {
     var root = $("pgProg"); root.textContent = "";
-    var sk = streak(), L = lastDays(7), mp = mePlan(), withK = L.filter(function (d) { return d.k; });
-    var avg = withK.length ? Math.round(withK.reduce(function (s, d) { return s + d.k; }, 0) / withK.length) : 0;
-    var exTot = L.reduce(function (s, d) { return s + d.ex; }, 0), wAvg = Math.round(L.reduce(function (s, d) { return s + d.water; }, 0) / 7 * 10) / 10;
-    var st = el("div", "stats");
-    [["連續記錄", sk.n + " 日"], ["7 日平均", avg ? avg + " kcal" : "—"], ["7 日運動", exTot ? exTot + " kcal" : "—"], ["平均飲水", wAvg + " 杯"]].forEach(function (s) {
-      var d = el("div", "stat"); d.appendChild(el("small", null, s[0])); d.appendChild(el("b", null, s[1])); st.appendChild(d);
+    var mp = mePlan(), t0 = today0(), N = NUTS.filter(function (x) { return x[0] === nut; })[0];
+    var end = addDays(t0, -7 * weekOff), days = [];
+    for (var i = 6; i >= 0; i--) { var d = addDays(end, -i), ex = burned(exOf(d)); days.push({ d: d, t: totals(entries(d)), n: entries(d).length, cap: mp ? targets(mp, ex)[nut] : 0 }); }
+    var pick = days.filter(function (x) { return progSel && sameDay(x.d, progSel); })[0] || days[days.length - 1];
+    var c = el("div", "card"), hd = el("div", "row");
+    var h2 = el("h2", "grow"); h2.appendChild(ic("list")); h2.appendChild(document.createTextNode(" 營養")); hd.appendChild(h2);
+    var gear = el("button", "iconbtn"); gear.type = "button"; gear.appendChild(ic("gear")); gear.setAttribute("aria-label", "營養目標"); gear.onclick = openCaps; hd.appendChild(gear);
+    c.appendChild(hd);
+    var top = el("div", "row"), lv = el("div", "grow"), v = pick.t[nut];
+    lv.appendChild(el("div", "huge num", fmt(v) + " " + N[3])); lv.lastChild.style.fontSize = "2rem";
+    lv.appendChild(el("span", "hint", (pick.d.getMonth() + 1) + "月" + pick.d.getDate() + "日" + (sameDay(pick.d, t0) ? " · 今日" : "")));
+    top.appendChild(lv);
+    if (pick.cap) {
+      var isFloor = nut === "fib" || nut === "p", diff = Math.round(v - pick.cap), st = el("div", "status");
+      var bad = isFloor ? diff < 0 : diff > 0;
+      if (bad) st.classList.add("over");
+      st.appendChild(document.createTextNode(isFloor ? (diff >= 0 ? "達標" : "未夠") : (diff <= 0 ? "上限內" : "超出"))); st.appendChild(el("br"));
+      st.appendChild(document.createTextNode((diff > 0 ? "+" : "−") + fmt(Math.abs(diff)) + " " + N[3])); top.appendChild(st);
+    }
+    c.appendChild(top);
+    var chips = el("div", "nchips");
+    NUTS.forEach(function (x) {
+      var b = el("button"); b.type = "button"; b.setAttribute("aria-pressed", x[0] === nut ? "true" : "false"); b.setAttribute("aria-label", x[1]);
+      var i2 = ic(x[2]); b.appendChild(i2); b.style.color = x[4]; if (x[0] === nut) b.appendChild(document.createTextNode(x[1]));
+      b.onclick = function () { nut = x[0]; render(); }; chips.appendChild(b);
     });
-    root.appendChild(st);
-
-    var wk = card("最近 7 日");
-    var W = 320, H = 160, pl = 8, pr = 8, pt = 12, pb = 24, bw = (W - pl - pr) / 7;
-    var top = Math.max.apply(null, L.map(function (d) { return d.k; }).concat(mp ? [mp.target + 200] : [500]));
-    var Y = function (v) { return (pt + (1 - v / top) * (H - pt - pb)).toFixed(1); };
-    var svg = '<svg class="chart" viewBox="0 0 ' + W + ' ' + H + '" aria-hidden="true"><line class="ax" x1="' + pl + '" x2="' + (W - pr) + '" y1="' + Y(0) + '" y2="' + Y(0) + '"/>';
-    L.forEach(function (d, i) {
-      var goal = mp ? mp.target + d.ex : 0, x = pl + i * bw + bw * 0.2, h = d.k ? Math.max(3, +Y(0) - +Y(d.k)) : 3;
-      svg += '<rect class="bar' + (!d.k ? " none" : goal && d.k > goal ? " over" : "") + '" x="' + x.toFixed(1) + '" y="' + (+Y(0) - h).toFixed(1) + '" width="' + (bw * 0.6).toFixed(1) + '" height="' + h.toFixed(1) + '" rx="6"/>';
-      svg += '<text x="' + (x + bw * 0.3).toFixed(1) + '" y="' + (H - 7) + '" text-anchor="middle">' + WD[d.dt.getDay()] + '</text>';
+    c.appendChild(chips);
+    var W = 330, H = 190, pl = 6, pr = 34, pt = 14, pb = 24, bw = (W - pl - pr) / 7;
+    var capv = mp ? days[days.length - 1].cap : 0, top2 = Math.max.apply(null, days.map(function (x) { return x.t[nut]; }).concat([capv * 1.2, 10]));
+    var Y = function (q) { return pt + (1 - q / top2) * (H - pt - pb); };
+    var svg = '<svg class="chart" viewBox="0 0 ' + W + ' ' + H + '" aria-hidden="true">';
+    [0, 0.25, 0.5, 0.75, 1].forEach(function (f) { var q = top2 * f; svg += '<line class="ax" x1="' + pl + '" x2="' + (W - pr) + '" y1="' + Y(q).toFixed(1) + '" y2="' + Y(q).toFixed(1) + '"/><text x="' + (W - 2) + '" y="' + (Y(q) + 3).toFixed(1) + '" text-anchor="end">' + fmt(q) + '</text>'; });
+    days.forEach(function (x, i) {
+      var q = x.t[nut], h = q ? Math.max(3, Y(0) - Y(q)) : 0, bx2 = pl + i * bw + bw * 0.2, s = sameDay(x.d, pick.d), over = x.cap && nut !== "fib" && nut !== "p" && q > x.cap;
+      if (h) svg += '<rect class="bar has' + (over ? " over" : s ? " sel" : "") + '" x="' + bx2.toFixed(1) + '" y="' + (Y(0) - h).toFixed(1) + '" width="' + (bw * 0.6).toFixed(1) + '" height="' + h.toFixed(1) + '" rx="4"/>';
+      svg += '<text' + (s ? ' class="sel"' : '') + ' x="' + (bx2 + bw * 0.3).toFixed(1) + '" y="' + (H - 7) + '" text-anchor="middle">' + (sameDay(x.d, t0) ? "今日" : x.d.getDate() + "/" + (x.d.getMonth() + 1)) + '</text>';
     });
-    if (mp) svg += '<line class="tg" x1="' + pl + '" x2="' + (W - pr) + '" y1="' + Y(mp.target) + '" y2="' + Y(mp.target) + '"/>';
+    if (capv) { var cy2 = Y(capv).toFixed(1), lab = (nut === "fib" || nut === "p" ? "目標 " : "上限 ") + fmt(capv); svg += '<line class="cap" x1="' + pl + '" x2="' + (W - pr) + '" y1="' + cy2 + '" y2="' + cy2 + '"/><rect class="capbg" x="' + pl + '" y="' + (cy2 - 9) + '" width="' + (lab.length * 7 + 14) + '" height="18" rx="9"/><text class="capl" x="' + (pl + 7) + '" y="' + (+cy2 + 4) + '">' + lab + '</text>'; }
     svg += '</svg>';
-    var ch = el("div"); ch.setAttribute("role", "img");
-    ch.setAttribute("aria-label", "最近 7 日卡路里：" + L.map(function (d) { return "星期" + WD[d.dt.getDay()] + " " + (d.k || "冇記錄"); }).join("，") + (mp ? "。虛線係目標 " + mp.target + " kcal" : ""));
-    ch.innerHTML = svg; wk.appendChild(ch);
-    var inGoal = mp ? withK.filter(function (d) { return d.k <= mp.target + d.ex; }).length : 0;
-    var since = isoDay(L[0].dt), wl = me.log.filter(function (x) { return x.d >= since; }), wch = wl.length > 1 ? Math.round((wl[wl.length - 1].w - wl[0].w) * 10) / 10 : null;
-    var stats = [["有記錄", L.filter(function (d) { return d.n; }).length + "／7 日"], ["平均每日", avg ? avg + " kcal" : "未有"]];
-    if (mp) stats.push(["喺目標之內", inGoal + "／" + withK.length + " 日"]);
-    stats.push(["運動", exTot ? "約 " + exTot + " kcal" : "未有"], ["平均飲水", wAvg + " 杯／日"]);
-    if (wch !== null) stats.push(["體重", wch === 0 ? "冇變" : (wch < 0 ? "輕咗 " + (-wch) : "重咗 " + wch) + " kg"]);
-    var dl = el("dl", "kv"); stats.forEach(function (s) { var d = el("div"); d.appendChild(el("dt", null, s[0])); d.appendChild(el("dd", null, s[1])); dl.appendChild(d); }); wk.appendChild(dl);
-    var key = JSON.stringify(stats) + me.tone + me.spicy;
-    if (weekTalk.key === key && weekTalk.text) wk.appendChild(el("p", "bubble", weekTalk.text));
-    else if (me.tone !== "off" && withK.length) {
-      var b = el("button", "primary", weekTalk.busy ? "Cary 諗緊…" : "叫 Cary 評下呢個禮拜"); b.type = "button"; b.disabled = weekTalk.busy;
-      b.onclick = function () { weekReview(key, stats, L, mp); }; wk.appendChild(b);
-    }
-    root.appendChild(wk);
+    var ch = el("div"); ch.innerHTML = svg; ch.setAttribute("role", "img");
+    ch.setAttribute("aria-label", N[1] + "：" + days.map(function (x) { return (x.d.getMonth() + 1) + "月" + x.d.getDate() + "日 " + fmt(x.t[nut]); }).join("，"));
+    c.appendChild(ch);
+    var pickRow = el("div", "seg");
+    days.forEach(function (x) { if (!x.n) return; var b = el("button", "opt small", (x.d.getMonth() + 1) + "/" + x.d.getDate()); b.type = "button"; b.setAttribute("aria-checked", sameDay(x.d, pick.d) ? "true" : "false"); b.onclick = function () { progSel = x.d; render(); }; pickRow.appendChild(b); });
+    if (pickRow.children.length > 1) c.appendChild(pickRow);
+    var rg = el("div", "range"), pv = el("button", "iconbtn"), nx = el("button", "iconbtn");
+    pv.type = nx.type = "button"; pv.appendChild(ic("back")); nx.appendChild(ic("next")); pv.setAttribute("aria-label", "上個星期"); nx.setAttribute("aria-label", "下個星期"); nx.disabled = weekOff === 0; if (!weekOff) nx.style.opacity = "0.35";
+    pv.onclick = function () { weekOff++; progSel = null; render(); }; nx.onclick = function () { if (weekOff) { weekOff--; progSel = null; render(); } };
+    rg.appendChild(pv); rg.appendChild(el("span", null, (days[0].d.getMonth() + 1) + "月" + days[0].d.getDate() + "日 – " + (end.getMonth() + 1) + "月" + end.getDate() + "日")); rg.appendChild(nx);
+    c.appendChild(rg);
+    root.appendChild(c);
 
-    var wc = card(), wr = el("div", "row"); wr.appendChild(el("h2", "grow", "體重"));
-    var wb = el("button", "btn2 small", "記體重"); wb.type = "button"; wb.onclick = openWeight; wr.appendChild(wb); wc.appendChild(wr);
-    var last = me.log[me.log.length - 1];
-    if (last) {
-      var big = el("div", "big", last.w + " "); big.appendChild(el("small", null, "kg")); wc.appendChild(big);
-      var ch2 = Math.round((last.w - me.log[0].w) * 10) / 10;
-      wc.appendChild(el("p", "hint", (me.log.length > 1 ? "比第一次記錄" + (ch2 === 0 ? "冇變" : ch2 < 0 ? "輕咗 " + (-ch2) + " kg" : "重咗 " + ch2 + " kg") : "第一次記錄") + (me.tw ? "；距離目標 " + Math.abs(Math.round((last.w - me.tw) * 10) / 10) + " kg" : "")));
-    }
-    var chart = weightChart(); if (chart) wc.appendChild(chart); else wc.appendChild(el("p", "hint", "記多兩次體重就會見到條線。"));
-    root.appendChild(wc);
-
+    var sh = el("div", "sect"); sh.appendChild(el("span", "grow", "身體")); sh.appendChild(el("span", null, "㩒卡片睇全圖")); root.appendChild(sh);
+    var grid = el("div", "body2");
+    var bcard = function (kind, full) {
+      var B = BODY[kind], L = bodyLog(kind), last = L[L.length - 1], b = el("div", "bcard" + (full ? " full" : ""));
+      b.setAttribute("role", "button"); b.tabIndex = 0; b.setAttribute("aria-label", B[0] + (last ? " " + last.w + B[1] : " 未有記錄") + "，㩒睇全圖");
+      b.appendChild(el("small", null, B[0]));
+      var vv = el("div", "v" + (last ? "" : " none"), last ? String(last.w) : "未有記錄"); if (last) vv.appendChild(el("span", null, " " + B[1])); b.appendChild(vv);
+      if (kind === "w" && last && me.tw) b.appendChild(el("small", null, "目標 " + me.tw + " · 仲差 " + Math.abs(Math.round((last.w - me.tw) * 10) / 10)));
+      else b.appendChild(el("small", null, last ? (L.length > 1 ? "比上次 " + (Math.round((last.w - L[L.length - 2].w) * 10) / 10) : "再記先有趨勢") : "撳 + 記低"));
+      b.appendChild(spark(L));
+      var p = el("button", "iconbtn plus"); p.type = "button"; p.appendChild(ic("plus")); p.setAttribute("aria-label", "記低" + B[0]); p.onclick = function (ev) { ev.stopPropagation(); openBody(kind); }; b.appendChild(p);
+      var open = function () { openBody(kind); }; b.onclick = open; b.onkeydown = function (ev) { if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); open(); } };
+      return b;
+    };
+    grid.appendChild(bcard("w", true)); grid.appendChild(bcard("bf")); grid.appendChild(bcard("mus")); grid.appendChild(bcard("vis"));
+    var bm = el("div", "bcard"); bm.appendChild(el("small", null, "BMI"));
     if (mp) {
-      var bc = card("身體數據"), kv = el("dl", "kv"), cat = mp.bmi < 18.5 ? "過輕" : mp.bmi < 23 ? "正常" : mp.bmi < 25 ? "過重" : "肥胖";
-      [["BMI", mp.bmi.toFixed(1) + "（" + cat + "）"], ["基礎代謝", mp.bmr + " kcal"], ["每日消耗", mp.tdee + " kcal"], ["每日目標", mp.target + " kcal"], ["每日蛋白質", "約 " + mp.protein + " 克"]].forEach(function (r) {
-        var d = el("div"); d.appendChild(el("dt", null, r[0])); d.appendChild(el("dd", null, r[1])); kv.appendChild(d);
-      });
-      bc.appendChild(kv); bc.appendChild(el("p", "hint", "BMI 分類用亞洲成人標準。全部都係估算，唔係醫療建議。")); root.appendChild(bc);
+      var cat = mp.bmi < 18.5 ? ["過輕", "var(--fat)"] : mp.bmi < 23 ? ["標準", "var(--teal)"] : mp.bmi < 25 ? ["過重", "var(--carb)"] : ["肥胖", "var(--red)"];
+      bm.appendChild(el("div", "v", mp.bmi.toFixed(1)));
+      var okl = el("span", "ok", cat[0]); okl.style.color = cat[1]; var sm = el("small"); sm.appendChild(okl); sm.appendChild(document.createTextNode(" 亞洲標準")); bm.appendChild(sm);
+      var g = el("div", "gauge"); ["var(--fat)", "var(--teal)", "var(--carb)", "var(--red)"].forEach(function (col) { var i3 = el("i"); i3.style.background = col; g.appendChild(i3); });
+      var pos = Math.max(0, Math.min(1, (mp.bmi - 15) / 17)), mk = el("b"); mk.style.left = "calc(" + (pos * 100).toFixed(1) + "% - 1px)"; g.appendChild(mk); bm.appendChild(g);
+    } else bm.appendChild(el("div", "v none", "未有資料"));
+    grid.appendChild(bm); root.appendChild(grid);
+
+    var dh = el("div", "sect"); dh.appendChild(el("span", "grow", "熱量")); dh.appendChild(el("span", null, "近 14 日")); root.appendChild(dh);
+    var dc = el("div", "card"), defTot = 0, cnt = 0, bars = [];
+    for (var j = 13; j >= 0; j--) { var dd = addDays(t0, -j), tt = totals(entries(dd)).k; if (mp && tt > 0) { var gl = targets(mp, burned(exOf(dd))).k, df = mp.tdee + burned(exOf(dd)) - tt; defTot += df; cnt++; bars.push(df); } else bars.push(null); }
+    var dhd = el("div", "row"); dhd.appendChild(el("h2", "grow", "熱量赤字")); dc.appendChild(dhd);
+    var dv = el("div", "huge num", cnt ? (defTot >= 0 ? "" : "+") + fmt(Math.abs(defTot)) : "—"); dv.style.fontSize = "1.8rem"; dc.appendChild(dv);
+    dc.appendChild(el("span", "hint", cnt ? (defTot >= 0 ? "kcal 赤字累計（" + cnt + " 日）" : "kcal 盈餘累計（" + cnt + " 日）") : "kcal 累計"));
+    if (cnt) {
+      var bw2 = 300 / 14, mxd = Math.max.apply(null, bars.map(function (b) { return Math.abs(b || 0); }).concat([100])), s2 = '<svg class="chart" viewBox="0 0 300 70" aria-hidden="true"><line class="ax" x1="0" x2="300" y1="35" y2="35"/>';
+      bars.forEach(function (b, k) { if (b === null) return; var h = Math.abs(b) / mxd * 30; s2 += '<rect class="bar ' + (b >= 0 ? "has" : "over") + '" x="' + (k * bw2 + 3).toFixed(1) + '" y="' + (b >= 0 ? 35 - h : 35).toFixed(1) + '" width="' + (bw2 - 6).toFixed(1) + '" height="' + Math.max(1, h).toFixed(1) + '" rx="2"/>'; });
+      var dch = el("div"); dch.innerHTML = s2 + "</svg>"; dc.appendChild(dch);
+      dc.appendChild(el("p", "hint", "相當於大約 " + (Math.abs(defTot) / 7700).toFixed(2) + " 公斤體脂" + (defTot >= 0 ? "減咗" : "多咗") + "（以每日消耗 " + fmt(mp.tdee) + " kcal 加運動計）。"));
+    } else dc.appendChild(el("p", "hint", mp ? "近 14 日一餐都未記，赤字計唔到。" : "填咗身高體重先計到。"));
+    dc.appendChild(el("p", "hint", "約 7,700 kcal 相當於 1 公斤體脂，呢個係估算。"));
+    root.appendChild(dc);
+
+    var wkd = []; for (var q = 6; q >= 0; q--) { var d3 = addDays(t0, -q); wkd.push({ d: d3, k: Math.round(totals(entries(d3)).k), ex: burned(exOf(d3)), w: waterOf(d3) }); }
+    var withK = wkd.filter(function (x) { return x.k; });
+    if (withK.length && me.tone !== "off") {
+      var rc = el("div", "card"); rc.appendChild(el("h2", null, "Cary 週評"));
+      var avg = Math.round(withK.reduce(function (s, x) { return s + x.k; }, 0) / withK.length);
+      var stats = [["有記錄", withK.length + "／7 日"], ["平均每日", avg + " kcal"], ["運動", wkd.reduce(function (s, x) { return s + x.ex; }, 0) + " kcal"], ["平均飲水", (Math.round(wkd.reduce(function (s, x) { return s + x.w; }, 0) / 0.7) / 10) + " 杯"]];
+      var key = JSON.stringify(stats) + me.tone + me.spicy;
+      if (weekTalk.key === key && weekTalk.text) rc.appendChild(el("p", "bubble", weekTalk.text));
+      else { var wb = el("button", "primary", weekTalk.busy ? "Cary 諗緊…" : "叫 Cary 評下呢個禮拜"); wb.type = "button"; wb.disabled = weekTalk.busy; wb.onclick = function () { weekReview(key, stats, wkd, mp); }; rc.appendChild(wb); }
+      root.appendChild(rc);
     }
   }
+  function weekReview(key, stats, L, mp) {
+    weekTalk = { key: key, text: "", busy: true }; render();
+    var t = TONES[me.tone] || TONES.roast;
+    var prompt = ["You write a short weekly review for a food diary app used in " + where() + ".",
+      "The person's last 7 days: " + stats.map(function (s) { return s[0] + " " + s[1]; }).join("; ") + "." + (mp ? " Their daily calorie target is " + mp.target + " kcal." : ""),
+      "Daily calories: " + L.map(function (d) { return d.k || "not logged"; }).join(", ") + ".",
+      "Write 2 or 3 sentences " + (t[2] === "en" ? "in casual English" : "in colloquial Hong Kong Cantonese written in Traditional Chinese") + ", in the voice of " + t[1] + ": what went well, what did not, and one concrete thing to do next week.",
+      limitsRule(), "Reply with only JSON in this shape, no other text:", '{"review":""}'].join("\n");
+    sampleP.then(function (sample) { if (!sample) throw { code: "upstream_error" }; return sample.json(prompt, { cache: false }); }).then(function (raw) {
+      weekTalk = { key: key, text: raw && typeof raw.review === "string" ? raw.review.trim().slice(0, 400) : "", busy: false };
+      if (!weekTalk.text) toast("諗唔到，再試一次。"); render();
+    }, function (err) { weekTalk = { key: "", text: "", busy: false }; render(); toast(failMsg(err)); });
+  }
+  function openCaps() {
+    var mp = mePlan();
+    openSheet("營養目標", function (box) {
+      box.appendChild(el("p", "hint", "留空就用 Cary 按你資料計嘅數" + (mp ? "（" + mp.target + " kcal、蛋白質 " + mp.protein + " 克）" : "") + "。"));
+      var ins = {};
+      [["k", "每日卡路里", "kcal", 800, 6000], ["p", "蛋白質", "克", 20, 400], ["c", "碳水", "克", 10, 800], ["f", "脂肪", "克", 10, 300]].forEach(function (r) { ins[r[0]] = numIn(cx.cap[r[0]], r[3], r[4], r[0] === "k" ? 10 : 1); box.appendChild(field(r[1], ins[r[0]], r[2])); });
+      var ok = el("button", "primary wide", "儲存"); ok.type = "button";
+      ok.onclick = function () { Object.keys(ins).forEach(function (k) { cx.cap[k] = num(ins[k].value); }); cxSave(); closeSheet(); toast("儲存咗"); };
+      box.appendChild(ok);
+    });
+  }
 
-  /* ---- "我" page: the form is built once; the plan card redraws ---- */
-  var meBuilt = false, planBox = el("div", "card");
-  function field(label, input, unit) {
-    var l = el("label", "f"); l.appendChild(el("span", null, label));
-    if (unit) { var u = el("div", "unit"); u.appendChild(input); u.appendChild(el("span", null, unit)); l.appendChild(u); } else l.appendChild(input);
-    return l;
+  /* ---- 連繫: Cary coach chat and friends ---- */
+  var chat = { msgs: [], seen: 0, busy: false }, linkFilter = "all", friendData = {}, friendErr = "";
+  try { var cv = JSON.parse(localStorage.getItem("cary-chat") || "null"); if (cv && Array.isArray(cv.msgs)) { chat.msgs = cv.msgs.slice(-80); chat.seen = Number(cv.seen) || 0; } } catch (e) {}
+  function chatSave() {
+    var body = { msgs: chat.msgs.slice(-80), seen: chat.seen, t: Date.now() };
+    try { localStorage.setItem("cary-chat", JSON.stringify(body)); } catch (e) {}
+    writeQ = writeQ.then(function () { return dbReady; }).then(function (col) { if (col) return col.doc("caryChat").set(body); }).catch(function () {});
   }
-  function numInput(id, min, max, step, key, mode) {
-    var i = el("input"); i.id = id; i.type = "number"; i.inputMode = mode || "decimal"; i.min = min; i.max = max; i.step = step;
-    i.addEventListener("input", function () { me[key] = Number(i.value) || 0; if (key === "bf" && !(me.bf >= 5 && me.bf <= 60)) me.bf = 0; meSave(); });
-    return i;
+  function unread() { return chat.msgs.filter(function (m) { return m.r === "a" && m.at > chat.seen; }).length; }
+  function drawLink() {
+    var root = $("pgLink"); root.textContent = "";
+    var sr = el("div", "search"), q = el("input"); sr.appendChild(ic("search")); sr.appendChild(q); q.type = "search"; q.placeholder = "搜尋朋友"; q.setAttribute("aria-label", "搜尋朋友");
+    root.appendChild(sr);
+    var fs = seg([["all", "全部"], ["unread", "未讀"], ["friends", "朋友"], ["coach", "教練"]], linkFilter, function (v) { linkFilter = v; draw(); }); fs.style.margin = "12px 0 4px"; root.appendChild(fs);
+    var listBox = el("div"); root.appendChild(listBox);
+    var draw = function () {
+      listBox.textContent = ""; var term = q.value.trim().toLowerCase(), u = unread();
+      if ((linkFilter === "all" || linkFilter === "coach" || (linkFilter === "unread" && u)) && (!term || "cary 教練".indexOf(term) >= 0)) {
+        var b = el("button", "person"); b.type = "button"; b.appendChild(el("div", "av coach", "C"));
+        var tx = el("div", "grow"), nm = el("b", null, "Cary 教練"); nm.appendChild(el("span", "beta", "BETA")); tx.appendChild(nm);
+        var lm = chat.msgs[chat.msgs.length - 1]; tx.appendChild(el("small", null, lm ? (lm.r === "u" ? "你：" : "") + (lm.t || "（相片）") : "有咩想問？影相問都得，佢知你今日食咗乜。"));
+        b.appendChild(tx); if (u) b.appendChild(el("span", "unread")); b.setAttribute("aria-label", "同 Cary 教練傾偈" + (u ? "，" + u + " 個未讀" : ""));
+        b.onclick = openChat; listBox.appendChild(b);
+      }
+      if (linkFilter === "all" || linkFilter === "friends") {
+        cx.friends.forEach(function (id) {
+          var f = friendData[id]; if (!f) return; if (term && String(f.name || "").toLowerCase().indexOf(term) < 0) return;
+          var r = el("div", "person"); r.appendChild(el("div", "av", String(f.name || "?").slice(0, 1)));
+          var tx2 = el("div", "grow"); tx2.appendChild(el("b", null, f.name || "朋友"));
+          var fresh = f.day === isoDay(today0());
+          tx2.appendChild(el("small", null, "🔥 連續 " + (f.streak || 0) + " 日 · " + (fresh ? "今日食咗 " + fmt(f.k || 0) + (f.target ? "／" + fmt(f.target) : "") + " kcal" : "今日未記"))); r.appendChild(tx2);
+          var rm = el("button", "iconbtn"); rm.type = "button"; rm.appendChild(ic("x")); rm.setAttribute("aria-label", "移除 " + (f.name || "朋友"));
+          rm.onclick = function () { cx.friends = cx.friends.filter(function (x) { return x !== id; }); cxSave(); }; r.appendChild(rm);
+          listBox.appendChild(r);
+        });
+      }
+      if (linkFilter !== "coach" && (linkFilter !== "unread")) {
+        var inv = el("div", "invite"); inv.appendChild(el("b", null, cx.friends.length ? "再拉多啲朋友入嚟" : "拉埋朋友入嚟"));
+        inv.appendChild(el("span", "hint", "互相睇到連續記錄同今日食咗幾多，冇得呃。"));
+        var ab = el("button", "primary small"); ab.type = "button"; ab.appendChild(ic("qr")); ab.appendChild(document.createTextNode(" 加朋友")); ab.onclick = openAddFriend; inv.appendChild(ab);
+        if (friendErr) inv.appendChild(el("p", "warn", friendErr));
+        listBox.appendChild(inv);
+      }
+      if (linkFilter === "unread" && !u) listBox.appendChild(el("p", "hint", "冇未讀訊息。"));
+    };
+    q.addEventListener("input", draw); draw();
+    loadFriends();
   }
-  function buildMe() {
-    if (meBuilt) return; meBuilt = true;
-    var f = $("meForm"); f.appendChild(planBox);
-    var a = card("目標");
-    a.appendChild(seg([["cut", "減脂"], ["bulk", "增肌"], ["none", "維持"]], me.goal, function (v) { me.goal = v; meSave(); }));
-    var two = el("div", "two");
-    two.appendChild(field("而家體重", numInput("fW", 30, 250, 0.1, "w"), "kg")); two.appendChild(field("目標體重", numInput("fTW", 30, 250, 0.1, "tw"), "kg"));
-    a.appendChild(two);
-    a.appendChild(el("p", "hint", "想幾快"));
-    a.appendChild(seg([[0.5, "每週 0.5 kg"], [0.75, "每週 0.75 kg"], [1, "每週 1 kg"], [0, "自己定期限"]], me.pace, function (v) { me.pace = v; $("fWeeksL").hidden = v !== 0; meSave(); }));
-    var wl = field("幾多個星期內做到", numInput("fWeeks", 1, 104, 1, "weeks", "numeric"), "星期"); wl.id = "fWeeksL"; wl.hidden = me.pace !== 0; a.appendChild(wl);
-    f.appendChild(a);
-    var b = card("身體資料");
-    b.appendChild(seg([["f", "女"], ["m", "男"], ["", "唔講"]], me.sex, function (v) { me.sex = v; $("cycCard").hidden = v !== "f"; meSave(); }));
-    var t2 = el("div", "two");
-    t2.appendChild(field("身高", numInput("fH", 120, 220, 0.5, "h"), "cm")); t2.appendChild(field("年齡", numInput("fAge", 18, 100, 1, "age", "numeric"), "歲"));
-    b.appendChild(t2);
-    var bfl = field("體脂率（選填）", numInput("fBF", 5, 60, 0.5, "bf"), "%"); b.appendChild(bfl);
-    b.appendChild(el("p", "hint", "活動量"));
-    b.appendChild(seg([[0, "少郁", "多數時間坐"], [1, "輕度", "每週運動 1–3 日"], [2, "中度", "每週 3–5 日"], [3, "高", "每週 6–7 日"]], me.act, function (v) { me.act = v; meSave(); }, true));
-    f.appendChild(b);
-    var cy = card("經期（選填）"); cy.id = "cycCard"; cy.hidden = me.sex !== "f";
-    var pd = el("input"); pd.type = "date"; pd.id = "fPD"; pd.addEventListener("change", function () { me.pd = /^\d{4}-\d{2}-\d{2}$/.test(pd.value) ? pd.value : ""; meSave(); });
-    cy.appendChild(field("上次經期第一日", pd)); cy.appendChild(field("週期大約", numInput("fCL", 20, 45, 1, "cl", "numeric"), "日"));
-    cy.appendChild(el("p", "hint", "黃體期（經期前大約兩星期）身體消耗高啲，嗰段時間目標會加約 100 kcal。")); f.appendChild(cy);
-    var tc = card("Cary 把口");
-    tc.appendChild(seg(Object.keys(TONES).map(function (k) { return [k, TONES[k][0]]; }), me.tone, function (v) { me.tone = v; meSave(); }));
-    var ck = el("label", "check"), cb = el("input"); cb.type = "checkbox"; cb.id = "fSpicy"; cb.addEventListener("change", function () { me.spicy = cb.checked; meSave(); });
-    ck.appendChild(cb); ck.appendChild(document.createTextNode("可以講粗口同講我身形（18+）")); tc.appendChild(ck);
-    tc.appendChild(el("p", "hint", "影相、估卡路里、飲水同每週總結都會用呢把口。")); f.appendChild(tc);
-    var rc = card("食飯提醒"), rt = el("div", "two"), times = [["早餐", "09:00"], ["午餐", "13:00"], ["晚餐", "19:00"]], ins = [];
-    times.forEach(function (x) { var i = el("input"); i.type = "time"; i.value = x[1]; ins.push(i); rt.appendChild(field(x[0], i)); });
-    rc.appendChild(rt);
-    var rb = el("button", "btn2", "加入手機日曆"), rm = el("p", "hint", "會下載一個日曆檔，加入手機日曆之後每日夠鐘就會彈通知。"); rb.type = "button";
-    rb.onclick = function () { downloadIcs(times.map(function (x, i) { return [x[0], ins[i].value]; })); rm.textContent = "已經下載「Cary 提醒.ics」，打開佢揀加入日曆。想改時間就改完再㩒，再刪走舊嗰啲。"; };
-    rc.appendChild(rb); rc.appendChild(rm); f.appendChild(rc);
-    fillMe();
+  function fstore() { try { return window.firebase && window.firebase.apps.length ? window.firebase.firestore() : null; } catch (e) { return null; } }
+  function myCode() { return uid ? uid.replace(/[^A-Za-z0-9]/g, "").slice(0, 8).toUpperCase() : ""; }
+  var pubLast = "", pubAt = 0;
+  // Signed in: keep a small public card (name, streak, today's calories) that friends can read. Needs the caryPublic rule in firestore-rules-to-add.txt.
+  function publish() {
+    var fs = fstore(); if (!fs || !uid || !cloud) return;
+    var t = today0(), mp = mePlan(), body = { name: cx.name || "Cary 用戶", code: myCode(), streak: streak().n, k: Math.round(totals(entries(t)).k), target: mp ? targets(mp, burned(exOf(t))).k : 0, day: isoDay(t) };
+    var s = JSON.stringify(body); if (s === pubLast || Date.now() - pubAt < 20000) return;
+    pubLast = s; pubAt = Date.now(); body.at = Date.now();
+    fs.collection("caryPublic").doc(uid).set(body).catch(function (e) { pubLast = ""; if (e && e.code === "permission-denied") friendErr = "朋友功能未開：要喺 Firebase 加 caryPublic 規則（睇 firestore-rules-to-add.txt）。"; });
   }
-  function fillMe() {
-    if (!meBuilt) return;
-    var set = function (id, v) { var i = $(id); if (i && document.activeElement !== i) i.value = v || ""; };
-    set("fW", me.w); set("fTW", me.tw); set("fWeeks", me.weeks); set("fH", me.h); set("fAge", me.age); set("fBF", me.bf); set("fPD", me.pd); set("fCL", me.cl);
-    $("fSpicy").checked = !!me.spicy;
+  var friendsLoaded = 0;
+  function loadFriends() {
+    var fs = fstore(); if (!fs || !uid || !cx.friends.length || Date.now() - friendsLoaded < 30000) return;
+    friendsLoaded = Date.now();
+    Promise.all(cx.friends.map(function (id) { return fs.collection("caryPublic").doc(id).get().then(function (s) { if (s.exists) friendData[id] = s.data(); }, function () {}); })).then(function () { if (page === "link") drawLink(); });
   }
-  function drawPlan() {
-    buildMe();
-    planBox.textContent = ""; var mp = mePlan();
-    planBox.appendChild(el("h2", null, "你嘅計劃"));
-    if (!mp) { planBox.appendChild(el("p", "hint", "填身高同體重就計到。")); return; }
-    var big = el("div", "big", mp.target + " "); big.appendChild(el("small", null, "kcal／日")); planBox.appendChild(big);
-    var tg = macroTargets(mp, 0);
-    planBox.appendChild(el("p", "hint", "蛋白質 " + tg.p + " 克 · 碳水 " + tg.c + " 克 · 脂肪 " + tg.f + " 克"));
-    var gl = mp.dir === "cut" ? (mp.perWeek ? "減脂：每日少食約 " + (mp.tdee - mp.target) + " kcal，大約每星期減 " + mp.perWeek + " kg。" : "維持體重。")
-      : mp.dir === "bulk" ? "增肌：每日多食約 " + (mp.target - mp.tdee) + " kcal，記得配合重量訓練。" : "維持體重：食返你每日消耗嘅份量。";
-    planBox.appendChild(el("p", null, gl));
-    if (mp.weeks) { var eta = new Date(); eta.setDate(eta.getDate() + mp.weeks * 7); planBox.appendChild(el("p", null, "由 " + me.w + " kg 去到 " + mp.tw + " kg 大約要 " + mp.weeks + " 個星期（約 " + eta.getFullYear() + " 年 " + (eta.getMonth() + 1) + " 月 " + eta.getDate() + " 日）。")); }
-    if (mp.cyc) planBox.appendChild(el("p", "hint", "今日係週期第 " + mp.cyc.day + " 日（" + mp.cyc.phase + "），下次經期大約 " + mp.cyc.next + " 日後。"));
-    if (mp.warn) planBox.appendChild(el("p", "warn", mp.warn));
-    planBox.appendChild(el("p", "hint", (mp.rough ? "未填年齡同性別，會粗略啲。" : me.bf ? "用 Katch-McArdle 公式（按除脂體重）計。" : "用 Mifflin-St Jeor 公式計。") + "全部係估算，唔係醫療建議；未成年、懷孕、餵哺母乳或者有長期病患，請先問醫生或營養師。"));
+  function openAddFriend() {
+    openSheet("加朋友", function (box) {
+      if (!uid) { box.appendChild(el("p", "hint", "要先登入先可以加朋友。去「個人」頁登入。")); return; }
+      box.appendChild(el("p", "hint", "你嘅朋友碼：")); box.appendChild(el("div", "code", myCode()));
+      var share = el("button", "btn2 wide", "分享朋友碼"); share.type = "button";
+      share.onclick = function () {
+        var txt = "嚟 Cary 加我做朋友，朋友碼：" + myCode() + " " + location.href.split("#")[0];
+        if (navigator.share) navigator.share({ text: txt }).catch(function () {}); else if (navigator.clipboard) navigator.clipboard.writeText(txt).then(function () { toast("複製咗"); }, function () {});
+      };
+      box.appendChild(share);
+      var inp = el("input"); inp.placeholder = "輸入朋友嘅朋友碼"; inp.maxLength = 8; inp.autocapitalize = "characters";
+      box.appendChild(field("加朋友", inp));
+      var msg = el("p", "hint"), ok = el("button", "primary wide", "加"); ok.type = "button";
+      ok.onclick = function () {
+        var code = inp.value.trim().toUpperCase(); if (code.length < 6) { inp.focus(); return; }
+        if (code === myCode()) { msg.textContent = "呢個係你自己嘅碼。"; return; }
+        var fs = fstore(); if (!fs) { msg.textContent = "連唔到。"; return; }
+        ok.disabled = true; msg.textContent = "搵緊…";
+        fs.collection("caryPublic").where("code", "==", code).limit(1).get().then(function (qs) {
+          ok.disabled = false;
+          if (qs.empty) { msg.textContent = "搵唔到呢個朋友碼。佢要開過 Cary 同登入咗先得。"; return; }
+          var d = qs.docs[0]; if (cx.friends.indexOf(d.id) < 0) cx.friends.push(d.id); friendData[d.id] = d.data(); cxSave(); closeSheet(); toast("加咗 " + (d.data().name || "朋友"));
+        }, function (e) { ok.disabled = false; msg.textContent = e && e.code === "permission-denied" ? "朋友功能未開：要喺 Firebase 加 caryPublic 規則（睇 firestore-rules-to-add.txt）。" : "搵唔到，請再試。"; });
+      };
+      box.appendChild(ok); box.appendChild(msg);
+      box.appendChild(el("p", "hint", "朋友會見到你嘅名、連續記錄日數同今日食咗幾多卡路里，唔會見到你食咗乜或者體重。"));
+    });
+  }
+  function openChat() {
+    chat.seen = Date.now(); chatSave(); soon();
+    openSheet("Cary 教練", function (box) {
+      var log = el("div", "chat"); log.setAttribute("aria-live", "polite");
+      var draw = function () {
+        log.textContent = "";
+        if (!chat.msgs.length) log.appendChild(el("div", "msg a", "你好！我係 Cary 教練。問我食咩好、點樣減、或者影張相問我呢餐得唔得。我睇到你今日記低咗啲乜同埋你嘅目標。"));
+        chat.msgs.forEach(function (m) { var d = el("div", "msg " + m.r); if (m.img) { var im = el("img"); im.src = m.img; im.alt = ""; d.appendChild(im); } d.appendChild(document.createTextNode(m.t || "")); log.appendChild(d); });
+        if (chat.busy) log.appendChild(el("div", "msg a", "…"));
+        log.scrollTop = log.scrollHeight;
+      };
+      var comp = el("div", "composer"), ta = el("textarea"), pic = el("button", "iconbtn"), send = el("button", "iconbtn"), file = el("input"), att = null;
+      ta.placeholder = "問 Cary…"; ta.setAttribute("aria-label", "訊息"); ta.maxLength = 500;
+      pic.type = send.type = "button"; pic.appendChild(ic("camera")); send.appendChild(ic("send")); pic.setAttribute("aria-label", "加相"); send.setAttribute("aria-label", "傳送");
+      send.style.background = "var(--amber)"; send.style.color = "var(--amber-ink)";
+      file.type = "file"; file.accept = "image/*"; file.hidden = true;
+      pic.onclick = function () { file.click(); };
+      file.onchange = function () { att = file.files && file.files[0] || null; pic.style.background = att ? "var(--amber)" : ""; pic.style.color = att ? "var(--amber-ink)" : ""; };
+      var go = function () {
+        var t = ta.value.trim(); if ((!t && !att) || chat.busy) return;
+        var f = att; att = null; file.value = ""; pic.style.background = ""; pic.style.color = ""; ta.value = "";
+        (f ? thumb(f) : Promise.resolve("")).then(function (img) {
+          chat.msgs.push({ r: "u", t: t, img: img || undefined, at: Date.now() }); chat.busy = true; draw();
+          askCoach(t, f).then(function (reply) { chat.msgs.push({ r: "a", t: reply, at: Date.now() }); }, function (err) { chat.msgs.push({ r: "a", t: "（" + failMsg(err) + "）", at: Date.now() }); })
+            .then(function () { chat.busy = false; chat.seen = Date.now(); chatSave(); draw(); });
+        });
+      };
+      send.onclick = go; ta.addEventListener("keydown", function (ev) { if (ev.key === "Enter" && !ev.shiftKey && !ev.isComposing) { ev.preventDefault(); go(); } });
+      comp.appendChild(pic); comp.appendChild(ta); comp.appendChild(send); comp.appendChild(file);
+      box.appendChild(log); box.appendChild(comp);
+      if (chat.msgs.length) { var clr = el("button", "linkbtn", "清除對話"); clr.type = "button"; clr.onclick = function () { chat.msgs = []; chatSave(); draw(); }; box.appendChild(clr); }
+      draw();
+    });
+  }
+  function askCoach(text, file) {
+    var t = TONES[me.tone] || TONES.roast, mp = mePlan(), d = today0(), list = entries(d), T = totals(list);
+    var ctx = ["Profile: " + [me.sex === "f" ? "female" : me.sex === "m" ? "male" : "", me.age ? me.age + " years" : "", me.h ? me.h + " cm" : "", me.w ? me.w + " kg" : "", me.tw ? "target " + me.tw + " kg" : "", "goal " + (mp ? mp.dir : me.goal)].filter(Boolean).join(", ") + ".",
+      mp ? "Daily target " + targets(mp, burned(exOf(d))).k + " kcal, protein " + mp.protein + " g." : "No calorie target set yet.",
+      "Logged today: " + (list.length ? list.map(function (e) { return (e.slot || "") + " " + e.dish + (e.kcal ? " (" + e.kcal + " kcal)" : ""); }).join("; ") : "nothing yet") + ". Total " + Math.round(T.k) + " kcal, protein " + Math.round(T.p) + " g.",
+      "Water today " + waterOf(d) + " cups; exercise today " + burned(exOf(d)) + " kcal."].join("\n");
+    var hist = chat.msgs.slice(-13, -1).map(function (m) { return (m.r === "u" ? "Person: " : "Coach: ") + (m.t || "(photo)"); }).join("\n");
+    var prompt = ["You are Cary, a nutrition and fitness coach inside a food diary app used in " + where() + ".",
+      "Speak " + (t[2] === "en" ? "in casual English" : "in colloquial Hong Kong Cantonese written in Traditional Chinese") + ", in the voice of " + (t[1] || "a friendly, practical coach") + ".",
+      limitsRule(), "Give practical, specific advice in a few short sentences. You are not a doctor: for medical conditions, pregnancy or eating disorders, say to see a doctor or dietitian.",
+      "What you know about the person:", ctx, hist ? "Conversation so far:\n" + hist : "", file ? "The person attached a photo; look at it." : "",
+      "The person now says: \"\"\"" + (text || "(see the photo)") + "\"\"\"", "Reply with only your message to them, no preamble."].filter(Boolean).join("\n");
+    return sampleP.then(function (sample) { if (!sample) throw { code: "upstream_error" }; return sample(prompt, { images: file ? [file] : [], cache: false }); }).then(function (r) { return String(r && r.text || "").trim().slice(0, 1500) || "……"; });
+  }
+
+  /* ---- 個人 ---- */
+  function acctBtns() { return Array.prototype.slice.call($("acct").querySelectorAll("button")); }
+  function drawMe() {
+    var root = $("pgMe"); root.textContent = "";
+    var mp = mePlan(), sk = streak();
+    var pc = el("div", "card"), pr = el("div", "prof"), nm = cx.name || "未改名";
+    pr.appendChild(el("div", "av", nm.slice(0, 1)));
+    var tx = el("div", "grow"), nb = el("button"); nb.type = "button"; nb.appendChild(el("b", null, nm + " ✎")); nb.setAttribute("aria-label", "改名");
+    nb.onclick = function () { openSheet("你個名", function (box) { var i = el("input"); i.value = cx.name; i.maxLength = 20; box.appendChild(i); var ok = el("button", "primary wide", "儲存"); ok.type = "button"; ok.onclick = function () { cx.name = i.value.trim().slice(0, 20); cxSave(); closeSheet(); }; box.appendChild(ok); setTimeout(function () { i.focus(); }, 60); }); };
+    tx.appendChild(nb); tx.appendChild(el("p", "hint", { cut: "減脂", bulk: "增肌", none: "維持" }[mp ? mp.dir : me.goal])); pr.appendChild(tx); pc.appendChild(pr);
+    var used = Math.max(1, Math.round((today0() - fromIso(cx.first)) / 86400000) + 1);
+    var s5 = el("div", "stats5");
+    [["flame", sk.n, "連續"], ["trophy", Math.max(cx.best, sk.n), "最長"], ["cal", used, "使用日數"], ["plate", cx.count, "記錄次數"], ["target", mp ? fmt(targets(mp, 0).k) : "—", "每日配額"]].forEach(function (s) {
+      var d = el("div"); d.appendChild(ic(s[0])); d.appendChild(el("b", "num", String(s[1]))); d.appendChild(el("small", null, s[2])); s5.appendChild(d);
+    });
+    pc.appendChild(s5); root.appendChild(pc);
+    var group = function (title, rows) {
+      root.appendChild(el("div", "sect", title));
+      var l = el("div", "list");
+      rows.forEach(function (r) {
+        var b = el("button", "li" + (r[4] ? " " + r[4] : "")); b.type = "button"; b.appendChild(ic(r[0]));
+        var g = el("div", "grow"); g.appendChild(document.createTextNode(r[1])); if (r[2]) g.appendChild(el("small", null, r[2])); b.appendChild(g);
+        b.appendChild(ic("chev", "chev")); b.onclick = r[3]; l.appendChild(b);
+      });
+      root.appendChild(l);
+    };
+    var tz = ""; try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone; } catch (e) {}
+    var off = -new Date().getTimezoneOffset() / 60;
+    group("設定", [
+      ["globe", "地區", cx.region, openRegion], ["smile", "語氣模式", TONES[me.tone][0] + " " + TONES[me.tone][3] + (me.spicy ? " · 18+" : ""), openTone],
+      ["bell", "提醒時間", cx.times.filter(Boolean).length + " 個餐", openReminders], ["grid", "加去主畫面", "好似 app 咁一㩒就開", openHomeScreen],
+      ["clock", "時區", (tz || "本地時間") + " (GMT" + (off >= 0 ? "+" : "") + off + ")", function () { openInfo("時區", ["Cary 用你部手機嘅時區（" + (tz || "本地時間") + "）。想改就改手機設定。"]); }],
+      ["sunrise", "一日開始時間", pad(cx.dayStart) + ":00", openDayStart],
+      ["heart", "Apple Health", "網頁版連唔到", function () { openInfo("Apple Health", ["Apple Health 只開放俾 App Store 嘅 app，網頁（包括加咗去主畫面嘅）讀唔到亦寫唔到。", "步數同運動可以喺主頁㩒「做咗運動？」自己記低，Cary 會計埋落當日可以食嘅份量。"]); }]
+    ]);
+    group("身體資料", [
+      ["idcard", "編輯資料", "個人資料 · 體脂", openProfile], ["target", "營養目標", "改卡路里同營養上限", openCaps],
+      ["drop", "經期", me.sex === "f" ? (cycleNow() ? "週期第 " + cycleNow().day + " 日 · " + cycleNow().phase : "未填日期") : "性別揀「女」先用到", openCycle]
+    ]);
+    group("資訊", [["book", "數據來源與免責聲明", "", openDisclaimer], ["chat", "重新答一次開頭啲問題", "", function () { onbStart(1); }]]);
+    group("社群", [["share", "分享 Cary", "叫朋友一齊用", function () { var u = location.href.split("#")[0]; if (navigator.share) navigator.share({ title: "Cary", text: "影張相就知食咗幾多卡路里", url: u }).catch(function () {}); else if (navigator.clipboard) navigator.clipboard.writeText(u).then(function () { toast("複製咗連結"); }); }],
+      ["book", "去食譜製造器", "按你今日仲差嘅營養揀餸", function () { location.href = "../"; }]]);
+    var ab = acctBtns(), keyB = ab.filter(function (b) { return /API/.test(b.textContent); })[0], inB = ab.filter(function (b) { return /登入/.test(b.textContent); })[0];
+    var signed = inB && /已登入/.test(inB.textContent);
+    group("帳號", [
+      ["key", "Claude API key", keyB && /✓/.test(keyB.textContent) ? "已設定" : "未設定（影相同估卡路里要用）", function () { if (keyB) keyB.click(); else toast("呢度設定唔到。"); }],
+      ["login", signed ? "帳戶" : "登入同步", signed ? inB.textContent.replace("已登入：", "") + " · 可以喺度登出" : "登入之後記錄會跟住帳戶去其他裝置", function () { if (inB) inB.click(); else toast("暫時連唔到登入服務。"); }, ""],
+      ["trash", "清除呢部裝置嘅資料", "", clearLocal, "red"]
+    ]);
+    var ft = el("div", "foot"); ft.appendChild(el("div", null, "Cary 2.0 · 同食譜製造器共用記錄")); if (uid) ft.appendChild(el("div", null, "朋友碼 " + myCode()));
+    root.appendChild(ft);
+  }
+  function openRegion() { openSheet("地區", function (box) { box.appendChild(el("p", "hint", "影相同估卡路里會按呢度嘅份量同叫法。")); box.appendChild(seg(REGIONS.map(function (r) { return [r, r]; }), cx.region, function (v) { cx.region = v; cxSave(); })); }); }
+  function openTone() {
+    openSheet("語氣模式", function (box) {
+      box.appendChild(seg(Object.keys(TONES).map(function (k) { return [k, TONES[k][3] + " " + TONES[k][0]]; }), me.tone, function (v) { me.tone = v; meSave(); }));
+      var ck = el("label", "check"), cb = el("input"); cb.type = "checkbox"; cb.checked = !!me.spicy; cb.onchange = function () { me.spicy = cb.checked; meSave(); };
+      ck.appendChild(cb); ck.appendChild(document.createTextNode("可以講粗口同講我身形（18+）")); box.appendChild(ck);
+      box.appendChild(el("p", "hint", "影相、估卡路里、飲水、週評同 Cary 教練都會用呢把口。"));
+    });
+  }
+  function openReminders() {
+    openSheet("提醒時間", function (box) {
+      var ins = [];
+      ["早餐", "午餐", "晚餐"].forEach(function (s, i) { var t = el("input"); t.type = "time"; t.value = cx.times[i] || ""; ins.push(t); box.appendChild(field(s, t)); });
+      var ok = el("button", "primary wide", "加入手機日曆"); ok.type = "button";
+      ok.onclick = function () {
+        cx.times = ins.map(function (t) { return /^\d{2}:\d{2}$/.test(t.value) ? t.value : ""; }); cxSave(true);
+        downloadIcs([["早餐", cx.times[0]], ["午餐", cx.times[1]], ["晚餐", cx.times[2]]]);
+        toast("下載咗「Cary 提醒.ics」，打開佢揀加入日曆");
+      };
+      box.appendChild(ok);
+      box.appendChild(el("p", "hint", "網頁唔可以自己喺背景彈通知，所以會下載一個日曆檔。加入手機日曆之後，每日夠鐘就會彈通知。想改時間就改完再㩒，再喺日曆刪走舊嗰啲。"));
+    });
+  }
+  function openHomeScreen() {
+    openInfo("加去主畫面", ["iPhone（Safari）：㩒底部嘅分享掣，揀「加入主畫面」。", "Android（Chrome）：㩒右上角 ⋮，揀「安裝應用程式」或者「加到主畫面」。", "加咗之後會好似 app 咁全螢幕打開，冇網都開得返（要有網先影到相同同步）。網頁做唔到桌面小工具（widget），呢個係最接近嘅做法。"]);
+  }
+  function openDayStart() {
+    openSheet("一日開始時間", function (box) {
+      box.appendChild(el("p", "hint", "夜晚食宵夜：如果揀 04:00，凌晨四點前記低嘅嘢都會計返入前一日。"));
+      box.appendChild(seg([0, 1, 2, 3, 4, 5, 6].map(function (h) { return [h, pad(h) + ":00"]; }), cx.dayStart, function (v) { cx.dayStart = v; sel = isoDay(today0()); cxSave(); }));
+    });
+  }
+  function openProfile() {
+    openSheet("編輯資料", function (box) {
+      box.appendChild(el("p", "hint", "目標"));
+      box.appendChild(seg([["cut", "減脂"], ["bulk", "增肌"], ["none", "維持"]], me.goal, function (v) { me.goal = v; meSave(); }));
+      box.appendChild(seg([["f", "女"], ["m", "男"], ["", "唔講"]], me.sex, function (v) { me.sex = v; meSave(); }));
+      var bind = function (label, key, min, max, step, unit) { var i = numIn(me[key], min, max, step); i.addEventListener("input", function () { me[key] = Number(i.value) || 0; if (key === "bf" && !(me.bf >= 5 && me.bf <= 60)) me.bf = 0; meSave(); }); return field(label, i, unit); };
+      var t1 = el("div", "two"); t1.appendChild(bind("身高", "h", 120, 220, 0.5, "cm")); t1.appendChild(bind("年齡", "age", 18, 100, 1, "歲")); box.appendChild(t1);
+      var t2 = el("div", "two"); t2.appendChild(bind("體重", "w", 30, 250, 0.1, "kg")); t2.appendChild(bind("目標體重", "tw", 30, 250, 0.1, "kg")); box.appendChild(t2);
+      box.appendChild(bind("體脂率（選填）", "bf", 5, 60, 0.5, "%"));
+      box.appendChild(el("p", "hint", "想幾快"));
+      var wk = bind("幾多個星期內做到", "weeks", 1, 104, 1, "星期"); wk.hidden = me.pace !== 0;
+      box.appendChild(seg([[0.5, "每週 0.5 kg"], [0.75, "0.75 kg"], [1, "1 kg"], [0, "自己定期限"]], me.pace, function (v) { me.pace = v; wk.hidden = v !== 0; meSave(); })); box.appendChild(wk);
+      box.appendChild(el("p", "hint", "活動量"));
+      box.appendChild(seg([[0, "少郁", "多數時間坐"], [1, "輕度", "每週運動 1–3 日"], [2, "中度", "每週 3–5 日"], [3, "高", "每週 6–7 日"]], me.act, function (v) { me.act = v; meSave(); }, true));
+      var mp = mePlan();
+      if (mp) { box.appendChild(el("p", "hint", "計到每日 " + mp.target + " kcal" + (mp.weeks ? "，大約 " + mp.weeks + " 個星期去到 " + mp.tw + " kg" : "") + "。" + (mp.rough ? "填埋年齡同性別會準啲。" : ""))); if (mp.warn) box.appendChild(el("p", "warn", mp.warn)); }
+    });
+  }
+  function openCycle() {
+    openSheet("經期", function (box) {
+      if (me.sex !== "f") { box.appendChild(el("p", "hint", "喺「編輯資料」揀性別「女」先會計經期。")); return; }
+      var pd = el("input"); pd.type = "date"; pd.value = me.pd; pd.max = isoDay(today0()); pd.addEventListener("change", function () { me.pd = /^\d{4}-\d{2}-\d{2}$/.test(pd.value) ? pd.value : ""; meSave(); });
+      box.appendChild(field("上次經期第一日", pd));
+      var cl = numIn(me.cl, 20, 45, 1); cl.addEventListener("input", function () { me.cl = Number(cl.value) || 28; meSave(); }); box.appendChild(field("週期大約", cl, "日"));
+      var c = cycleNow(); if (c) box.appendChild(el("p", null, "今日係週期第 " + c.day + " 日（" + c.phase + "），下次經期大約 " + c.next + " 日後。"));
+      box.appendChild(el("p", "hint", "黃體期（經期前大約兩星期）身體消耗高啲，嗰段時間每日目標會加約 100 kcal，主頁頂會顯示而家係乜嘢階段。呢個唔係避孕方法。"));
+    });
+  }
+  function openInfo(title, paras) { openSheet(title, function (box) { var p = el("div", "prose"); paras.forEach(function (t) { p.appendChild(el("p", null, t)); }); box.appendChild(p); }); }
+  function openDisclaimer() {
+    openInfo("數據來源與免責聲明", [
+      "影相、掃描、打字嘅營養數字由 Claude（Anthropic 嘅 AI）按相片同描述估算；內置食物表係一般份量嘅估算。實際數字會因份量、做法同牌子而唔同。",
+      "每日目標用 Mifflin-St Jeor 公式（有體脂率就用 Katch-McArdle）計基礎代謝，再按活動量計每日消耗；減重速度按每公斤體脂大約 7,700 kcal 計。BMI 用亞洲成人標準。運動消耗用 MET 值估算。",
+      "Cary 唔係醫療工具，所有數字都係估算，唔係醫療或者營養建議。未成年、懷孕、餵哺母乳、有長期病患或者飲食失調，請先問醫生或註冊營養師。",
+      "你嘅記錄存喺呢部裝置；登入之後存喺你帳戶，其他人睇唔到。加咗朋友嘅話，朋友只會見到你個名、連續記錄日數同今日卡路里總數。相片會縮細先儲存，並且會傳去 Anthropic 分析。"
+    ]);
+  }
+  function clearLocal() {
+    openSheet("清除呢部裝置嘅資料", function (box) {
+      box.appendChild(el("p", null, "會刪走呢部裝置入面所有飲食記錄、設定同對話（包括食譜製造器嘅記錄）。登入咗嘅話，帳戶入面嘅記錄唔會刪，下次登入會返嚟。"));
+      var ok = el("button", "primary wide", "確定清除"); ok.type = "button"; ok.style.background = "var(--red)";
+      ok.onclick = function () {
+        try { var ks = []; for (var i = 0; i < localStorage.length; i++) { var k = localStorage.key(i); if (/^recipe-maker-|^cary-/.test(k) && k !== "recipe-maker-api-key") ks.push(k); } ks.forEach(function (k) { localStorage.removeItem(k); }); } catch (e) {}
+        location.reload();
+      };
+      box.appendChild(ok);
+    });
   }
   function downloadIcs(list) {
     var t = new Date(), day = t.getFullYear() + pad(t.getMonth() + 1) + pad(t.getDate()), stamp = new Date().toISOString().replace(/[-:]/g, "").replace(/\.\d+/, "");
     var lines = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//cary//meal reminders//ZH", "CALSCALE:GREGORIAN"];
     list.forEach(function (r, i) {
-      if (!/^\d{2}:\d{2}$/.test(r[1])) return;
+      if (!/^\d{2}:\d{2}$/.test(r[1] || "")) return;
       lines.push("BEGIN:VEVENT", "UID:cary-meal-" + i + "-" + day + "@cary", "DTSTAMP:" + stamp, "DTSTART:" + day + "T" + r[1].replace(":", "") + "00", "DURATION:PT5M", "RRULE:FREQ=DAILY",
         "SUMMARY:Cary：記低" + r[0] + "食咗乜", "DESCRIPTION:打開 Cary，影低" + r[0] + "。", "BEGIN:VALARM", "ACTION:DISPLAY", "DESCRIPTION:記低" + r[0] + "食咗乜", "TRIGGER:PT0M", "END:VALARM", "END:VEVENT");
     });
@@ -949,76 +1500,70 @@ dialog.keydlg h2 { font-size: 1.2rem; font-weight: 900 }
     var a = el("a"); a.href = url; a.download = "Cary 提醒.ics"; document.body.appendChild(a); a.click(); a.remove();
     setTimeout(function () { URL.revokeObjectURL(url); }, 60000);
   }
-  $("redo").onclick = function () { onbStart(1); };
 
   /* ---- first-run questions ---- */
   var onbStep = 0, STEPS = ["hi", "goal", "you", "body", "target", "act", "tone", "plan"];
   function onbStart(step) { onbStep = step || 0; $("onb").hidden = false; document.body.style.overflow = "hidden"; drawOnb(); }
-  function onbEnd() { try { localStorage.setItem("cary-onb", "1"); } catch (e) {} $("onb").hidden = true; document.body.style.overflow = ""; meSave(); fillMe(); }
+  function onbEnd() { try { localStorage.setItem("cary-onb", "1"); } catch (e) {} $("onb").hidden = true; document.body.style.overflow = ""; meSave(); }
   function drawOnb() {
     var o = $("onb"); o.textContent = ""; var w = el("div", "wrap"); o.appendChild(w);
     var s = STEPS[onbStep];
-    if (s === "target" && (me.goal === "none")) { me.tw = 0; onbStep += 1; s = STEPS[onbStep]; }
+    if (s === "target" && me.goal === "none") { me.tw = 0; onbStep += 1; s = STEPS[onbStep]; }
     if (s !== "hi") {
-      var top = el("div", "row"), back = el("button", "iconbtn", "‹"); back.type = "button"; back.setAttribute("aria-label", "返上一步");
+      var top = el("div", "row"), back = el("button", "iconbtn"); back.appendChild(ic("back")); back.type = "button"; back.setAttribute("aria-label", "返上一步");
       back.onclick = function () { onbStep = Math.max(1, onbStep - 1); if (STEPS[onbStep] === "target" && me.goal === "none") onbStep--; drawOnb(); };
       var pr = el("div", "prog grow"), pi = el("i"); pi.style.width = (onbStep / (STEPS.length - 1) * 100) + "%"; pr.appendChild(pi);
-      var skip = el("button", "linkbtn", "遲啲先"); skip.type = "button"; skip.onclick = function () { onbEnd(); };
+      var skip = el("button", "linkbtn", "遲啲先"); skip.type = "button"; skip.onclick = onbEnd;
       top.appendChild(back); top.appendChild(pr); top.appendChild(skip); w.appendChild(top);
     }
-    var body = el("div", "body"), foot = el("div", "foot"), next = el("button", "primary", "下一步"); next.type = "button";
-    next.onclick = function () { onbStep++; drawOnb(); window.scrollTo(0, 0); };
-    var valid = function (ok) { next.disabled = !ok; };
+    var body = el("div", "body"), foot = el("div", "footer"), next = el("button", "primary", "下一步"); next.type = "button";
+    next.onclick = function () { onbStep++; drawOnb(); o.scrollTop = 0; };
     if (s === "hi") {
       var hero = el("div", "hero"), img = el("img"); img.src = "../icon-192.png"; img.alt = "";
       hero.appendChild(img); hero.appendChild(el("div", "brand", "Cary"));
       hero.appendChild(el("p", null, "影張相，就知你食咗幾多。\n仲會毫不留情咁評你兩句。"));
       body.appendChild(hero); next.textContent = "開始";
       var login = el("button", "linkbtn", "已經有帳戶？登入"); login.type = "button"; login.style.justifySelf = "center";
-      login.onclick = function () { var b = Array.prototype.filter.call($("acct").querySelectorAll("button"), function (x) { return /登入/.test(x.textContent); })[0]; if (b) b.click(); else toast("呢度暫時登入唔到。"); };
+      login.onclick = function () { var b = acctBtns().filter(function (x) { return /登入/.test(x.textContent); })[0]; if (b) b.click(); else toast("暫時連唔到登入服務。"); };
       foot.appendChild(next); foot.appendChild(login);
     } else if (s === "goal") {
       body.appendChild(el("h1", null, "你想做到乜？"));
-      body.appendChild(seg([["cut", "減脂", "食少啲，慢慢減"], ["bulk", "增肌", "食多啲，配合訓練"], ["none", "維持", "睇住自己食乜就夠"]], me.goal, function (v) { me.goal = v; valid(true); }, true));
+      body.appendChild(seg([["cut", "減脂", "食少啲，慢慢減"], ["bulk", "增肌", "食多啲，配合訓練"], ["none", "維持", "睇住自己食乜就夠"]], me.goal, function (v) { me.goal = v; }, true));
       foot.appendChild(next);
     } else if (s === "you") {
       body.appendChild(el("h1", null, "講少少你自己"));
+      var nmI = el("input"); nmI.value = cx.name; nmI.maxLength = 20; nmI.placeholder = "例如：阿明"; nmI.oninput = function () { cx.name = nmI.value.trim(); };
+      body.appendChild(field("點叫你？", nmI));
       body.appendChild(seg([["f", "女"], ["m", "男"], ["", "唔講"]], me.sex, function (v) { me.sex = v; }));
-      var ai = el("input"); ai.type = "number"; ai.inputMode = "numeric"; ai.min = 18; ai.max = 100; ai.value = me.age || ""; ai.placeholder = "例如 28";
-      ai.oninput = function () { me.age = Number(ai.value) || 0; };
+      var ai = numIn(me.age, 18, 100, 1, "例如 28"); ai.oninput = function () { me.age = Number(ai.value) || 0; };
       body.appendChild(field("年齡（選填）", ai, "歲"));
-      body.appendChild(el("p", "hint", "填咗性別同年齡會計得準啲。"));
       foot.appendChild(next);
     } else if (s === "body") {
       body.appendChild(el("h1", null, "身高同體重"));
-      var hi = el("input"), wi = el("input"), bmi = el("p", "bmi");
-      [hi, wi].forEach(function (i) { i.type = "number"; i.inputMode = "decimal"; });
-      hi.min = 120; hi.max = 220; hi.step = 0.5; hi.value = me.h || ""; hi.placeholder = "例如 165";
-      wi.min = 30; wi.max = 250; wi.step = 0.1; wi.value = me.w || ""; wi.placeholder = "例如 60";
+      var hi = numIn(me.h, 120, 220, 0.5, "例如 165"), wi = numIn(me.w, 30, 250, 0.1, "例如 60"), bmi = el("p", "bmi");
       var chk = function () {
         me.h = Number(hi.value) || 0; me.w = Number(wi.value) || 0;
-        var ok = me.h >= 120 && me.h <= 220 && me.w >= 30 && me.w <= 250; valid(ok);
-        if (ok) { var b = me.w / Math.pow(me.h / 100, 2); bmi.textContent = "BMI " + b.toFixed(1) + "（" + (b < 18.5 ? "過輕" : b < 23 ? "正常" : b < 25 ? "過重" : "肥胖") + "）"; } else bmi.textContent = "";
+        var ok = me.h >= 120 && me.h <= 220 && me.w >= 30 && me.w <= 250; next.disabled = !ok;
+        if (ok) { var b = me.w / Math.pow(me.h / 100, 2); bmi.textContent = "BMI " + b.toFixed(1) + "（" + (b < 18.5 ? "過輕" : b < 23 ? "標準" : b < 25 ? "過重" : "肥胖") + "）"; } else bmi.textContent = "";
       };
       hi.oninput = chk; wi.oninput = chk;
       body.appendChild(field("身高", hi, "cm")); body.appendChild(field("體重", wi, "kg")); body.appendChild(bmi);
       foot.appendChild(next); chk();
     } else if (s === "target") {
       body.appendChild(el("h1", null, me.goal === "cut" ? "想減到幾多？" : "想增到幾多？"));
-      var ti = el("input"); ti.type = "number"; ti.inputMode = "decimal"; ti.min = 30; ti.max = 250; ti.step = 0.1; ti.value = me.tw || ""; ti.placeholder = me.w ? String(me.goal === "cut" ? Math.round(me.w - 5) : Math.round(me.w + 3)) : "";
-      ti.oninput = function () { me.tw = Number(ti.value) || 0; };
+      var ti = numIn(me.tw, 30, 250, 0.1, me.w ? String(me.goal === "cut" ? Math.round(me.w - 5) : Math.round(me.w + 3)) : ""); ti.oninput = function () { me.tw = Number(ti.value) || 0; };
       body.appendChild(field("目標體重（選填）", ti, "kg"));
       body.appendChild(el("p", "hint", "想幾快？"));
       body.appendChild(seg([[0.5, "每週 0.5 kg", "穩陣，易維持"], [0.75, "每週 0.75 kg", "有少少挑戰"], [1, "每週 1 kg", "要配合運動"]], me.pace || 0.5, function (v) { me.pace = v; }, true));
       foot.appendChild(next);
     } else if (s === "act") {
       body.appendChild(el("h1", null, "平時郁得幾多？"));
-      body.appendChild(seg([[0, "少郁", "返工返學多數坐"], [1, "輕度", "每週運動 1–3 日"], [2, "中度", "每週運動 3–5 日"], [3, "高", "每週運動 6–7 日"]], me.act, function (v) { me.act = v; }, true));
+      body.appendChild(seg([[0, "坐定定", "返工返學多數坐"], [1, "輕度", "每週運動 1–3 日"], [2, "中度", "每週運動 3–5 日"], [3, "好活躍", "每週運動 6–7 日"]], me.act, function (v) { me.act = v; }, true));
       foot.appendChild(next);
     } else if (s === "tone") {
       body.appendChild(el("h1", null, "揀 Cary 把口"));
       body.appendChild(el("p", "hint", "每次影相記低，Cary 都會用呢個語氣評你一句。"));
-      body.appendChild(seg(Object.keys(TONES).map(function (k) { return [k, TONES[k][0]]; }), me.tone, function (v) { me.tone = v; }));
+      body.appendChild(seg(Object.keys(TONES).map(function (k) { return [k, TONES[k][3] + " " + TONES[k][0]]; }), me.tone, function (v) { me.tone = v; }));
       var ck = el("label", "check"), cb = el("input"); cb.type = "checkbox"; cb.checked = !!me.spicy; cb.onchange = function () { me.spicy = cb.checked; };
       ck.appendChild(cb); ck.appendChild(document.createTextNode("可以講粗口同講我身形（18+）")); body.appendChild(ck);
       foot.appendChild(next);
@@ -1026,33 +1571,44 @@ dialog.keydlg h2 { font-size: 1.2rem; font-weight: 900 }
       var mp = mePlan();
       body.appendChild(el("h1", null, "你嘅計劃準備好"));
       if (mp) {
-        var c = card(); var big = el("div", "big", mp.target + " "); big.appendChild(el("small", null, "kcal／日")); c.appendChild(big);
-        var tg = macroTargets(mp, 0); c.appendChild(el("p", "hint", "蛋白質 " + tg.p + " 克 · 碳水 " + tg.c + " 克 · 脂肪 " + tg.f + " 克 · 飲水 " + cupsGoal() + " 杯"));
-        if (mp.weeks) { var eta = new Date(); eta.setDate(eta.getDate() + mp.weeks * 7); c.appendChild(el("p", null, "大約 " + mp.weeks + " 個星期去到 " + mp.tw + " kg（" + eta.getFullYear() + " 年 " + (eta.getMonth() + 1) + " 月）。")); }
+        var c = el("div", "card"), big = el("div", "huge num", fmt(mp.target)); c.appendChild(big); c.appendChild(el("span", "hint", "kcal／日"));
+        var tg = targets(mp, 0); c.appendChild(el("p", "hint", "蛋白質 " + tg.p + " 克 · 碳水 " + tg.c + " 克 · 脂肪 " + tg.f + " 克 · 飲水 " + cupsGoal() + " 杯"));
+        if (mp.weeks) { var eta = addDays(today0(), mp.weeks * 7); c.appendChild(el("p", null, "大約 " + mp.weeks + " 個星期去到 " + mp.tw + " kg（" + eta.getFullYear() + " 年 " + (eta.getMonth() + 1) + " 月）。")); }
         if (mp.warn) c.appendChild(el("p", "warn", mp.warn));
         body.appendChild(c);
-      } else body.appendChild(el("p", "hint", "未有身高體重，遲啲喺「我」頁填返就得。"));
-      next.textContent = "開始用 Cary"; next.onclick = onbEnd; foot.appendChild(next);
+      } else body.appendChild(el("p", "hint", "未有身高體重，遲啲喺「個人」頁填返就得。"));
+      next.textContent = "開始用 Cary"; next.onclick = function () { cxSave(true); onbEnd(); }; foot.appendChild(next);
     }
     w.appendChild(body); w.appendChild(foot);
   }
 
-  /* ---- start: wait for the account (and its saved profile) before deciding whether to ask the first-run questions ---- */
+  /* ---- start ---- */
   function onbDone() { try { return localStorage.getItem("cary-onb") === "1"; } catch (e) { return false; } }
   var decided = false;
   function decide() { if (decided) return; decided = true; if (!onbDone() && !(me.h && me.w)) onbStart(0); }
-  render();
+  cxSave(true); render();
   dbReady.then(function (col) {
-    cloud = col || null;
-    render();
+    cloud = col || null; render();
     if (!col) { decide(); return; }
     setTimeout(decide, 4000);
     col.doc("profile").onSnapshot(function (snap) {
       var d = snap.exists ? snap.data() : null, cached = snap.metadata && snap.metadata.fromCache;
       if (!d && !cached && !meDirty && me.h && me.w) { meSave(); decide(); return; }
-      if (d && !meDirty && Number(d.t) !== me.t) { meClean(d); try { localStorage.setItem("recipe-maker-me", JSON.stringify(me)); } catch (e) {} fillMe(); render(); }
+      if (d && !meDirty && Number(d.t) !== me.t) { meClean(d); try { localStorage.setItem("recipe-maker-me", JSON.stringify(me)); } catch (e) {} soon(); }
       if (!cached) decide();
     }, function () { decide(); });
+    col.doc("cary").onSnapshot(function (snap) {
+      var d = snap.exists ? snap.data() : null, cached = snap.metadata && snap.metadata.fromCache;
+      if (!d && !cached && !cxDirty) { cxSave(true); return; }
+      if (d && !cxDirty && Number(d.t) !== cx.t) {
+        var localCount = cx.count, localBest = cx.best; cxClean(d); cx.count = Math.max(cx.count, localCount); cx.best = Math.max(cx.best, localBest);
+        try { localStorage.setItem("cary-extra", JSON.stringify(cx)); } catch (e) {} soon();
+      }
+    }, function () {});
+    col.doc("caryChat").get().then(function (snap) {
+      var d = snap.exists ? snap.data() : null;
+      if (d && Array.isArray(d.msgs) && Number(d.t) > 0 && (!chat.msgs.length || d.msgs.length >= chat.msgs.length)) { chat.msgs = d.msgs.slice(-80); chat.seen = Math.max(chat.seen, Number(d.seen) || 0); soon(); }
+    }, function () {});
     // Months saved only in this browser before signing in: merge them into the account, then drop the local copy.
     var keys = [];
     try { for (var i = 0; i < localStorage.length; i++) { var k = localStorage.key(i); if (/^recipe-maker-meals-\d{4}-\d{2}$/.test(k)) keys.push(k); } } catch (e) {}
@@ -1068,9 +1624,12 @@ dialog.keydlg h2 { font-size: 1.2rem; font-weight: 900 }
       }).then(function () { try { localStorage.removeItem(k); } catch (e) {} }, function () {});
     });
   });
-  // Midnight: move "today" along if the page stays open.
-  var lastDay = isoDay(new Date());
-  setInterval(function () { var d = isoDay(new Date()); if (d !== lastDay) { if (sel === lastDay) sel = d; lastDay = d; render(); } }, 60000);
+  // The account and API key buttons are added by app.js once the page has loaded; redraw so 個人 shows their state.
+  document.addEventListener("DOMContentLoaded", function () { setTimeout(soon, 50); });
+  // The API key dialog changes its button's label; dialogs do not bubble "close", so listen while capturing.
+  document.addEventListener("close", function (ev) { if (ev.target && ev.target.classList && ev.target.classList.contains("keydlg")) soon(); }, true);
+  var lastDay = isoDay(today0());
+  setInterval(function () { var d = isoDay(today0()); if (d !== lastDay) { if (sel === lastDay) sel = d; lastDay = d; soon(); } }, 60000);
 })();
 </script>
 </body>

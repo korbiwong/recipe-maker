@@ -110,6 +110,7 @@ p { margin: 0 }
 .cutrow .chip { font-size: 0.88rem; padding: 2px 10px }
 .numf { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; white-space: nowrap }
 .numf input { min-width: 0; width: 100% }
+.numf input[type="checkbox"] { width: 22px; height: 22px; flex: none; accent-color: var(--accent) }
 .big { font: 400 2.2rem/1.2 var(--display); color: var(--accent) }
 .rows { display: grid; gap: 6px; margin: 0 }
 .rows div { display: flex; justify-content: space-between; gap: 12px; border-bottom: 2px dashed var(--ink); padding: 6px 0 }
@@ -666,6 +667,7 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
       <div class="field">
         <div class="label"><span>影相評語語氣</span></div>
         <div class="chips seg" id="toneSeg" role="radiogroup" aria-label="評語語氣"></div>
+        <label class="numf"><input type="checkbox" id="meSpicy"> 可以講粗口同講我身形（18+）</label>
         <p class="hint">每次影相或者估卡路里，都會用呢個語氣評你餐嘢兩句；飲水同每週總結都會用呢個語氣。</p>
       </div>
       <div class="field">
@@ -765,7 +767,7 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
 
   /* ---- body profile and daily calorie target ---- */
   var GOAL = -2;
-  var me = { goal: "none", h: 0, w: 0, age: 0, sex: "", act: 1, t: 0, tw: 0, pace: 0.5, weeks: 0, tone: "roast", log: [], bf: 0, pd: "", cl: 28 };
+  var me = { goal: "none", h: 0, w: 0, age: 0, sex: "", act: 1, t: 0, tw: 0, pace: 0.5, weeks: 0, tone: "roast", spicy: false, log: [], bf: 0, pd: "", cl: 28 };
   // Voice of the one-line comments: [label, voice for the prompt, "en" when the comments are in English, water lines].
   // Water lines: no cups yet, first cup, under half, nearly there, goal reached, well over the goal.
   var TONES = {
@@ -785,10 +787,18 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
   };
   function roastRule() {
     var t = TONES[me.tone] || TONES.roast; if (!t[1]) return "";
-    return "roast: one short comment on this food " + (t[2] === "en" ? "in casual English, at most 15 words" : "in colloquial Hong Kong Cantonese written in Traditional Chinese, at most 40 characters") + ", in the voice of " + t[1] + ". Comment on the food and the choice (its oil, sugar, salt, portion, timing or how healthy it is); for a healthy choice give grudging or warm praise. Keep it playful: no swearing, and never comment on the person's body, weight or looks.";
+    return "roast: one short comment on this food " + (t[2] === "en" ? "in casual English, at most 15 words" : "in colloquial Hong Kong Cantonese written in Traditional Chinese, at most 40 characters") + ", in the voice of " + t[1] + ". Comment on the food and the choice (its oil, sugar, salt, portion, timing or how healthy it is); for a healthy choice give grudging or warm praise. " + limitsRule();
   }
+  // With "spicy" on, the person has asked for swearing and jokes about their own body.
+  function limitsRule() {
+    if (!me.spicy) return "Keep it playful: no swearing, and never comment on the person's body, weight or looks.";
+    var info = [me.h ? me.h + " cm tall" : "", me.w ? "weighs " + me.w + " kg" : "", me.tw ? "wants to reach " + me.tw + " kg" : ""].filter(Boolean).join(", ");
+    return "The person has opted in to a harsh roast: Cantonese swearing (粗口) is welcome, and you may tease them about their body, belly and weight" + (info ? " (they are " + info + ")" : "") + ". Still no slurs about race, religion, sexuality or disability, and never encourage skipping meals, vomiting, or eating far too little.";
+  }
+  var SPICY_WATER = ["成朝一滴水都未飲，乾到好似條鹹魚咁，快啲去飲啦屌。", "一杯咋？你個肚腩都飲多過你。", "飲咁少，難怪啲脂肪死都唔肯走，on9。", "就快夠喇，唔好喺最後關頭 hea 啦仆街。", "夠數喇，今日終於有啲人樣。", "飲咁多水，想浸大個肚腩呀？去痾尿啦。"];
   function waterLine(n, goal) {
-    var L = (TONES[me.tone] || TONES.roast)[3]; if (!L) return "";
+    var T = TONES[me.tone] || TONES.roast, L = T[3]; if (!L) return "";
+    if (me.spicy && !T[2]) L = SPICY_WATER;
     return L[n === 0 ? 0 : n === 1 ? 1 : n >= goal + 3 ? 5 : n >= goal ? 4 : n * 2 < goal ? 2 : 3];
   }
   // Day of the menstrual cycle (1 = first day of the last period) and its phase, when the dates are filled in.
@@ -804,6 +814,7 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
   function meClean(v) {
     if (!v || typeof v !== "object") return;
     me.tone = TONES[v.tone] ? v.tone : "roast";
+    me.spicy = v.spicy === true;
     me.bf = Number(v.bf) >= 5 && Number(v.bf) <= 60 ? Number(v.bf) : 0;
     me.pd = /^\d{4}-\d{2}-\d{2}$/.test(v.pd || "") ? v.pd : "";
     me.cl = Number(v.cl) >= 20 && Number(v.cl) <= 45 ? Math.round(Number(v.cl)) : 28;
@@ -2872,7 +2883,7 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
             "The person's last 7 days: " + stats.map(function (s) { return s[0] + " " + s[1]; }).join("; ") + "." + (mp ? " Their daily calorie target is " + mp.target + " kcal." : ""),
             "Daily calories: " + L.map(function (d) { return d.k || "not logged"; }).join(", ") + ".",
             "Write 2 or 3 sentences " + (t[2] === "en" ? "in casual English" : "in colloquial Hong Kong Cantonese written in Traditional Chinese") + ", in the voice of " + t[1] + ": what went well, what did not, and one concrete thing to do next week.",
-            "Keep it playful: no swearing, and never comment on the person's body, weight or looks.",
+            limitsRule(),
             "Reply with only JSON in this shape, no other text:", '{"review":""}'].join("\n");
           sample.json(prompt, { signal: ctl.signal, cache: false }).then(function (raw) {
             busy(false);
@@ -2972,12 +2983,14 @@ body { padding-top: max(28px, env(safe-area-inset-top, 0px)) }
     $("meTW").value = me.tw || ""; $("meWeeks").value = me.weeks || "";
     radio("paceSeg", [[0.5, "每週 0.5 kg"], [0.75, "每週 0.75 kg"], [1, "每週 1 kg"], [0, "自己定期限"]], "pace");
     radio("toneSeg", Object.keys(TONES).map(function (k) { return [k, TONES[k][0]]; }), "tone");
+    $("meSpicy").checked = !!me.spicy;
     $("meBF").value = me.bf || ""; $("mePD").value = me.pd || ""; $("meCL").value = me.cl || 28;
     drawMeOut();
   }
   [["meH", "h"], ["meW", "w"], ["meAge", "age"], ["meTW", "tw"], ["meWeeks", "weeks"], ["meBF", "bf"], ["meCL", "cl"]].forEach(function (f) {
     $(f[0]).addEventListener("input", function () { me[f[1]] = Number($(f[0]).value) || 0; if (f[1] === "bf" && !(me.bf >= 5 && me.bf <= 60)) me.bf = 0; meSave(); });
   });
+  $("meSpicy").addEventListener("change", function () { me.spicy = $("meSpicy").checked; meSave(); });
   $("mePD").addEventListener("change", function () { me.pd = /^\d{4}-\d{2}-\d{2}$/.test($("mePD").value) ? $("mePD").value : ""; meSave(); });
   /* ---- meal reminders: a calendar file with a daily event and alert at each meal time ---- */
   $("rmGo").onclick = function () {
